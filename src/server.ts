@@ -14,7 +14,7 @@ export const createServer = async () => {
 
     //On indique les cors (qui peut emettre des call depuis notre API)
     server.use(cors({
-        origin:"http://localhost:1234"
+        origin:["http://localhost:1234","https://myhappywallet.andriacapai.com"]
     }))
 
     //On rajoute le router à notre server

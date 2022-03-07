@@ -10,7 +10,7 @@
     "dev": "nodemon dist/index.js",
     "build": "npx tsc",
     "db:migrate": "npx prisma migrate dev",
-    "db:visualize": "DATABASE_URL=\"mysql://andria:12345@localhost:3306/myhappywallet?schema=public\" npx prisma studio",
+    "db:visualize": "npx prisma studio",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
