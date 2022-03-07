@@ -4,9 +4,13 @@
   "description": "Dans ce projet je mettrais toutes les tâches liées au Backend de mon projet \"Chef d'oeuvre\" CDA .",
   "main": "index.js",
   "scripts": {
+    "db:pull":"npx prisma db pull",
+    "prisma:generate":"npx prisma generate",
     "watch": "npx tsc -w",
     "dev": "nodemon dist/index.js",
     "build": "npx tsc",
+    "db:migrate": "DATABASE_URL=\"mysql://andria:12345@localhost:3306/myhappywallet?schema=public\" npx prisma migrate dev",
+    "db:visualize": "DATABASE_URL=\"mysql://andria:12345@localhost:3306/myhappywallet?schema=public\" npx prisma studio",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -33,5 +37,8 @@
     "@types/express": "^4.17.13",
     "dotenv": "^16.0.0",
     "express": "^4.17.3"
+  },  
+  "prisma": {
+    "schema": "./src/database/schema.prisma"
   }
 }

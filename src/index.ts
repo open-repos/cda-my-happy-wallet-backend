@@ -1,7 +1,7 @@
 // import suelement de la fonction depuis le fichier server.ts
 // import possible car on a "export" la fonction
 import {createServer} from "./server"
-import {PORT,NODE_ENV} from "./config"
+import {PORT} from "./config"
 import { prisma } from "./database/index";
 
 
