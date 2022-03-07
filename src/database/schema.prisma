@@ -13,77 +13,7 @@ model Administrateur {
   firstname String @db.VarChar(50)
   lastname  String @db.VarChar(50)
   password  String @db.VarChar(120)
-  email     String @db.VarChar(255)
-}
-
-model Categorie {
-  idCategorie Int       @id @default(autoincrement())
-  categorie   String   @db.VarChar(50)
-  created_at  DateTime @default(now()) @db.Timestamp(0)
-  updated_at  DateTime @default(now()) @db.DateTime(0)
-}
-
-model ChargeFixe {
-  idOperationFixe Int       @id
-  idChargeFixe    Int
-  created_at      DateTime @default(now()) @db.Timestamp(0)
-  updated_at      DateTime @default(now()) @db.DateTime(0)
-}
-
-model DEPENSE {
-  idOperation Int
-  idUser      Int
-  created_at  DateTime @default(now()) @db.Timestamp(0)
-  updated_at  DateTime @default(now()) @db.DateTime(0)
-
-  @@id([idOperation, idUser])
-}
-
-model ENTREE {
-  idOperation Int
-  idUser      Int
-  created_at  DateTime @default(now()) @db.Timestamp(0)
-  updated_at  DateTime @default(now()) @db.DateTime(0)
-
-  @@id([idOperation, idUser])
-}
-
-model EvenementMensuel {
-  idListEventObject  Int       @id
-  idEvenementMensuel Int
-  date               DateTime @db.Date
-  created_at         DateTime @default(now()) @db.Timestamp(0)
-  updated_at         DateTime @default(now()) @db.DateTime(0)
-}
-
-model ListeEventObj {
-  idListEventObject Int      @id @default(autoincrement())
-  titre             String  @db.VarChar(50)
-  montant           Decimal @db.Decimal(10, 0)
-  devise            String  @db.VarChar(3)
-}
-
-model Notification {
-  idNotif  Int       @id @default(autoincrement())
-  message  String   @db.VarChar(255)
-  dateSent DateTime @db.Date
-  idUser   Int
-}
-
-model ObjectifFinancier {
-  idListEventObject   Int       @id
-  idObjectifFinancier Int?
-  dateObjectifAtteint DateTime? @db.Date
-  created_at          DateTime? @default(now()) @db.Timestamp(0)
-  updated_at          DateTime? @default(now()) @db.DateTime(0)
-}
-
-model Operation {
-  idOperation Int      @id @default(autoincrement())
-  titre       String  @db.VarChar(50)
-  montant     Decimal @db.Decimal(10, 0)
-  devise      String  @db.VarChar(3)
-  idCategorie Int
+  email     String @db.VarChar(255) @unique
 }
 
 model OperationFixe {
@@ -91,10 +21,153 @@ model OperationFixe {
   titre           String  @db.VarChar(50)
   montant         Decimal @db.Decimal(10, 0)
   devise          String?  @db.VarChar(3)
+  typeOperation  TypeOperationFixeEnum @default(CHARGE)
+  // Charge ChargeFixe? @relation(fields: [idChargeFixe],references: [typeOperation])
+  // Revenu Revenu? @relation(fields: [idRevenu],references: [typeOperation])
+  // idChargeFixe String?
+  // idRevenu String?
+}
+
+// model ChargeFixe {
+//   // idOperationFixe Int       @id
+//   // idChargeFixe    Int
+//   operations   OperationFixe[] // @relation(fields: [operationId], references: [id]) // A comment can have one post
+//   typeOperation String @default("Charge")  @unique
+//   // titre           String  @db.VarChar(50)
+//   // montant         Decimal @db.Decimal(10, 0)
+//   // devise          String?  @db.VarChar(3)
+//   // created_at      DateTime @default(now()) @db.Timestamp(0)
+//   // updated_at      DateTime @default(now()) @db.DateTime(0)
+// }
+
+// model Revenu {
+//   // idRevenuFixe    Int
+//   operations   OperationFixe[] // @relation(fields: [operationId], references: [id]) // A comment can have one post
+//   typeOperation String @default("Revenu")  @unique
+//   // idOperationFixe Int       @id
+//   // idRevenu        Int
+//   // created_at      DateTime @default(now()) @db.Timestamp(0)
+//   // updated_at      DateTime @default(now()) @db.DateTime(0)
+// }
+
+// model Depense {
+//   // idUser      Int
+//   // titre           String  @db.VarChar(50)
+//   // montant         Decimal @db.Decimal(10, 0)
+//   // devise          String?  @db.VarChar(3)
+//   // created_at  DateTime @default(now()) @db.Timestamp(0)
+//   // updated_at  DateTime @default(now()) @db.DateTime(0)
+//   operations   Operation[] // @relation(fields: [operationId], references: [id]) // A comment can have one post
+//   typeOperation String @default("depense")  @unique
+// }
+
+// model Entree {
+//   // id Int
+//   // idUser      Int
+//   // titre           String  @db.VarChar(50)
+//   // montant         Decimal @db.Decimal(10, 0)
+//   // devise          String?  @db.VarChar(3)
+//   // created_at  DateTime @default(now()) @db.Timestamp(0)
+//   // updated_at  DateTime @default(now()) @db.DateTime(0)
+//   operations   Operation[]// @relation(fields: [operationId], references: [id]) // A comment can have one post
+//   // operationId Int
+//   typeOperation String @default("entree") @unique
+//   // @@id([id, idUser])
+// }
+
+model EvenementMensuel {
+  // idListEventObject  Int       @id
+  // idEvenementMensuel Int
+  id Int  @id @default(autoincrement())
+  titre             String  @db.VarChar(50)
+  montant           Decimal @db.Decimal(10, 0)
+  devise            String  @db.VarChar(3)
+  created_at         DateTime @default(now()) @db.Timestamp(0)
+  updated_at         DateTime @default(now()) @db.DateTime(0)
+  Utilisateur Utilisateur @relation(fields:[userId], references:[id])
+  userId Int
+}
+
+// model ListeEventObj {
+//   idListEventObject Int      @id @default(autoincrement())
+//   titre             String  @db.VarChar(50)
+//   montant           Decimal @db.Decimal(10, 0)
+//   devise            String  @db.VarChar(3)
+// }
+model Utilisateur {
+  id    Int     @id @default(autoincrement())
+  firstname String  @db.VarChar(50)
+  lastname  String @db.VarChar(50)
+  password  String @db.VarChar(120)
+  email     String @db.VarChar(255) @unique
+  idRaV     Int
+  restantAVivreFictif ResteAVivreFictif?
+  restantAVivre ResteAVivre?
+  notifications Notification?
+  operations Operation?
+  objectifFinancier ObjectifFinancier?
+  evenementsMensuel EvenementMensuel?
+}
+
+
+model Notification {
+  idNotif  Int       @id @default(autoincrement())
+  message  String   @db.VarChar(255)
+  dateSent DateTime @db.Date
+  Utilisateur Utilisateur @relation(fields:[userId], references:[id])
+  userId   Int
+}
+
+model ObjectifFinancier {
+  id   Int       @id @default(autoincrement())
+  titre             String  @db.VarChar(50)
+  montant           Decimal @db.Decimal(10, 0)
+  devise            String  @db.VarChar(3)
+  dateObjectifAtteint DateTime? @db.Date
+  created_at          DateTime @default(now()) @db.Timestamp(0)
+  updated_at          DateTime @default(now()) @db.DateTime(0)
+  Utilisateur Utilisateur @relation(fields:[userId], references:[id])
+  userId Int
+}
+
+model Operation {
+  id Int      @id @default(autoincrement())
+  titre       String  @db.VarChar(50)
+  montant     Decimal @db.Decimal(10, 0)
+  devise      String  @db.VarChar(3)
+  User Utilisateur @relation(fields: [userId],references: [id])
+  userId Int
+  idCategorie Int
+  // type TypeOperation[] @relation(references:[id])
+  // type TypeOperationEnum @default(DEPENSE)
+  Categorie Categorie @relation(fields: [idCategorie],references: [id])
+  ponctuel Ponctuel?
+  periodique Periodique?
+  typeOperation TypeOperation @relation(fields: [idTypeOperation],references: [id])
+  idTypeOperation Int
+  // Depense Depense? @relation(fields: [depenseId],references: [typeOperation])
+  // Entree Entree? @relation(fields: [entreeId],references: [typeOperation])
+  // depenseId String?
+  // entreeId String?
+}
+
+model Categorie {
+  id Int       @id @default(autoincrement())
+  categorie   String   @db.VarChar(50)
+  created_at  DateTime @default(now()) @db.Timestamp(0)
+  updated_at  DateTime @default(now()) @db.DateTime(0)
+  operations Operation[]
+}
+
+model TypeOperation {
+  id Int      @id @default(autoincrement())
+  typeOperation TypeOperationEnum
+  operations Operation[]
 }
 
 model Periodique {
-  idOperation    Int       @id
+  idPeriodique  Int       @id @default(autoincrement())
+  operations Operation @relation(fields:[idPeriodique], references:[id])
   periode        String?   @db.VarChar(7)
   occurence      Int?
   debutOccurence DateTime? @db.Date
@@ -102,7 +175,8 @@ model Periodique {
 }
 
 model Ponctuel {
-  idOperation Int @id
+  idPonctuel  Int       @id @default(autoincrement())
+  operations Operation @relation(fields:[idPonctuel], references:[id])
 }
 
 model ResteAVivre {
@@ -112,7 +186,8 @@ model ResteAVivre {
   montantTotalEntree  Decimal  @db.Decimal(10, 0)
   created_at          DateTime @default(now()) @db.Timestamp(0)
   updated_at          DateTime @default(now()) @db.DateTime(0)
-  idOperationFixe     Int
+  User Utilisateur @relation(fields: [userId],references: [id])
+  userId Int
 }
 
 model ResteAVivreFictif {
@@ -122,21 +197,16 @@ model ResteAVivreFictif {
   montantTotalEntree  Decimal  @db.Decimal(10, 0)
   created_at          DateTime @default(now()) @db.Timestamp(0)
   updated_at          DateTime @default(now()) @db.DateTime(0)
-  idUser              Int?
+  userId              Int
+  User Utilisateur @relation(fields: [userId],references: [id])
 }
 
-model Revenu {
-  idOperationFixe Int       @id
-  idRevenu        Int
-  created_at      DateTime @default(now()) @db.Timestamp(0)
-  updated_at      DateTime @default(now()) @db.DateTime(0)
+enum TypeOperationEnum{
+  DEPENSE
+  ENTREE
 }
 
-model Utilisateur {
-  idUser    Int     @id @default(autoincrement())
-  firstname String  @db.VarChar(50)
-  lastname  String @db.VarChar(50)
-  password  String @db.VarChar(120)
-  email     String @db.VarChar(255) @unique
-  idRaV     Int
+enum TypeOperationFixeEnum{
+  CHARGE
+  REVENU
 }
