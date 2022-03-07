@@ -5,35 +5,36 @@ generator client {
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
+  // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model Administrateur {
   idAdmin   Int     @id @default(autoincrement())
-  firstname String? @db.VarChar(50)
-  lastname  String? @db.VarChar(50)
-  password  String? @db.VarChar(120)
-  email     String? @db.VarChar(255)
+  firstname String @db.VarChar(50)
+  lastname  String @db.VarChar(50)
+  password  String @db.VarChar(120)
+  email     String @db.VarChar(255)
 }
 
 model Categorie {
   idCategorie Int       @id @default(autoincrement())
-  categorie   String?   @db.VarChar(50)
-  created_at  DateTime? @default(now()) @db.Timestamp(0)
-  updated_at  DateTime? @default(now()) @db.DateTime(0)
+  categorie   String   @db.VarChar(50)
+  created_at  DateTime @default(now()) @db.Timestamp(0)
+  updated_at  DateTime @default(now()) @db.DateTime(0)
 }
 
 model ChargeFixe {
   idOperationFixe Int       @id
-  idChargeFixe    Int?
-  created_at      DateTime? @default(now()) @db.Timestamp(0)
-  updated_at      DateTime? @default(now()) @db.DateTime(0)
+  idChargeFixe    Int
+  created_at      DateTime @default(now()) @db.Timestamp(0)
+  updated_at      DateTime @default(now()) @db.DateTime(0)
 }
 
 model DEPENSE {
   idOperation Int
   idUser      Int
-  created_at  DateTime? @default(now()) @db.Timestamp(0)
-  updated_at  DateTime? @default(now()) @db.DateTime(0)
+  created_at  DateTime @default(now()) @db.Timestamp(0)
+  updated_at  DateTime @default(now()) @db.DateTime(0)
 
   @@id([idOperation, idUser])
 }
@@ -41,32 +42,32 @@ model DEPENSE {
 model ENTREE {
   idOperation Int
   idUser      Int
-  created_at  DateTime? @default(now()) @db.Timestamp(0)
-  updated_at  DateTime? @default(now()) @db.DateTime(0)
+  created_at  DateTime @default(now()) @db.Timestamp(0)
+  updated_at  DateTime @default(now()) @db.DateTime(0)
 
   @@id([idOperation, idUser])
 }
 
 model EvenementMensuel {
   idListEventObject  Int       @id
-  idEvenementMensuel Int?
-  date               DateTime? @db.Date
-  created_at         DateTime? @default(now()) @db.Timestamp(0)
-  updated_at         DateTime? @default(now()) @db.DateTime(0)
+  idEvenementMensuel Int
+  date               DateTime @db.Date
+  created_at         DateTime @default(now()) @db.Timestamp(0)
+  updated_at         DateTime @default(now()) @db.DateTime(0)
 }
 
 model ListeEventObj {
   idListEventObject Int      @id @default(autoincrement())
-  titre             String?  @db.VarChar(50)
-  montant           Decimal? @db.Decimal(10, 0)
-  devise            String?  @db.VarChar(3)
+  titre             String  @db.VarChar(50)
+  montant           Decimal @db.Decimal(10, 0)
+  devise            String  @db.VarChar(3)
 }
 
 model Notification {
   idNotif  Int       @id @default(autoincrement())
-  message  String?   @db.VarChar(255)
-  dateSent DateTime? @db.Date
-  idUser   Int?
+  message  String   @db.VarChar(255)
+  dateSent DateTime @db.Date
+  idUser   Int
 }
 
 model ObjectifFinancier {
@@ -79,16 +80,16 @@ model ObjectifFinancier {
 
 model Operation {
   idOperation Int      @id @default(autoincrement())
-  titre       String?  @db.VarChar(50)
-  montant     Decimal? @db.Decimal(10, 0)
-  devise      String?  @db.VarChar(3)
-  idCategorie Int?
+  titre       String  @db.VarChar(50)
+  montant     Decimal @db.Decimal(10, 0)
+  devise      String  @db.VarChar(3)
+  idCategorie Int
 }
 
 model OperationFixe {
   idOperationFixe Int      @id @default(autoincrement())
-  titre           String?  @db.VarChar(50)
-  montant         Decimal? @db.Decimal(10, 0)
+  titre           String  @db.VarChar(50)
+  montant         Decimal @db.Decimal(10, 0)
   devise          String?  @db.VarChar(3)
 }
 
@@ -106,36 +107,36 @@ model Ponctuel {
 
 model ResteAVivre {
   idRaV               Int       @id @default(autoincrement())
-  montantRaV          Decimal?  @db.Decimal(10, 0)
-  montantTotalDepense Decimal?  @db.Decimal(10, 0)
-  montantTotalEntree  Decimal?  @db.Decimal(10, 0)
-  created_at          DateTime? @default(now()) @db.Timestamp(0)
-  updated_at          DateTime? @default(now()) @db.DateTime(0)
-  idOperationFixe     Int?
+  montantRaV          Decimal  @db.Decimal(10, 0)
+  montantTotalDepense Decimal  @db.Decimal(10, 0)
+  montantTotalEntree  Decimal  @db.Decimal(10, 0)
+  created_at          DateTime @default(now()) @db.Timestamp(0)
+  updated_at          DateTime @default(now()) @db.DateTime(0)
+  idOperationFixe     Int
 }
 
 model ResteAVivreFictif {
   idRaVf              Int       @id @default(autoincrement())
-  montantRaVf         Decimal?  @db.Decimal(10, 0)
-  montantTotalDepense Decimal?  @db.Decimal(10, 0)
-  montantTotalEntree  Decimal?  @db.Decimal(10, 0)
-  created_at          DateTime? @default(now()) @db.Timestamp(0)
-  updated_at          DateTime? @default(now()) @db.DateTime(0)
+  montantRaVf         Decimal  @db.Decimal(10, 0)
+  montantTotalDepense Decimal  @db.Decimal(10, 0)
+  montantTotalEntree  Decimal  @db.Decimal(10, 0)
+  created_at          DateTime @default(now()) @db.Timestamp(0)
+  updated_at          DateTime @default(now()) @db.DateTime(0)
   idUser              Int?
 }
 
 model Revenu {
   idOperationFixe Int       @id
-  idRevenu        Int?
-  created_at      DateTime? @default(now()) @db.Timestamp(0)
-  updated_at      DateTime? @default(now()) @db.DateTime(0)
+  idRevenu        Int
+  created_at      DateTime @default(now()) @db.Timestamp(0)
+  updated_at      DateTime @default(now()) @db.DateTime(0)
 }
 
 model Utilisateur {
   idUser    Int     @id @default(autoincrement())
   firstname String  @db.VarChar(50)
-  lastname  String? @db.VarChar(50)
-  password  String? @db.VarChar(120)
-  email     String? @db.VarChar(255)
-  idRaV     Int?
+  lastname  String @db.VarChar(50)
+  password  String @db.VarChar(120)
+  email     String @db.VarChar(255) @unique
+  idRaV     Int
 }
