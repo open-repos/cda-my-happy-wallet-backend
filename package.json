@@ -1,0 +1,23 @@
+{
+  "name": "projet-00-myhappywallet-backend",
+  "version": "1.0.0",
+  "description": "Dans ce projet je mettrais toutes les tâches liées au Backend de mon projet \"Chef d'oeuvre\" CDA .",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@gitlab.com:formation-cda1/projet-chef-oeuvre-rapport/projet-00-myhappywallet-backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^17.0.21",
+    "nodemon": "^2.0.15",
+    "prisma": "^3.10.0",
+    "ts-node": "^10.7.0",
+    "typescript": "^4.6.2"
+  }
+}
