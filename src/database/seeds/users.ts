@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client"
 
+
 export const users: Prisma.UtilisateurCreateInput[] = [
     {firstname:"Thibault",
     lastname:'Dupont',
@@ -25,6 +26,38 @@ export const users: Prisma.UtilisateurCreateInput[] = [
             devise:'EUR',
         },
     ]  
+    },
+    operations:{
+        create:[
+           {
+            titre:"Restaurant entre amis",
+            montant:25,
+            type:'DEPENSE',
+            devise:'EUR',
+            dateOperation: new Date(2022,0,10),
+            idCategorie:2,
+            // userId: 1,
+            
+        },
+        {
+            titre:"Cinema",
+            montant:10,
+            type:'DEPENSE',
+            devise:'EUR',
+            dateOperation: new Date(2022,0,9),
+            idCategorie:1,
+            // userId: 1,
+        },
+        {
+            titre:"Courses",
+            montant:90,
+            type:'DEPENSE',
+            devise:'EUR',
+            dateOperation: new Date(2022,0,9),
+            idCategorie:2,
+            // userId: 1,
+        }
+        ]
     }
     }
 ]

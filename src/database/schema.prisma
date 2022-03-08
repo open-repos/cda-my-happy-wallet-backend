@@ -19,7 +19,7 @@ model Administrateur {
 model OperationFixe {
   idOperationFixe Int      @id @default(autoincrement())
   titre           String  @db.VarChar(50)
-  montant         Decimal @db.Decimal(10, 1)
+  montant         Decimal @db.Decimal(10, 2)
   devise          String?  @db.VarChar(3)
   typeOperation  TypeOperationFixeEnum @default(CHARGE)
   User Utilisateur @relation(fields: [userId],references: [id])
@@ -38,7 +38,7 @@ model EvenementMensuel {
   // idEvenementMensuel Int
   id Int  @id @default(autoincrement())
   titre             String  @db.VarChar(50)
-  montant           Decimal @db.Decimal(10, 1)
+  montant           Decimal @db.Decimal(10, 2)
   devise            String  @db.VarChar(3)
   created_at         DateTime @default(now()) @db.Timestamp(0)
   updated_at         DateTime @default(now()) @db.DateTime(0)
@@ -53,13 +53,13 @@ model Utilisateur {
   lastname  String @db.VarChar(50)
   password  String @db.VarChar(120)
   email     String @db.VarChar(255) @unique
-  restantAVivreFictif ResteAVivreFictif?
-  restantAVivre ResteAVivre?
-  notifications Notification?
-  operations Operation?
+  restantAVivreFictif ResteAVivreFictif[]
+  restantAVivre ResteAVivre[]
+  notifications Notification[]
+  operations Operation[]
   operationsFixes OperationFixe[]
-  objectifFinancier ObjectifFinancier?
-  evenementsMensuel EvenementMensuel?
+  objectifFinancier ObjectifFinancier[]
+  evenementsMensuel EvenementMensuel[]
   created_at  DateTime @default(now()) @db.Timestamp(0)
   updated_at  DateTime @default(now()) @db.DateTime(0)
 }
@@ -76,7 +76,7 @@ model Notification {
 model ObjectifFinancier {
   id   Int       @id @default(autoincrement())
   titre             String  @db.VarChar(50)
-  montant           Decimal @db.Decimal(10, 1)
+  montant           Decimal @db.Decimal(10, 2)
   devise            String  @db.VarChar(3)
   dateObjectifAtteint DateTime? @db.Date
   created_at          DateTime @default(now()) @db.Timestamp(0)
@@ -88,17 +88,17 @@ model ObjectifFinancier {
 model Operation {
   id Int      @id @default(autoincrement())
   titre       String  @db.VarChar(50)
-  montant     Decimal @db.Decimal(10, 1)
+  montant     Decimal @db.Decimal(10, 2)
   devise      String  @db.VarChar(3)
-  User Utilisateur @relation(fields: [userId],references: [id])
-  userId Int
   idCategorie Int
-  // type TypeOperation[] @relation(references:[id])
+  userId Int
+  dateOperation DateTime  @db.Date
   type TypeOperationEnum @default(DEPENSE)
+  User Utilisateur @relation(fields: [userId],references: [id])
+  // type TypeOperation[] @relation(references:[id])
   Categorie Categorie @relation(fields: [idCategorie],references: [id])
-  ponctuel Ponctuel?
+  // ponctuel Ponctuel []
   periodique Periodique?
-
   created_at  DateTime @default(now()) @db.Timestamp(0)
   updated_at  DateTime @default(now()) @db.DateTime(0)
 }
@@ -126,10 +126,10 @@ model Periodique {
   finOccurence   DateTime? @db.Date
 }
 
-model Ponctuel {
-  idPonctuel  Int       @id @default(autoincrement())
-  operations Operation @relation(fields:[idPonctuel], references:[id])
-}
+// model Ponctuel {
+//   idPonctuel  Int       @id @default(autoincrement())
+//   operations Operation @relation(fields:[idPonctuel], references:[id])
+// }
 
 model ResteAVivre {
   idRaV               Int       @id @default(autoincrement())
