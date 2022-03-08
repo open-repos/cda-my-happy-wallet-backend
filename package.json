@@ -39,6 +39,7 @@
     "express": "^4.17.3"
   },  
   "prisma": {
-    "schema": "./src/database/schema.prisma"
+    "schema": "./src/database/schema.prisma",
+    "seed": "ts-node ./src/database/seed.ts"
   }
 }

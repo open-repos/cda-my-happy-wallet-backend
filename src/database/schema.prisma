@@ -19,68 +19,26 @@ model Administrateur {
 model OperationFixe {
   idOperationFixe Int      @id @default(autoincrement())
   titre           String  @db.VarChar(50)
-  montant         Decimal @db.Decimal(10, 0)
+  montant         Decimal @db.Decimal(10, 1)
   devise          String?  @db.VarChar(3)
   typeOperation  TypeOperationFixeEnum @default(CHARGE)
+  User Utilisateur @relation(fields: [userId],references: [id])
+  userId Int
+  created_at  DateTime @default(now()) @db.Timestamp(0)
+  updated_at  DateTime @default(now()) @db.DateTime(0)
   // Charge ChargeFixe? @relation(fields: [idChargeFixe],references: [typeOperation])
   // Revenu Revenu? @relation(fields: [idRevenu],references: [typeOperation])
   // idChargeFixe String?
   // idRevenu String?
+  // @@index([userId], name: "userId")
 }
-
-// model ChargeFixe {
-//   // idOperationFixe Int       @id
-//   // idChargeFixe    Int
-//   operations   OperationFixe[] // @relation(fields: [operationId], references: [id]) // A comment can have one post
-//   typeOperation String @default("Charge")  @unique
-//   // titre           String  @db.VarChar(50)
-//   // montant         Decimal @db.Decimal(10, 0)
-//   // devise          String?  @db.VarChar(3)
-//   // created_at      DateTime @default(now()) @db.Timestamp(0)
-//   // updated_at      DateTime @default(now()) @db.DateTime(0)
-// }
-
-// model Revenu {
-//   // idRevenuFixe    Int
-//   operations   OperationFixe[] // @relation(fields: [operationId], references: [id]) // A comment can have one post
-//   typeOperation String @default("Revenu")  @unique
-//   // idOperationFixe Int       @id
-//   // idRevenu        Int
-//   // created_at      DateTime @default(now()) @db.Timestamp(0)
-//   // updated_at      DateTime @default(now()) @db.DateTime(0)
-// }
-
-// model Depense {
-//   // idUser      Int
-//   // titre           String  @db.VarChar(50)
-//   // montant         Decimal @db.Decimal(10, 0)
-//   // devise          String?  @db.VarChar(3)
-//   // created_at  DateTime @default(now()) @db.Timestamp(0)
-//   // updated_at  DateTime @default(now()) @db.DateTime(0)
-//   operations   Operation[] // @relation(fields: [operationId], references: [id]) // A comment can have one post
-//   typeOperation String @default("depense")  @unique
-// }
-
-// model Entree {
-//   // id Int
-//   // idUser      Int
-//   // titre           String  @db.VarChar(50)
-//   // montant         Decimal @db.Decimal(10, 0)
-//   // devise          String?  @db.VarChar(3)
-//   // created_at  DateTime @default(now()) @db.Timestamp(0)
-//   // updated_at  DateTime @default(now()) @db.DateTime(0)
-//   operations   Operation[]// @relation(fields: [operationId], references: [id]) // A comment can have one post
-//   // operationId Int
-//   typeOperation String @default("entree") @unique
-//   // @@id([id, idUser])
-// }
 
 model EvenementMensuel {
   // idListEventObject  Int       @id
   // idEvenementMensuel Int
   id Int  @id @default(autoincrement())
   titre             String  @db.VarChar(50)
-  montant           Decimal @db.Decimal(10, 0)
+  montant           Decimal @db.Decimal(10, 1)
   devise            String  @db.VarChar(3)
   created_at         DateTime @default(now()) @db.Timestamp(0)
   updated_at         DateTime @default(now()) @db.DateTime(0)
@@ -88,25 +46,22 @@ model EvenementMensuel {
   userId Int
 }
 
-// model ListeEventObj {
-//   idListEventObject Int      @id @default(autoincrement())
-//   titre             String  @db.VarChar(50)
-//   montant           Decimal @db.Decimal(10, 0)
-//   devise            String  @db.VarChar(3)
-// }
+
 model Utilisateur {
   id    Int     @id @default(autoincrement())
   firstname String  @db.VarChar(50)
   lastname  String @db.VarChar(50)
   password  String @db.VarChar(120)
   email     String @db.VarChar(255) @unique
-  idRaV     Int
   restantAVivreFictif ResteAVivreFictif?
   restantAVivre ResteAVivre?
   notifications Notification?
   operations Operation?
+  operationsFixes OperationFixe[]
   objectifFinancier ObjectifFinancier?
   evenementsMensuel EvenementMensuel?
+  created_at  DateTime @default(now()) @db.Timestamp(0)
+  updated_at  DateTime @default(now()) @db.DateTime(0)
 }
 
 
@@ -121,7 +76,7 @@ model Notification {
 model ObjectifFinancier {
   id   Int       @id @default(autoincrement())
   titre             String  @db.VarChar(50)
-  montant           Decimal @db.Decimal(10, 0)
+  montant           Decimal @db.Decimal(10, 1)
   devise            String  @db.VarChar(3)
   dateObjectifAtteint DateTime? @db.Date
   created_at          DateTime @default(now()) @db.Timestamp(0)
@@ -133,22 +88,19 @@ model ObjectifFinancier {
 model Operation {
   id Int      @id @default(autoincrement())
   titre       String  @db.VarChar(50)
-  montant     Decimal @db.Decimal(10, 0)
+  montant     Decimal @db.Decimal(10, 1)
   devise      String  @db.VarChar(3)
   User Utilisateur @relation(fields: [userId],references: [id])
   userId Int
   idCategorie Int
   // type TypeOperation[] @relation(references:[id])
-  // type TypeOperationEnum @default(DEPENSE)
+  type TypeOperationEnum @default(DEPENSE)
   Categorie Categorie @relation(fields: [idCategorie],references: [id])
   ponctuel Ponctuel?
   periodique Periodique?
-  typeOperation TypeOperation @relation(fields: [idTypeOperation],references: [id])
-  idTypeOperation Int
-  // Depense Depense? @relation(fields: [depenseId],references: [typeOperation])
-  // Entree Entree? @relation(fields: [entreeId],references: [typeOperation])
-  // depenseId String?
-  // entreeId String?
+
+  created_at  DateTime @default(now()) @db.Timestamp(0)
+  updated_at  DateTime @default(now()) @db.DateTime(0)
 }
 
 model Categorie {
@@ -159,11 +111,11 @@ model Categorie {
   operations Operation[]
 }
 
-model TypeOperation {
-  id Int      @id @default(autoincrement())
-  typeOperation TypeOperationEnum
-  operations Operation[]
-}
+// model TypeOperation {
+//   id Int      @id @default(autoincrement())
+//   typeOperation TypeOperationEnum
+//   operations Operation[]
+// }
 
 model Periodique {
   idPeriodique  Int       @id @default(autoincrement())
