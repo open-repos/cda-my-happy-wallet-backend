@@ -17,7 +17,7 @@ export const operations : Prisma.OperationCreateInput[]=[
             type:'DEPENSE',
             devise:'EUR',
             dateOperation: new Date(2022,0,9),
-            // idCategorie:1,
+            idCategorie:1,
             userId: 1,
         },
         {

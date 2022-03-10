@@ -14,24 +14,42 @@ async function main(){
     // }
 
     console.log('Seeding users...')
-    for (let user of users){
-        // print(user)
-        await prisma.utilisateur.create({
-             data: user
-            ,
-            // include:{
-            //     operationsFixes:true,
-            //     operations:true,
-            // }
-            })
-    }
-    // console.log('Seeding operations...')
-    // // for (let op of operations){
+    // for (let user of users){
     //     // print(user)
-    //     await prisma.operation.createMany({
-    //          data: operations
+    //     await prisma.utilisateur.create({
+    //          data: user
+    //         ,
+    //         // include:{
+    //         //     operationsFixes:true,
+    //         //     operations:true,
+    //         // }
     //         })
     // }
+
+    try {
+        await Promise.all(users.map(async (user) => {
+            prisma.utilisateur.create({
+                data: user
+               ,
+               // include:{
+               //     operationsFixes:true,
+               //     operations:true,
+               // }
+               });
+        }))} 
+        catch(error) {
+        console.log(error)
+        }
+
+        // try {
+        //     await Promise.all(operations.map(async (operation) => {
+        //         prisma.operation.create({
+        //             data: operation
+        //            });
+        //     }))} 
+        //     catch(error) {
+        //     console.log(error)
+        //     }
     
 }
 main().catch((e) => {
