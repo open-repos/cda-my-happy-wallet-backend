@@ -5,14 +5,28 @@ import { categories } from './seeds/categories';
 // import { operations } from "./seeds/operations";
 const prisma = new PrismaClient();
 async function main(){
-    console.log('Seeding categories...')
-    // for (let cat of categories){
-        // print(user)
-        await prisma.categorie.createMany({
-             data: categories
-            })
-    // }
+    // console.log('Seeding categories...')
+    // // for (let cat of categories){
+    //     // print(user)
+    //     await prisma.categorie.createMany({
+    //          data: categories
+    //         })
+    // // }
 
+    try {
+        await Promise.all(categories.map(async (categorie) => {
+            await prisma.categorie.create({
+                data: categorie
+               ,
+               // include:{
+               //     operationsFixes:true,
+               //     operations:true,
+               // }
+               });
+        }))} 
+        catch(error) {
+        console.log(error)
+        }
     console.log('Seeding users...')
     // for (let user of users){
     //     // print(user)
@@ -28,7 +42,7 @@ async function main(){
 
     try {
         await Promise.all(users.map(async (user) => {
-            prisma.utilisateur.create({
+            await prisma.utilisateur.create({
                 data: user
                ,
                // include:{
@@ -43,7 +57,7 @@ async function main(){
 
         // try {
         //     await Promise.all(operations.map(async (operation) => {
-        //         prisma.operation.create({
+        //         await prisma.operation.create({
         //             data: operation
         //            });
         //     }))} 
