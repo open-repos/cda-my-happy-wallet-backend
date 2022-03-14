@@ -9,8 +9,9 @@ export const createServer = async () => {
     //Initialization de notre server Express
     const server: express.Application = express();
 
+    // use correspond à un middleware 
     //Notre serveur parsera les requête entrante en Json
-    server.use(express.json())
+    server.use(express.json()) 
 
     //On indique les cors (qui peut emettre des call depuis notre API)
     server.use(cors({
