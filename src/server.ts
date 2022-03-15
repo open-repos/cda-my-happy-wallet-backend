@@ -6,6 +6,7 @@ import bodyParser from 'body-parser'
 import {mainRouter} from './router'
 
 import { APP_BASE_URL } from './config';
+import { notFoundRouter } from './routes/notFound';
 
 export const createServer = async () => {
     //Initialization de notre server Express
@@ -25,6 +26,12 @@ export const createServer = async () => {
     //On rajoute le router à notre server
     //Il sera accessible sur la route APP_BASE_URL, ici -> /v1/
     server.use(APP_BASE_URL, mainRouter)
+
+    // Gestion des routes non trouvées
+    // server.use((_,res) => {
+    //     res.status(404).send('<h1>Page not found</h1>')
+    // })
+    server.use(notFoundRouter)
 
     return server
 }
