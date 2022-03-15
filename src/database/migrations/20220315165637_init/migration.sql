@@ -81,10 +81,10 @@ CREATE TABLE `Operation` (
     `titre` VARCHAR(50) NOT NULL,
     `montant` DECIMAL(10, 2) NOT NULL,
     `devise` VARCHAR(3) NOT NULL,
-    `userId` INTEGER NOT NULL,
-    `type` ENUM('DEPENSE', 'ENTREE') NOT NULL DEFAULT 'DEPENSE',
     `idCategorie` INTEGER NOT NULL,
-    `dateOperation` DATETIME(0) NOT NULL,
+    `userId` INTEGER NOT NULL,
+    `dateOperation` DATE NOT NULL,
+    `type` ENUM('DEPENSE', 'ENTREE') NOT NULL DEFAULT 'DEPENSE',
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `updated_at` DATETIME(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
@@ -98,6 +98,7 @@ CREATE TABLE `Categorie` (
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `updated_at` DATETIME(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
+    UNIQUE INDEX `Categorie_categorie_key`(`categorie`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

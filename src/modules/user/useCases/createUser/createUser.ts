@@ -12,7 +12,7 @@ export class CreateUser {
     public async execute(props: any) {
 
         try {
-            console.log(props);
+            console.log("Dans fonction execute CreatUser",props);
             const userAlreadyExists = await this.userRepo.exists(props.email)
             console.log(`userAlreadyExists`,userAlreadyExists)
             if (userAlreadyExists) {

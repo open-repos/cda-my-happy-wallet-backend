@@ -3,7 +3,9 @@
 
 type createUserProps = {
     email: string,
-    password: string
+    password: string,
+    firstname: string,
+    lastname:string
 }
 
 export class UserRepo {
@@ -15,7 +17,7 @@ export class UserRepo {
     }
 
     public async create(userProps: createUserProps) {
-        const UserEntity = this.entities.user
+        const UserEntity = this.entities.utilisateur
 
         // console.log(userProps.email)
         const exists = await this.exists(userProps.email);
@@ -29,6 +31,8 @@ export class UserRepo {
                     data: {
                         email: userProps.email,
                         password: userProps.password,
+                        firstname: userProps.firstname,
+                        lastname: userProps.lastname,
                     }
                 }) )
         }
@@ -36,7 +40,7 @@ export class UserRepo {
     }
 
     public async exists(email: string): Promise<boolean> {
-        const UserEntity = this.entities.user;
+        const UserEntity = this.entities.utilisateur;
         
         // console.log('email dans findUnique', email)
         const result = await UserEntity.findUnique({ where: { email: email } })
@@ -53,7 +57,7 @@ export class UserRepo {
     }
 
     public async getUserByEmail(email: string) {
-        const UserEntity = this.entities.user;
+        const UserEntity = this.entities.utilisateur;
 
         const result = await UserEntity.findUnique({ where: { email: email } })
 

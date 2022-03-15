@@ -35,7 +35,7 @@ export class Login {
             console.log('password user in database', user.password);
             console.log('password in body', password);
 
-            const passwordMatches = await argon2.verify(user.password, password)
+            const passwordMatches = await argon2.verify(password,user.password)
             console.log('passwordMatches', passwordMatches);
 
             if (!passwordMatches) {

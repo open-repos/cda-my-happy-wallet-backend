@@ -19,7 +19,7 @@ export class LoginController {
             // }
 
             const result = await this.useCase.execute(req.body)
-
+            console.log("avant de check si success",result)
             if (!result.success) {
                 return res.status(400).json({ message: result.message })
             }

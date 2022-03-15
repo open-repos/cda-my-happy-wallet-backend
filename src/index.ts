@@ -2,12 +2,20 @@
 // import possible car on a "export" la fonction
 import {createServer} from "./server"
 import {PORT} from "./config"
-import { prisma } from "./database/index";
+import { prisma } from "./database/index"
+
+var morgan = require('morgan')
+
 
 
 const main = async () => {
     const server = await createServer();
 
+    if (process.env.NODE_ENV === 'development') {
+        server.use(morgan('dev'));
+      }
+
+    
     const users = await prisma.utilisateur.findMany();
     console.log("users",users);
 

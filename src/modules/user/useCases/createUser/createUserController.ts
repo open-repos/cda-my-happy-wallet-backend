@@ -39,10 +39,11 @@ export class CreateUserController {
         // }
 
         try {
+            console.log("Dans la fonction execute du CreateUserController", req.body)
             const result = await this.useCase.execute(req.body);
             console.log('result.success final', result.success);
             if (!result.success) {
-                return res.status(400).json({ message: result.message })
+                return res.status(400).json({ message: result })
             }
 
             return res.status(201).json();

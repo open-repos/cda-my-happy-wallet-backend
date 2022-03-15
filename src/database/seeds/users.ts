@@ -1,11 +1,21 @@
 import { Prisma } from "@prisma/client"
+// import argon2 from "argon2"
 
+// let password!:string;
+// async function hashPasswd(){
+//     const hashPassword = await argon2.hash("123456");
+//     return hashPassword
+// }
 
+// hashPasswd().then(res => {
+// password = res
+// })
+// console.log("dans user seed",password)
 export const users: Prisma.UtilisateurCreateInput[] = [
     {firstname:"Thibault",
     lastname:'Dupont',
     email:'andria.capai@gmail.com',
-    password:'123456',
+    password: "123456",
     operationsFixes:{
         create:[{
             titre:"Loyer",
