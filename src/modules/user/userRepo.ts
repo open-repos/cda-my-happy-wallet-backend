@@ -24,7 +24,7 @@ export class UserRepo {
         console.log('create ?',exists);
 
         if (!exists) {
-            console.log('dans create et userProps',userProps)
+            console.log('dans UserRepo create fctn',userProps)
             // problem certainement ici
        console.log (await UserEntity.create(
                 {
