@@ -10,8 +10,8 @@ userRouter.get('/', async (_:Request, res:Response) => {
     const users = await prisma.utilisateur.findMany();
     res.send(users);
 })
-//Create
-userRouter.post('/', (req, res) => createUserController.execute(req, res))
+//Register User
+userRouter.post('/register', (req, res) => createUserController.execute(req, res))
 
 //Authenticate
 userRouter.post('/authenticate', (req, res) => loginController.execute(req, res))

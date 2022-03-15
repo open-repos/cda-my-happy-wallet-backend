@@ -21,7 +21,7 @@ export class UserRepo {
 
         // console.log(userProps.email)
         const exists = await this.exists(userProps.email);
-        console.log('create ?',exists);
+        console.log('exists ?',exists);
 
         if (!exists) {
             console.log('dans UserRepo create fctn',userProps)
