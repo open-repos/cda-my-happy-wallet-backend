@@ -46,7 +46,7 @@ export class CreateUserController {
                 return res.status(400).json({ message: result })
             }
 
-            return res.status(201).json();
+            return res.status(201).json(result);
         }
         catch (err) {
             console.log('create controllers errors :', err);

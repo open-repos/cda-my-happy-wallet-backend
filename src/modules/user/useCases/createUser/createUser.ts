@@ -18,7 +18,7 @@ export class CreateUser {
             if (userAlreadyExists) {
                 return {
                     success: false,
-                    message: 'User already exists'
+                    message: `User with email: ${props.email} already exists`
                 }
             }
 
@@ -29,13 +29,13 @@ export class CreateUser {
 
             props.password = hashPassword;
 
-            console.log('JUSTE AVNAT LE CREATE')
+            console.log('JUSTE AVANT LE CREATE')
             await this.userRepo.create(props);
             //ICI PAS EXECUTEE
             console.log('JUSTE APRES LE CREATE et avant le return succes true')
             return {
                 success: true,
-                message: 'User is correctly created'
+                message: `User with email: ${props.email} is correctly created`
             }
         }
         catch (err) {
