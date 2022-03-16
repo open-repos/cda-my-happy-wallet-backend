@@ -5,8 +5,8 @@ import { prisma } from '../../../../database/index'
 import { CreateOperationFixeController } from './createOperationFixeController';
 
 //Je construit mon repo avec les entités dont j'ai besoin
-const creationFixeRepo = new OperationFixeRepo(prisma)
-const createOperationFixe = new CreateOperationFixe(creationFixeRepo)
+const operationFixeRepo = new OperationFixeRepo(prisma)
+const createOperationFixe = new CreateOperationFixe(operationFixeRepo)
 const createOperationFixeController = new CreateOperationFixeController(createOperationFixe)
 
 export { createOperationFixe, createOperationFixeController }
