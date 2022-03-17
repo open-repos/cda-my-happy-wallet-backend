@@ -1,7 +1,8 @@
+import { ACCESS_TOKEN_SECRET } from './../../../../config/config';
 import { UserRepo } from '../../userRepo'
 import argon2 from 'argon2'
 import { sign } from 'jsonwebtoken'
-import { JWT_PASSPHRASE } from '../../../../config'
+import { ACCESS_TOKEN_SECRET } from '../../../../config/config'
 
 type loginUserProps = {
     email: string,
@@ -46,7 +47,7 @@ export class Login {
             }
 
             //Création de notre JWT token
-            const jwtToken = sign({ id: user.id }, JWT_PASSPHRASE)
+            const jwtToken = sign({ id: user.id }, ACCESS_TOKEN_SECRET)
             console.log('TOKEN', jwtToken);
 
             return {

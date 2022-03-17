@@ -1,7 +1,8 @@
+import { NODE_ENV } from './config/config'
 // import suelement de la fonction depuis le fichier server.ts
 // import possible car on a "export" la fonction
 import {createServer} from "./server"
-import {PORT} from "./config"
+import {PORT} from "./config/config"
 // import { prisma } from "./database/index"
 
 var morgan = require('morgan')
@@ -20,7 +21,7 @@ const main = async () => {
     // console.log("users",users);
 
     server.listen(PORT, () => {
-        console.log(`Server is now running on port ${PORT}`)
+        console.log(`Server is now running on port ${PORT} and ${NODE_ENV}`)
     })
 }
 
