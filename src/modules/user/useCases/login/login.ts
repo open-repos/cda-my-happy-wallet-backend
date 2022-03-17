@@ -1,4 +1,3 @@
-import { ACCESS_TOKEN_SECRET } from './../../../../config/config';
 import { UserRepo } from '../../userRepo'
 import argon2 from 'argon2'
 import { sign } from 'jsonwebtoken'
