@@ -2,10 +2,10 @@ import express from 'express'
 import cors from 'cors'
 // import morgan from 'morgan'
 import bodyParser from 'body-parser'
-
+import cookieParser from "cookie-parser"
 import {mainRouter} from './router'
 
-import { APP_BASE_URL } from './config';
+import { APP_BASE_URL } from './config/config';
 import { notFoundRouter } from './routes/notFound';
 
 export const createServer = async () => {
@@ -17,7 +17,7 @@ export const createServer = async () => {
     // use correspond à un middleware 
     //Notre serveur parsera les requête entrante en Json
     // server.use(express.json()) 
-
+    server.use(cookieParser());
     //On indique les cors (qui peut emettre des call depuis notre API)
     server.use(cors({
         origin:["http://localhost:1234","https://myhappywallet.andriacapai.com"]

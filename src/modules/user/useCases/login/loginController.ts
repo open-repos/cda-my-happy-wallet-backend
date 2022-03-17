@@ -1,5 +1,7 @@
+import { NODE_ENV } from '../../../../config/config';
 import { Login } from './login'
 import { Request, Response } from 'express'
+
 // import { RequestLoginDto } from './loginDto'
 
 export class LoginController {
@@ -30,6 +32,7 @@ export class LoginController {
                 const { id, password, ...userWithoutPasswordAndId } = result.payload.user
                 console.log('user controller without id and password', userWithoutPasswordAndId);
                 data = userWithoutPasswordAndId
+                data.accessToken = result.payload?.accesToken
             }
 
             // res.cookie(
@@ -38,8 +41,14 @@ export class LoginController {
             //     { maxAge: 900000, httpOnly: true }
             // );
 
+            return res.cookie("refresh_token",result.payload?.refreshToken,{
+                httpOnly:true,
+                secure:NODE_ENV === "production",
+                maxAge: 900000 //15min
 
-            return res.cookie("token", result.payload?.token, { maxAge: 900000, httpOnly: true }).status(200).json(data)
+            }).status(200).json(data)
+
+            // return res.cookie("token", result.payload?.token, { maxAge: 900000, httpOnly: true }).status(200).json(data)
 
             // res.cookie(
             //     "refresh_token",
