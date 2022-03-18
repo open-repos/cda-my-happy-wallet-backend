@@ -27,7 +27,7 @@ export class CreateOperationFixeController {
 
         try {
             console.log("Dans la fonction execute du operationController")
-            const result = await this.useCase.execute(req.body,typeOperation);
+            const result = await this.useCase.execute(req.body,req.cookies.id_user,typeOperation);
             console.log('result.success final', result.success);
             if (!result.success) {
                 return res.status(400).json({ message: result })

@@ -3,17 +3,18 @@
 // Créer un objet sur cette route c'est POST http://localhost:3001/api/v1/OperationFixes/
 // Pour DELETE http://localhost:3001/api/v1/OperationFixes/:id
 // Pour UPDATE http://localhost:3001/api/v1/OperationFixes/:id
+// Pour READ http://localhost:3001/api/v1/OperationFixes/:id
 
-import { UpdateOperationFixe } from './updateOperationFixe'
-import {Request, Response } from 'express'
+import {ReadOperationFixe } from './readOperationFixe'
+import { Request, Response } from 'express'
 
 //Controller
-export class UpdateOperationFixeController {
-    private useCase: UpdateOperationFixe;
-    private fctnCall:string="update";
+export class ReadOperationFixeController {
+    private useCase: ReadOperationFixe;
+    private fctnCall:string="read";
 
-    constructor(updateOperationFixe: UpdateOperationFixe) {
-        this.useCase = updateOperationFixe;
+    constructor(readOperationFixe: ReadOperationFixe) {
+        this.useCase =readOperationFixe;
     }
 
     public async execute(req: Request, res: Response,typeOperation:string) {

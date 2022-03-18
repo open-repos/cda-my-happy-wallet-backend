@@ -11,11 +11,11 @@ export class UpdateOperationFixe {
         this.operationFixeRepo = operationFixeRepo
     }
 
-    public async execute(props: any,id:string,typeOperationFixe:string) {
+    public async execute(props: any,userId:string,id:string,typeOperationFixe:string) {
 
         try {
             console.log(`JUSTE AVNAT LE ${this.fctnCall} OPERATION`)
-            await this.operationFixeRepo.update(props,id,typeOperationFixe);
+            await this.operationFixeRepo.update(props,userId,id,typeOperationFixe);
             console.log(`JUSTE APRES LE ${this.fctnCall} et avant le return succes true`)
             return {
                 success: true,

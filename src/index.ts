@@ -5,17 +5,10 @@ import {createServer} from "./server"
 import {PORT} from "./config/config"
 // import { prisma } from "./database/index"
 
-var morgan = require('morgan')
-
 
 
 const main = async () => {
     const server = await createServer();
-
-    if (process.env.NODE_ENV === 'development') {
-        server.use(morgan('dev'));
-      }
-
     
     // const users = await prisma.utilisateur.findMany();
     // console.log("users",users);

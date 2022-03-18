@@ -1,13 +1,13 @@
-import express from 'express'
+
+import express,{ Request, Response, NextFunction ,ErrorRequestHandler} from 'express'
 import cors from 'cors'
 // import morgan from 'morgan'
 import bodyParser from 'body-parser'
 import cookieParser from "cookie-parser"
 import {mainRouter} from './router'
-
-import { APP_BASE_URL } from './config/config';
+import { APP_BASE_URL,NODE_ENV } from './config/config';
 import { notFoundRouter } from './routes/notFound';
-
+import morgan from 'morgan'
 export const createServer = async () => {
     //Initialization de notre server Express
     const server: express.Application = express();
@@ -23,6 +23,10 @@ export const createServer = async () => {
         origin:["http://localhost:1234","https://myhappywallet.andriacapai.com"]
     }))
 
+        
+    if (NODE_ENV === 'development') {
+        server.use(morgan('dev'));
+      }
     //On rajoute le router à notre server
     //Il sera accessible sur la route APP_BASE_URL, ici -> /v1/
     server.use(APP_BASE_URL, mainRouter)
@@ -32,6 +36,15 @@ export const createServer = async () => {
     //     res.status(404).send('<h1>Page not found</h1>')
     // })
     server.use(notFoundRouter)
+
+    // server.use((error:ErrorRequestHandler,req:Request,res:Response,next:NextFunction)=>{
+    //     res.status(error. || 500)
+    //     res.json({
+    //         error:{
+    //             message: error.message
+    //         }
+    //     })
+    // })
 
     return server
 }

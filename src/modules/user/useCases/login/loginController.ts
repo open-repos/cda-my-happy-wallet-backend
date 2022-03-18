@@ -35,20 +35,19 @@ export class LoginController {
                 data.accessToken = result.payload?.accesToken
             }
 
-            // res.cookie(
-            //     "access_token",
-            //     user.accessToken,
-            //     { maxAge: 900000, httpOnly: true }
-            // );
-
-            return res.cookie("refresh_token",result.payload?.refreshToken,{
+            res.cookie("id_user",result.payload?.user.id,{
                 httpOnly:true,
                 secure:NODE_ENV === "production",
                 maxAge: 900000 //15min
 
-            }).status(200).json(data)
+            })
+            res.cookie("refresh_token",result.payload?.refreshToken,{
+                httpOnly:true,
+                secure:NODE_ENV === "production",
+                maxAge: 900000 //15min
 
-            // return res.cookie("token", result.payload?.token, { maxAge: 900000, httpOnly: true }).status(200).json(data)
+            })
+            return res.status(200).json(data)
 
             // res.cookie(
             //     "refresh_token",
