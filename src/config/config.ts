@@ -7,9 +7,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 export const PORT=process.env.PORT 
 export const NODE_ENV=process.env.NODE_ENV
-export const APP_BASE_URL=process.env.APP_BASE_URL  || "/v1/"
-export const ACCESS_TOKEN_SECRET=process.env.ACCESS_TOKEN_SECRET  || 'default passphrase_atoken knzkné&àé)ek"k"jj"ndx'
-export const REFRESH_TOKEN_SECRET=process.env.REFRESH_TOKEN_SECRET  || 'default passphrase_rtoken enenkn"jéjéjjééé'
+export const APP_BASE_URL=process.env.APP_BASE_URL  //|| "/v1/"
+export const ACCESS_TOKEN_SECRET=process.env.ACCESS_TOKEN // || 'default passphrase_atoken knzkné&àé)ek"k"jj"ndx'
+export const REFRESH_TOKEN_SECRET=process.env.REFRESH_TOKEN  //|| 'default passphrase_rtoken enenkn"jéjéjjééé'
+export const DATABASE_URL=process.env.DATABASE_URL
 // export const JWT_PASSPHRASE = process.env.JWT_PASSPHRASE || 'default passphrase'
 // export const DATABASE_URL=process.env.DATABASE_URL
 

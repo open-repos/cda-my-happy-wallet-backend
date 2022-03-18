@@ -13,7 +13,7 @@ export const tokenJwtTAuth = (
   if (authHeader) {
     const token = authHeader.split(' ')[1];
     // try {
-    jwt.verify(token, ACCESS_TOKEN_SECRET,function(err:any, _:any) {
+    jwt.verify(token, ACCESS_TOKEN_SECRET as string,function(err:any, _:any) {
         if (err) {
             refreshTokenAuth(req,res,next)
         } else {
@@ -44,7 +44,7 @@ export const refreshTokenAuth = (
       });
     } else {
       try {
-        const user = jwt.verify(token, REFRESH_TOKEN_SECRET);
+        const user = jwt.verify(token, REFRESH_TOKEN_SECRET  as string);
         req.user = user;
         console.log("req.user", req.user);
         next();

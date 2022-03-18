@@ -1,7 +1,7 @@
 import { UserRepo } from '../../userRepo'
 import argon2 from 'argon2'
 import { sign } from 'jsonwebtoken'
-import { ACCESS_TOKEN_SECRET,REFRESH_TOKEN_SECRET } from '../../../../config/config'
+import { ACCESS_TOKEN_SECRET ,REFRESH_TOKEN_SECRET } from '../../../../config/config'
 
 type loginUserProps = {
     email: string,
@@ -46,11 +46,11 @@ export class Login {
             }
 
             //Création de notre JWT token
-            const jwtToken = sign({ id: user.id }, ACCESS_TOKEN_SECRET, {expiresIn:"60s"})
+            const jwtToken = sign({ id: user.id }, ACCESS_TOKEN_SECRET as string, {expiresIn:"60s"})
             console.log('TOKEN', jwtToken);
 
             //Création de notre JWT token
-            const refreshToken = sign({ id: user.id }, REFRESH_TOKEN_SECRET, {expiresIn:"1d"})
+            const refreshToken = sign({ id: user.id }, REFRESH_TOKEN_SECRET as string, {expiresIn:"1d"})
             console.log('REFRESH TOKEN', refreshToken);
             return {
                 success: true,

@@ -1,5 +1,6 @@
 
-import express,{ Request, Response, NextFunction ,ErrorRequestHandler} from 'express'
+import express from 'express'
+//import { Request, Response, NextFunction ,ErrorRequestHandler} from 'express'
 import cors from 'cors'
 // import morgan from 'morgan'
 import bodyParser from 'body-parser'
@@ -29,7 +30,7 @@ export const createServer = async () => {
       }
     //On rajoute le router à notre server
     //Il sera accessible sur la route APP_BASE_URL, ici -> /v1/
-    server.use(APP_BASE_URL, mainRouter)
+    server.use(APP_BASE_URL as string, mainRouter)
 
     // Gestion des routes non trouvées
     // server.use((_,res) => {

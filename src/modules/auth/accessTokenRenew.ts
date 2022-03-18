@@ -43,7 +43,7 @@ export const renewAccessToken = async (req: Request, res: Response) => {
   // if (!cookies.refresh_token){
   jwt.verify(
     cookies.refresh_token,
-    REFRESH_TOKEN_SECRET,
+    REFRESH_TOKEN_SECRET as string,
     (err: any, _: any) => {
       if (err) {
         res.clearCookie("refresh_token");
@@ -53,7 +53,7 @@ export const renewAccessToken = async (req: Request, res: Response) => {
         });
       }
 
-      const accessToken = jwt.sign({ id: user.id }, ACCESS_TOKEN_SECRET, {
+      const accessToken = jwt.sign({ id: user.id }, ACCESS_TOKEN_SECRET as string, {
         expiresIn: "5m",
       });
 

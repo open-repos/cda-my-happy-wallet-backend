@@ -14,7 +14,7 @@ const main = async () => {
     // console.log("users",users);
 
     server.listen(PORT, () => {
-        console.log(`Server is now running on port ${PORT} and ${NODE_ENV}`)
+        console.log(`Server is now running on port ${PORT} ON ${NODE_ENV}`)
     })
 }
 
