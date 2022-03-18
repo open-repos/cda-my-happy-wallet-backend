@@ -15,23 +15,12 @@ export const tokenJwtTAuth = (
     // try {
     jwt.verify(token, ACCESS_TOKEN_SECRET,function(err:any, _:any) {
         if (err) {
-            // res.status(403).send({
-            //     error: true,
-            //     message: "Unauthorized access.",
-            //     message_origin:err
-            //   })
             refreshTokenAuth(req,res,next)
         } else {
         }
       });
-    //   req.user = user;
-    //   console.log("req.user", req.user);
       next();
     } else {
-        // return res.status(401).send({
-        //     error: true,
-        //     message: "Unauthorized access.",
-        //   });
         refreshTokenAuth(req,res,next)
     } 
 
