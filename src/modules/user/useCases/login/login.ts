@@ -1,7 +1,11 @@
+// import { NextFunction } from 'express';
+import { ErrorException } from './../../../../utils/errors/errorException.error';
+import { ErrorCode } from '../../../../utils/errors/errorCode.error';
 import { UserRepo } from '../../userRepo'
 import argon2 from 'argon2'
 import { sign } from 'jsonwebtoken'
 import { ACCESS_TOKEN_SECRET ,REFRESH_TOKEN_SECRET } from '../../../../config/config'
+
 
 type loginUserProps = {
     email: string,
@@ -18,7 +22,7 @@ export class Login {
 
     //This is what our use case will do
     public async execute(props: loginUserProps) {
-        try {
+        // try {
             const { email, password } = props;
             console.log('email : ', email);
             console.log('password : ', password);
@@ -26,10 +30,7 @@ export class Login {
             const user = await this.userRepo.getUserByEmail(email);
 
             if (!user) {
-                return {
-                    success: false,
-                    message: "Email or password missmatch"
-                }
+                throw new ErrorException(ErrorCode.EmailPasswordNotValid);
             }
 
             console.log('password user in database', user.password);
@@ -39,10 +40,7 @@ export class Login {
             console.log('passwordMatches', passwordMatches);
 
             if (!passwordMatches) {
-                return {
-                    success: false,
-                    message: "Email or password missmatch"
-                }
+                throw new ErrorException(ErrorCode.EmailPasswordNotValid);
             }
 
             //Création de notre JWT token
@@ -52,21 +50,21 @@ export class Login {
             //Création de notre JWT token
             const refreshToken = sign({ id: user.id }, REFRESH_TOKEN_SECRET as string, {expiresIn:"1d"})
             console.log('REFRESH TOKEN', refreshToken);
-            return {
-                success: true,
-                payload: {
-                    user,
-                    accesToken: jwtToken,
+
+            if (jwtToken){
+                const { id, password, ...userWithoutPasswordAndId } = user
+                console.log('user controller without id and password', userWithoutPasswordAndId);
+                const result = {
+                    success: true,
+                    payload: {
+                        user:userWithoutPasswordAndId,
+                        accesToken: jwtToken,
+                    },
                     refreshToken:refreshToken,
                 }
+                return result
             }
-
-        } catch (e) {
-            console.log('error :', e)
-            return {
-                success: false,
-                message: e
-            }
-        }
+           
+            throw new ErrorException(ErrorCode.UnknownError);
     }
 }

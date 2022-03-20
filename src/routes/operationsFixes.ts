@@ -3,7 +3,7 @@ import { prisma } from '../database';
 import { createOperationFixeController } from '../modules/operationsFixes/useCases/createOperationFixe'
 import { updateOperationFixeController } from '../modules/operationsFixes/useCases/updateOperationFixe'
 import { readOperationFixeController } from '../modules/operationsFixes/useCases/readOperationFixe'
-import { tokenJwtTAuth } from '../middleware/authenticateToken';
+import { tokenJwtTAuth } from '../middlewares/authenticateToken.middleware';
 const operationFixeRouter: Router = Router();
 
 

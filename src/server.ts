@@ -1,3 +1,5 @@
+import { errorLogging } from './middlewares/errorLogging.middleware';
+import { errorHandler } from './middlewares/errorHandler.middleware';
 
 import express from 'express'
 //import { Request, Response, NextFunction ,ErrorRequestHandler} from 'express'
@@ -32,20 +34,14 @@ export const createServer = async () => {
     //Il sera accessible sur la route APP_BASE_URL, ici -> /v1/
     server.use(APP_BASE_URL as string, mainRouter)
 
-    // Gestion des routes non trouvées
-    // server.use((_,res) => {
-    //     res.status(404).send('<h1>Page not found</h1>')
-    // })
     server.use(notFoundRouter)
+    
+    server.use(errorHandler)
 
-    // server.use((error:ErrorRequestHandler,req:Request,res:Response,next:NextFunction)=>{
-    //     res.status(error. || 500)
-    //     res.json({
-    //         error:{
-    //             message: error.message
-    //         }
-    //     })
-    // })
+    if (NODE_ENV === 'development') {
+        server.use(errorLogging);
+      }
+
 
     return server
 }

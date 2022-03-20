@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } from "./../config/config";
+import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } from "../config/config";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 

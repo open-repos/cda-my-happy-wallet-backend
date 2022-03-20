@@ -1,8 +1,10 @@
+import { ErrorCode } from './../../../../utils/errors/errorCode.error';
+import { NextFunction } from 'express';
 import { NODE_ENV } from '../../../../config/config';
 import { Login } from './login'
 import { Request, Response } from 'express'
+import { ErrorException } from './../../../../utils/errors/errorException.error';
 
-// import { RequestLoginDto } from './loginDto'
 
 export class LoginController {
     private useCase: Login;
@@ -11,56 +13,33 @@ export class LoginController {
         this.useCase = useCase
     }
 
-    async execute(req: Request, res: Response): Promise<void | any> {
-        try {
-            // const requestUserDto = new RequestLoginDto(req.body);
-            // const dtoErrors = await requestUserDto.isValid(requestUserDto)
+    async execute(req: Request, res: Response, _:NextFunction): Promise<void | any> {
+        // try {
 
-            // if (!!dtoErrors) {
-            //     return res.status(400).json(dtoErrors);
-            // }
-
-            const result = await this.useCase.execute(req.body)
+            const result= await this.useCase.execute(req.body)
             console.log("avant de check si success",result)
-            if (!result.success) {
-                return res.status(400).json({ message: result.message })
+            if (!result) {
+                // return res.status(400).json({ message: result.message })
+                throw new ErrorException(ErrorCode.UnknownError)
             }
-
-            let data;
-
-            if (result.payload) {
-                const { id, password, ...userWithoutPasswordAndId } = result.payload.user
-                console.log('user controller without id and password', userWithoutPasswordAndId);
-                data = userWithoutPasswordAndId
-                data.accessToken = result.payload?.accesToken
-            }
-
             res.cookie("id_user",result.payload?.user.id,{
                 httpOnly:true,
                 secure:NODE_ENV === "production",
                 maxAge: 900000 //15min
 
             })
-            res.cookie("refresh_token",result.payload?.refreshToken,{
+            res.cookie("refresh_token",result.refreshToken,{
                 httpOnly:true,
                 secure:NODE_ENV === "production",
                 maxAge: 900000 //15min
 
             })
-            return res.status(200).json(data)
 
-            // res.cookie(
-            //     "refresh_token",
-            //     user.refreshToken,
-            //     { maxAge: 900000, httpOnly: true }
-            // );
+            return res.status(200).json({success:result.success,payload:result.payload})
 
-            // const { refreshToken, accessToken, ...userWithoutAccessAndRefreshToken } = user
-        }
-        catch (err) {
-            //If something went wrong
-            //Notify the client by throwing a correct status
-            //Default controller error
-        }
+        // }
+        // catch (err) {
+        //     next(err)
+        // }
     }
 }
