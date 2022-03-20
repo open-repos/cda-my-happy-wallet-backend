@@ -7,6 +7,8 @@ export class ErrorModel {
      * Status code of the error.
      */
     public status: number;
+
+    public message?:string;
     /**
      * Any additional data that is required for translation.
      */
