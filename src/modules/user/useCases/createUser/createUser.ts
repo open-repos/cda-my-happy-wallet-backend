@@ -1,3 +1,4 @@
+import { createUserProps } from './../../../../utils/validators/register.validator';
 //Faire la logique du useCase (ici création utilisateur)import { UserRepo } from "../../userRepo";
 import argon2 from 'argon2'
 import { UserRepo } from '../../userRepo';
@@ -11,17 +12,12 @@ export class CreateUser {
         this.userRepo = userRepo
     }
 
-    public async execute(props: any) {
+    public async execute(props: createUserProps) {
 
-        // try {
             console.log("Dans fonction execute CreatUser",props);
             const userAlreadyExists = await this.userRepo.exists(props.email)
             console.log(`userAlreadyExists`,userAlreadyExists)
             if (userAlreadyExists) {
-                // return {
-                //     success: false,
-                //     message: `User with email: ${props.email} already exists`
-                // }
                 throw new ErrorException(ErrorCode.EmailAlreadyTaken);
             }
 
@@ -34,11 +30,9 @@ export class CreateUser {
 
             console.log('JUSTE AVANT LE CREATE')
 
-            await this.userRepo.create(props);
+            const result = await this.userRepo.create(props);
+            // const {register_token, ...userInfo}=newUserInfo
             console.log('JUSTE APRES LE CREATE et avant le return succes true')
-            return {
-                success: true,
-                message: `User with email: ${props.email} is correctly created`
-            }
+            return result
     }
 }

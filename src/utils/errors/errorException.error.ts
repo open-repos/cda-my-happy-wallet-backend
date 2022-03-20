@@ -58,6 +58,10 @@ export class ErrorException extends Error {
           this.status = 403;
           // this.message = "Access Forbidden";
           break;
+      case ErrorCode.SendEmaillError:
+            this.status = 500;
+            this.message = "Email was not sent";
+            break;
       case ErrorCode.NotFound:
         this.status = 404;
         this.message = "The requested resource was not found";

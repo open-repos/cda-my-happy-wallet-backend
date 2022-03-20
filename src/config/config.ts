@@ -12,4 +12,6 @@ export const APP_BASE_URL=process.env.APP_BASE_URL  //|| "/v1/"
 export const ACCESS_TOKEN_SECRET=process.env.ACCESS_TOKEN // || 'default passphrase_atoken knzkné&àé)ek"k"jj"ndx'
 export const REFRESH_TOKEN_SECRET=process.env.REFRESH_TOKEN  //|| 'default passphrase_rtoken enenkn"jéjéjjééé'
 export const DATABASE_URL=process.env.DATABASE_URL
-
+export const SENDGRID_API_KEY=process.env.SENDGRID_API_KEY
+export const REGISTER_TOKEN=process.env.REGISTER_TOKEN
+export const EMAIL_SENDER=process.env.EMAIL_SENDER

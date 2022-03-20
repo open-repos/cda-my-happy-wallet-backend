@@ -10,5 +10,6 @@ export class ErrorCode {
     public static readonly EmailAlreadyTaken = 'EmailAlreadyTaken';
     public static readonly AsyncError = 'AsyncError';
     public static readonly UnknownError = 'UnknownError';
-    public static readonly PrismaError = 'Operation Database error';
+    public static readonly PrismaError = 'PrismaError';
+    public static readonly SendEmaillError = 'SendEmaillError';
   }

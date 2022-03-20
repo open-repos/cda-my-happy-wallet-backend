@@ -8,13 +8,14 @@ datasource db {
   // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
-model Administrateur {
-  idAdmin   Int     @id @default(autoincrement())
-  firstname String @db.VarChar(50)
-  lastname  String @db.VarChar(50)
-  password  String @db.VarChar(120)
-  email     String @db.VarChar(255) @unique
-}
+// model Administrateur {
+//   idAdmin   Int     @id @default(autoincrement())
+//   firstname String @db.VarChar(50)
+//   lastname  String @db.VarChar(50)
+//   password  String @db.VarChar(120)
+
+//   email     String @db.VarChar(255) @unique
+// }
 
 model OperationFixe {
   idOperationFixe Int      @id @default(autoincrement())
@@ -53,6 +54,8 @@ model Utilisateur {
   lastname  String @db.VarChar(50)
   password  String @db.VarChar(120)
   email     String @db.VarChar(255) @unique
+  role  Role @default(USER)
+  verified Boolean @default(false)
   restantAVivreFictif ResteAVivreFictif[]
   restantAVivre ResteAVivre[]
   notifications Notification[]
@@ -161,4 +164,9 @@ enum TypeOperationEnum{
 enum TypeOperationFixeEnum{
   CHARGE
   REVENU
+}
+
+enum Role{
+  ADMIN
+  USER
 }

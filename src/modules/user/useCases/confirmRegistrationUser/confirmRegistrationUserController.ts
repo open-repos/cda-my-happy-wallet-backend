@@ -7,21 +7,21 @@ import { NextFunction } from 'express';
 // Pour DELETE http://localhost:3001/api/v1/users/:id
 // Pour UPDATE http://localhost:3001/api/v1/users/:id
 
-import { CreateUser } from './createUser'
+import { ConfirmRegistrationUser } from './confirmRegistrationUser'
 import { Request, Response } from 'express'
 
 //Controller
-export class CreateUserController {
-    private useCase: CreateUser;
+export class ConfirmRegistrationUserController {
+    private useCase: ConfirmRegistrationUser;
 
-    constructor(createUser: CreateUser) {
+    constructor(createUser: ConfirmRegistrationUser) {
         this.useCase = createUser;
     }
 
     public async execute(req: Request, res: Response, _:NextFunction) {
 
             console.log("Dans la fonction execute du CreateUserController")
-            const result = await this.useCase.execute(req.body);
+            const result = await this.useCase.execute(req.params.id , req.params.token);
             console.log('result.success final', result.success);
             if (!result) {
                 // return res.status(400).json({ message: result.message })
