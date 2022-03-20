@@ -1,12 +1,12 @@
 // On va utiliser notre ORM pour modifier notre BDD (couche de persistence)
 //script "générale" utilisable par notre service createUser.ts
-
-type createUserProps = {
-  email: string;
-  password: string;
-  firstname: string;
-  lastname: string;
-};
+import {createUserProps} from "../../utils/validators/register.validator"
+// type createUserProps = {
+//   email: string;
+//   password: string;
+//   firstname: string;
+//   lastname: string;
+// };
 
 export class UserRepo {
   private entities: any;
@@ -47,9 +47,9 @@ export class UserRepo {
     // console.log('email dans findUnique', email)
     const result = await UserEntity.findUnique({ where: { email: email } });
 
-    console.log("exists : ", result);
-    console.log("!result: ", !result);
-    console.log("!!result : ", !!result);
+    // console.log("exists : ", result);
+    // console.log("!result: ", !result);
+    // console.log("!!result : ", !!result);
     if (result === null) {
       this.emailExist = false;
     } else {
@@ -62,6 +62,13 @@ export class UserRepo {
     const UserEntity = this.entities.utilisateur;
 
     const result = await UserEntity.findUnique({ where: { email: email } });
+
+    return result;
+  }
+  public async getUserById(id:number) {
+    const UserEntity = this.entities.utilisateur;
+
+    const result = await UserEntity.findUnique({ where: {id:id } });
 
     return result;
   }

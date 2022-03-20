@@ -1,17 +1,11 @@
+import { ErrorCode } from './../../utils/errors/errorCode.error';
+import { ErrorException } from './../../utils/errors/errorException.error';
+import { OperationFixeProps } from './../../utils/validators/operationFixe.validator';
 // On va utiliser notre ORM pour modifier notre BDD (couche de persistence)
 //script "générale" utilisable par notre service createOperationFixe.ts
 
-type createOperationFixeProps = {
-  titre: string;
-  montant: number;
-  devise: string;
-};
-
-type updateOperationFixeProps = {
+interface updateOperationFixeProps extends OperationFixeProps {
   id: number;
-  titre: string;
-  montant: number;
-  devise: string;
 };
 type readOperationFixeProps = {
   id: number;
@@ -26,7 +20,7 @@ export class OperationFixeRepo {
   }
 
   public async create(
-    operationProps: createOperationFixeProps,
+    operationProps: OperationFixeProps,
     userId:string,
     typeOperationFixe: string
   ) {
@@ -45,8 +39,7 @@ export class OperationFixeRepo {
         },
       })
     );
-    // await this.createInsideDataBase(OperationFixeEntity,operationProps,typeOperationFixe)
-
+    
     return;
   }
 
@@ -98,7 +91,7 @@ export class OperationFixeRepo {
 
     }
 
-    return;
+    throw new ErrorException(ErrorCode.PrismaError,`${typeFct} OperationFixe doesn't exist`)
   }
 
 
@@ -136,9 +129,10 @@ export class OperationFixeRepo {
           },
         })
       );
+      return
     }
 
-    return;
+    throw new ErrorException(ErrorCode.PrismaError,`${typeFct} OperationFixe doesn't exist`)
   }
 
   public async exists(

@@ -13,7 +13,7 @@ export class ReadOperationFixe {
 
     public async execute(props: any,userId:string,id:string,typeOperationFixe:string) {
 
-        try {
+        // try {
             console.log(`JUSTE AVNAT LE ${this.fctnCall} OPERATION`)
             const result =await this.operationFixeRepo.read(props,userId,id,typeOperationFixe);
             console.log(`JUSTE APRES LE ${this.fctnCall} et avant le return succes true`)
@@ -23,12 +23,12 @@ export class ReadOperationFixe {
                 result: result
 
             }
-        }
-        catch (err) {
-            return {
-                success: false,
-                message: err
-            }
-        }
+        // }
+        // catch (err) {
+        //     return {
+        //         success: false,
+        //         message: err
+        //     }
+        // }
     }
 }

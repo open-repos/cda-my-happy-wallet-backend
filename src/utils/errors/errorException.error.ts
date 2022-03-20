@@ -26,6 +26,14 @@ export class ErrorException extends Error {
           this.status = 400;
           // this.message = "Required request body content is missing";
           break;
+      case ErrorCode.IncompleteRequestCookie:
+            this.status = 400;
+            // this.message = "Required request body content is missing";
+            break;
+      case ErrorCode.PrismaError:
+            this.status = 400;
+            // this.message = "Required request body content is missing";
+            break;
       case ErrorCode.AsyncError:
         this.status = 400;
         this.message = "Bad Request";
@@ -38,10 +46,18 @@ export class ErrorException extends Error {
         this.status = 401;
         this.message = "User Unauthenticated";
         break;
+      case ErrorCode.Unauthorized:
+          this.status = 401;
+          // this.message = "User Unauthenticated";
+          break;
       case ErrorCode.EmailAlreadyTaken:
         this.status = 403;
         this.message = "Email is already taken";
         break;
+      case ErrorCode.AccessForbidden:
+          this.status = 403;
+          // this.message = "Access Forbidden";
+          break;
       case ErrorCode.NotFound:
         this.status = 404;
         this.message = "The requested resource was not found";

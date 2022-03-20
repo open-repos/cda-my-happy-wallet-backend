@@ -5,12 +5,8 @@ import { UserRepo } from '../../userRepo'
 import argon2 from 'argon2'
 import { sign } from 'jsonwebtoken'
 import { ACCESS_TOKEN_SECRET ,REFRESH_TOKEN_SECRET } from '../../../../config/config'
+import {loginUserProps} from "../../../../utils/validators/login.validator"
 
-
-type loginUserProps = {
-    email: string,
-    password: string
-}
 
 //Equivalent to a specific service in a CRUD API
 export class Login {
@@ -44,11 +40,12 @@ export class Login {
             }
 
             //Création de notre JWT token
-            const jwtToken = sign({ id: user.id }, ACCESS_TOKEN_SECRET as string, {expiresIn:"60s"})
+            const expireIn="60s"
+            const jwtToken = sign({ id: user.id }, ACCESS_TOKEN_SECRET as string, {expiresIn:expireIn})
             console.log('TOKEN', jwtToken);
 
             //Création de notre JWT token
-            const refreshToken = sign({ id: user.id }, REFRESH_TOKEN_SECRET as string, {expiresIn:"1d"})
+            const refreshToken = sign({ id: user.id }, REFRESH_TOKEN_SECRET as string, {expiresIn:"15min"})
             console.log('REFRESH TOKEN', refreshToken);
 
             if (jwtToken){
@@ -59,8 +56,10 @@ export class Login {
                     payload: {
                         user:userWithoutPasswordAndId,
                         accesToken: jwtToken,
+                        expires:expireIn
                     },
                     refreshToken:refreshToken,
+                    userId:user.id
                 }
                 return result
             }

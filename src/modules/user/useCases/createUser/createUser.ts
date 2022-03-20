@@ -33,31 +33,12 @@ export class CreateUser {
             props.password = hashPassword;
 
             console.log('JUSTE AVANT LE CREATE')
-            // const bodyClean = await isBodyTypeRegisterUser(props)
-            // const isRqstClean:boolean = await isRequestClean(props)
-            // if (isRqstClean) {
-            //     // data is MyData here
-            //     console.log(props)
-            //   } else {
-            //     console.log(validate.errors)
-            //     throw new ErrorException(ErrorCode.IncompleteRequestBody,"Body Request is not properly written")
-            //   }
-            // if (!bodyClean) {
-            //     throw new ErrorException(ErrorCode.IncompleteRequestBody)
-            //   } 
+
             await this.userRepo.create(props);
-            //ICI PAS EXECUTEE
             console.log('JUSTE APRES LE CREATE et avant le return succes true')
             return {
                 success: true,
                 message: `User with email: ${props.email} is correctly created`
             }
-        // }
-        // catch (err) {
-        //     return {
-        //         success: false,
-        //         message: err
-        //     }
-        // }
     }
 }

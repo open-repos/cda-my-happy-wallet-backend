@@ -13,7 +13,7 @@ export class UpdateOperationFixe {
 
     public async execute(props: any,userId:string,id:string,typeOperationFixe:string) {
 
-        try {
+        // try {
             console.log(`JUSTE AVNAT LE ${this.fctnCall} OPERATION`)
             await this.operationFixeRepo.update(props,userId,id,typeOperationFixe);
             console.log(`JUSTE APRES LE ${this.fctnCall} et avant le return succes true`)
@@ -21,12 +21,12 @@ export class UpdateOperationFixe {
                 success: true,
                 message: `operationFixe type of : ${typeOperationFixe} , is correctly ${this.fctnCall}`
             }
-        }
-        catch (err) {
-            return {
-                success: false,
-                message: err
-            }
-        }
+        // }
+        // catch (err) {
+        //     return {
+        //         success: false,
+        //         message: err
+        //     }
+        // }
     }
 }

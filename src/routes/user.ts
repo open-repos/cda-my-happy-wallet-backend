@@ -1,9 +1,10 @@
+// import { register } from '../utils/validators/index';
 import {Router, Request, Response,NextFunction} from 'express';
 import { Validator } from '../middlewares/validator.middleware';
 import { prisma } from '../database';
 import { createUserController } from '../modules/user/useCases/createUser'
 import { loginController } from '../modules/user/useCases/login'
-
+// import {SchemasJoi} from "../utils/validators/index"
 const userRouter: Router = Router();
 
 
@@ -16,10 +17,10 @@ userRouter.get('/', async (_:Request, res:Response) => {
     res.send(users);
 })
 //Register User
-userRouter.post('/register',Validator('register'), (req:Request, res:Response, next:NextFunction) => Promise.resolve(createUserController.execute(req, res)).catch(next))
-
+userRouter.post('/register',Validator("register"), (req:Request, res:Response, next:NextFunction) => Promise.resolve(createUserController.execute(req, res)).catch(next))
+// userRouter.post('/register',validateRequest(register), (req:Request, res:Response, next:NextFunction) => Promise.resolve(createUserController.execute(req, res)).catch(next))
 //Authenticate
-userRouter.post('/authenticate', (req:Request, res:Response, next:NextFunction) => Promise.resolve(loginController.execute(req,res,next)).catch(next))
+userRouter.post('/authenticate',Validator("login"), (req:Request, res:Response, next:NextFunction) => Promise.resolve(loginController.execute(req,res,next)).catch(next))
 // userRouter.post('/authenticate', asyncHandler(loginController.execute))
 
 // userRouter.use('/users',userRouter)

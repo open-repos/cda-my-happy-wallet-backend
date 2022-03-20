@@ -6,10 +6,7 @@
 
 import { CreateUser } from './createUser'
 import { Request, Response } from 'express'
-// import { validate } from 'class-validator'
 
-//DTO
-// import { RequestCreateUserDto } from './createUserDto'
 
 //Controller
 export class CreateUserController {

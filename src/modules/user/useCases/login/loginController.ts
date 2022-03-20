@@ -14,15 +14,16 @@ export class LoginController {
     }
 
     async execute(req: Request, res: Response, _:NextFunction): Promise<void | any> {
-        // try {
-
+            res.clearCookie("refresh_token");
+            res.clearCookie("id_user");
             const result= await this.useCase.execute(req.body)
             console.log("avant de check si success",result)
             if (!result) {
                 // return res.status(400).json({ message: result.message })
                 throw new ErrorException(ErrorCode.UnknownError)
             }
-            res.cookie("id_user",result.payload?.user.id,{
+            console.log(result.payload?.user.id)
+            res.cookie("id_user",result.userId,{
                 httpOnly:true,
                 secure:NODE_ENV === "production",
                 maxAge: 900000 //15min
@@ -37,9 +38,5 @@ export class LoginController {
 
             return res.status(200).json({success:result.success,payload:result.payload})
 
-        // }
-        // catch (err) {
-        //     next(err)
-        // }
     }
 }
