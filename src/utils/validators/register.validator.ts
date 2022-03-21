@@ -7,8 +7,8 @@ export type createUserProps = {
     lastname: string;
   };
 export const registerSchema = Joi.object<createUserProps>({
-    email: Joi.string().email().lowercase().required(),
-    password: Joi.string().min(5).required(),
-    firstname: Joi.string().min(1).required(),
-    lastname: Joi.string().min(1).required()
+    email: Joi.string().email().lowercase().trim(true).required(),
+    password: Joi.string().min(8).trim(true).required(),
+    firstname: Joi.string().min(1).trim(true).required(),
+    lastname: Joi.string().min(1).trim(true).required()
 });

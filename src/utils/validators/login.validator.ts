@@ -7,6 +7,6 @@ export type loginUserProps = {
 }
 
 export const loginSchema = Joi.object<loginUserProps>({
-    email: Joi.string().email().lowercase().required(),
-    password: Joi.string().min(5).required()
+    email: Joi.string().email().lowercase().trim(true).required(),
+    password: Joi.string().min(8).trim(true).required()
 });

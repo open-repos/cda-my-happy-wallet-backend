@@ -56,6 +56,8 @@ model Utilisateur {
   email     String @db.VarChar(255) @unique
   role  Role @default(USER)
   verified Boolean @default(false)
+  resetToken String?
+  resetTokenExpiration DateTime?
   restantAVivreFictif ResteAVivreFictif[]
   restantAVivre ResteAVivre[]
   notifications Notification[]

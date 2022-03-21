@@ -23,13 +23,7 @@ export class ErrorException extends Error {
         this.message = "Bad Request, wrong params id";
         break;
       case ErrorCode.IncompleteRequestBody:
-          this.status = 400;
-          // this.message = "Required request body content is missing";
-          break;
       case ErrorCode.IncompleteRequestCookie:
-            this.status = 400;
-            // this.message = "Required request body content is missing";
-            break;
       case ErrorCode.PrismaError:
             this.status = 400;
             // this.message = "Required request body content is missing";
@@ -38,6 +32,10 @@ export class ErrorException extends Error {
         this.status = 400;
         this.message = "Bad Request";
         break;
+      case ErrorCode.EmailNotFound:
+          this.status = 401;
+          this.message = "No account with that email found.";
+          break;
       case ErrorCode.EmailPasswordNotValid:
         this.status = 401;
         this.message = "Email or password not valid";
@@ -48,7 +46,7 @@ export class ErrorException extends Error {
         break;
       case ErrorCode.Unauthorized:
           this.status = 401;
-          // this.message = "User Unauthenticated";
+          this.message = "User Unauthorized";
           break;
       case ErrorCode.EmailAlreadyTaken:
         this.status = 403;

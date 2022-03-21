@@ -8,5 +8,5 @@ export type renewRefreshTokenProps = {
 
 export const renewRefreshTokenSchema = Joi.object<renewRefreshTokenProps>({
     grant_type:Joi.string().valid("refresh_token").required(),
-    email: Joi.string().email().lowercase().required(),
+    email: Joi.string().email().lowercase().trim(true).required(),
 });

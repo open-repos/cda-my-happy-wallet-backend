@@ -5,6 +5,7 @@ export class ErrorCode {
     public static readonly IncompleteRequestCookie= "IncompleteRequestCookie";
     public static readonly NotFound = 'NotFound';
     public static readonly EmailPasswordNotValid = 'EmailPasswordNotValid';
+    public static readonly EmailNotFound = 'EmailNotFound';
     public static readonly Unauthorized="Unauthorized";
     public static readonly AccessForbidden = 'AccessForbidden';
     public static readonly EmailAlreadyTaken = 'EmailAlreadyTaken';
