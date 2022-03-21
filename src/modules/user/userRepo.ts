@@ -97,10 +97,19 @@ export class UserRepo {
 
   public async newPassword(newpassword: string, resetToken: string) {
     const UserEntity = this.entities.utilisateur;
+    // const result = await UserEntity.findMany({
+    //   where: { resetToken: resetToken },
+    //   select:{resetTokenExpiration:true}
+    // });
+
     const result = await UserEntity.findMany({
-      where: { resetToken: resetToken },
-      select:{resetTokenExpiration:true}
-    });
+      where: {
+        resetToken: resetToken,
+        resetTokenExpiration: {
+          gte: new Date() /* Includes time offset for UTC */,
+        },
+      },
+    })
     if (result===[] || result[0]==undefined ){
       throw new ErrorException(ErrorCode.Unauthorized)
     }
@@ -111,21 +120,21 @@ export class UserRepo {
       throw new ErrorException(ErrorCode.Unauthorized,"Reset Token is expired")
     }
 
-    const today = new Date();
+    // const today = new Date();
    
    
-    // const diffDate = datToCompare - resetTokenExpiratin// 36e5;
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    console.log("timezone",timezone); // Asia/Karachi
-    console.log("date now", today)
-    console.log("date resetTokenExpiration", user.resetTokenExpiration)
-    console.log("date time zone diff",today.getTimezoneOffset() )
-    const Time = user.resetTokenExpiration.getTime()  - today.getTime(); 
-    const HoursDiff = Time / (1000 * 3600); //Diference in Days
-    console.log("diff date Hours",HoursDiff)
-    if (HoursDiff<0){
-        throw new ErrorException(ErrorCode.Unauthorized)
-    }
+    // // const diffDate = datToCompare - resetTokenExpiratin// 36e5;
+    // const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    // console.log("timezone",timezone); // Asia/Karachi
+    // console.log("date now", today)
+    // console.log("date resetTokenExpiration", user.resetTokenExpiration)
+    // console.log("date time zone diff",today.getTimezoneOffset() )
+    // const Time = user.resetTokenExpiration.getTime()  - today.getTime(); 
+    // const HoursDiff = Time / (1000 * 3600); //Diference in Days
+    // console.log("diff date Hours",HoursDiff)
+    // if (HoursDiff<0){
+    //     throw new ErrorException(ErrorCode.Unauthorized)
+    // }
 
     await UserEntity.updateMany({
       where: {

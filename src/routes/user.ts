@@ -7,7 +7,7 @@ import { confirmRegistrationUserController } from "../modules/user/useCases/conf
 import {resetPasswordUserController} from "../modules/user/useCases/resetPasswordUser"
 import { loginController } from "../modules/user/useCases/login";
 import {newPasswordUserController} from "../modules/user/useCases/newPasswordUser"
-import { isResetTokenExpired } from "../middlewares/isResetTokenExpired.middleware";
+// import { isResetTokenExpired } from "../middlewares/isResetTokenExpired.middleware";
 // import {SchemasJoi} from "../utils/validators/index"
 const userRouter: Router = Router();
 
