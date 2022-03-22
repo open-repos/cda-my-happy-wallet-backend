@@ -6,7 +6,7 @@ import { ErrorException } from './../../../../utils/errors/errorException.error'
 // Pour DELETE http://localhost:3001/api/v1/users/:id
 // Pour UPDATE http://localhost:3001/api/v1/users/:id
 
-import { ResetPasswordUser } from './ResetPasswordUser'
+import { ResetPasswordUser } from './resetPasswordUser'
 import { Request, Response,NextFunction } from 'express'
 
 //Controller

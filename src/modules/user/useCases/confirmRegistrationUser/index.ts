@@ -1,6 +1,6 @@
 // Il va s'occuper d'instancier les classes pour la création d'user iciimport { UserRepo } from '../../userRepo'
-import { ConfirmRegistrationUser } from './ConfirmRegistrationUser'
-import { ConfirmRegistrationUserController } from './ConfirmRegistrationUserController'
+import { ConfirmRegistrationUser } from './confirmRegistrationUser'
+import { ConfirmRegistrationUserController } from './confirmRegistrationUserController'
 import { prisma } from '../../../../database/index'
 import { UserRepo } from '../../userRepo'
 

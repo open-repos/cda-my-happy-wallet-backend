@@ -1,6 +1,6 @@
 // Il va s'occuper d'instancier les classes pour la création d'user iciimport { UserRepo } from '../../userRepo'
-import { ResetPasswordUser } from './ResetPasswordUser'
-import { ResetPasswordUserController } from './ResetPasswordUserController'
+import { ResetPasswordUser } from './resetPasswordUser'
+import { ResetPasswordUserController } from './resetPasswordUserController'
 import { prisma } from '../../../../database/index'
 import { UserRepo } from '../../userRepo'
 

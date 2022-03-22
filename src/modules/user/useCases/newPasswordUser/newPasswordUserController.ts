@@ -7,7 +7,7 @@ import { NextFunction } from 'express';
 // Pour DELETE http://localhost:3001/api/v1/users/:id
 // Pour UPDATE http://localhost:3001/api/v1/users/:id
 
-import { NewPasswordUser } from './NewPasswordUser'
+import { NewPasswordUser } from './newPasswordUser'
 import { Request, Response } from 'express'
 
 //Controller
