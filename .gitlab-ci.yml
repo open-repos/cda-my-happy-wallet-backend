@@ -1,7 +1,7 @@
 image: node:16.8.0
 
 stages:
-  - publish
+  # - publish
   - build_stage
   # - deploy_stage
 
@@ -40,50 +40,11 @@ cache: &global_cache
     - node_modules/
     - package-lock.json
 
-publish:
-  image: docker:latest
-  stage: publish
-  services:
-    - docker:dind
-  rules: 
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" ' 
-      when: always
-    - if: '$CI_COMMIT_BRANCH != "develop" || $CI_COMMIT_BRANCH != "main" ' 
-      when: never
-    - when: on_success
-  script:
-    - docker build -t $TAG_COMMIT -t $TAG_LATEST .
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - docker push $TAG_COMMIT
-    - docker push $TAG_LATEST
-  tags:
-    - server_runner
-
-
-
-deploy:
-  image: alpine:latest
-  stage: build_stage
-  rules: 
-    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" ' 
-      when: always
-    - if: '$CI_COMMIT_BRANCH != "develop" || $CI_COMMIT_BRANCH != "main" ' 
-      when: never
-    - when: on_success
-  tags:
-    - server_runner
-  script:
-    - chmod og= $SSH_PRIVATE_KEY
-    - apk update && apk add openssh-client
-    - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY"
-    - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker ls -a"
-    - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $TAG_COMMIT"
-    - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f myhappywallet || true"
-    - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -p 80:80 --name myhappywallet $TAG_COMMIT"
-
-# build:
-#   stage: build_stage
-#   extends: .before_script_template
+# publish:
+#   image: docker:latest
+#   stage: publish
+#   services:
+#     - docker:dind
 #   rules: 
 #     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" ' 
 #       when: always
@@ -91,15 +52,63 @@ deploy:
 #       when: never
 #     - when: on_success
 #   script:
-#     - node --version
-#     - ls -a
-#     - npm i
-#     - npm run build
-#   cache:
-#     <<: *global_cache
-#     policy: push
+#     - docker build -t $TAG_COMMIT -t $TAG_LATEST .
+#     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
+#     - docker push $TAG_COMMIT
+#     - docker push $TAG_LATEST
 #   tags:
 #     - server_runner
+
+
+
+# deploy:
+#   image: alpine:latest
+#   stage: build_stage
+#   rules: 
+#     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" ' 
+#       when: always
+#     - if: '$CI_COMMIT_BRANCH != "develop" || $CI_COMMIT_BRANCH != "main" ' 
+#       when: never
+#     - when: on_success
+#   tags:
+#     - server_runner
+#   script:
+#     - chmod og= $SSH_PRIVATE_KEY
+#     - apk update && apk add openssh-client
+#     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY"
+#     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker ls -a"
+#     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $TAG_COMMIT"
+#     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f myhappywallet || true"
+#     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -p 80:80 --name myhappywallet $TAG_COMMIT"
+
+build:
+  stage: build_stage
+  extends: .before_script_template
+  rules: 
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" ' 
+      when: always
+    - if: '$CI_COMMIT_BRANCH != "develop" || $CI_COMMIT_BRANCH != "main" ' 
+      when: never
+    - when: on_success
+  script:
+    - echo "====== Deploy to production server ======"
+    - apk update && apk upgrade
+    - apk add git openssh bash
+    # Add target server`s secret key
+    # - mkdir ~/.ssh
+    # - echo $TARGET_SERVER_SECRET_KEY_BASE64 | base64 -d > ~/.ssh/id_rsa
+    # - chmod 700 ~/.ssh && chmod 600 ~/.ssh/*
+    - echo "Test ssh connection"
+    - ssh -o StrictHostKeyChecking=no -T "$SERVER_USER@$SERVER_IP"
+    # Delploy
+    - echo "Setup tagget server directories"
+    - node --version
+    - ls -a
+  cache:
+    <<: *global_cache
+    policy: push
+  tags:
+    - server_runner
 
 # deploy:
 #   image: keymetrics/pm2:6
