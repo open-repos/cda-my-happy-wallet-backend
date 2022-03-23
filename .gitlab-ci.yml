@@ -53,7 +53,6 @@ build:
   tags:
     - server_runner
 
-
 deploy:
   image: keymetrics/pm2:6
   stage: deploy_stage
