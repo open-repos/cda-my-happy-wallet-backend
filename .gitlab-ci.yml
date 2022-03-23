@@ -6,6 +6,8 @@ stages:
 
 .before_script_template:
   before_script:
+    - echo "====== Pre script ======"
+    - ls -a
     - echo "$CI_COMMIT_BRANCH" && echo "$CI_PIPELINE_SOURCE" && echo "$CI_COMMIT_TAG"
     - "which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )"
     - mkdir -p ~/.ssh
