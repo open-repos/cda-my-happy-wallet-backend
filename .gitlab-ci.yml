@@ -105,6 +105,8 @@ build:
     - node --version
     - ls -a
     - ls ../../
+    - ls ../../../
+    - ls ../../../
   cache:
     <<: *global_cache
     policy: push
