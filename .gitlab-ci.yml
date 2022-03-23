@@ -92,21 +92,18 @@ build:
     - when: on_success
   script:
     - echo "====== Deploy to production server ======"
-    # - apk update && apk upgrade
-    # - apk add git openssh bash
-    # Add target server`s secret key
-    # - mkdir ~/.ssh
-    # - echo $TARGET_SERVER_SECRET_KEY_BASE64 | base64 -d > ~/.ssh/id_rsa
-    # - chmod 700 ~/.ssh && chmod 600 ~/.ssh/*
     - echo "Test ssh connection"
     # - ssh -o StrictHostKeyChecking=no -T "$SERVER_USER@$SERVER_IP"
     # Delploy
     - echo "Setup tagget server directories"
     - node --version
+    - npm i
+    - npm run build
     - ls -a
     - ls ../../
     - ls ../../../
-    - ls ../../../
+    - ls ../../../../
+    # - pm2 start ecosystem.config.js --only myhappywallet
   cache:
     <<: *global_cache
     policy: push
