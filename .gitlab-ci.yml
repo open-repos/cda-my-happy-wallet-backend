@@ -21,8 +21,7 @@ stages:
     - ssh-keyscan -t rsa 64.227.1.160 > ~/.ssh/known_hosts
     - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
     - chmod 644 ~/.ssh/known_hosts
-    - ls -la
-    
+
 # .base-rules:
 #   rules:
 #     - if: '$CI_COMMIT_BRANCH == "develop"'
@@ -45,11 +44,9 @@ build:
   rules: 
     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" ' 
       when: always
-    - if: '$CI_COMMIT_BRANCH != "develop" || $CI_COMMIT_BRANCH != "main" ' 
-      when: never
     - when: on_success
   script:
-    - "node --version"
+    - node --version
     - ls -a
     - npm i
     - npm run build
