@@ -25,12 +25,13 @@ module.exports = {
    stage: {
      user: SERVER_USER,
      host: SERVER_IP,
+     key: "~/.ssh/id_ed25519.pub",
      ref: 'develop',
      repo: REPO,
      ssh_options: 'StrictHostKeyChecking=no',
      path: TARGET_SERVER_APP_PATH,
-      'post-deploy' : 'npm install && pm2 reload ecosystem.config.js --env production',
-      "post-deploy": "npm i --no-optional && npm run build && pm2 startOrGracefulReload ecosystem.json --env development && pm2 save"
+      // 'post-deploy' : 'npm install && pm2 reload ecosystem.config.js --env development',
+      "post-deploy": "npm i && npm run build && pm2 startOrGracefulReload ecosystem.json --env development && pm2 save"
       // "post-deploy": "npm i --no-optional && npm run build && pm2 startOrGracefulReload ecosystem.json --env production && pm2 save"
       // 'post-deploy': 'git pull && npm install && npm run build && pm2 startOrGracefulReload pm2-ecosystem.config.js --env production && pm2 save',
     },
@@ -41,7 +42,7 @@ module.exports = {
       repo: REPO,
       ssh_options: 'StrictHostKeyChecking=no',
       path: TARGET_SERVER_APP_PATH,
-       'post-deploy' : 'npm install && pm2 reload ecosystem.config.js --env production',
+      //  'post-deploy' : 'npm install && pm2 reload ecosystem.config.js --env production',
        "post-deploy": "npm i --no-optional && npm run build && pm2 startOrGracefulReload ecosystem.json --env production && pm2 save"
        // "post-deploy": "npm i --no-optional && npm run build && pm2 startOrGracefulReload ecosystem.json --env production && pm2 save"
        // 'post-deploy': 'git pull && npm install && npm run build && pm2 startOrGracefulReload pm2-ecosystem.config.js --env production && pm2 save',
