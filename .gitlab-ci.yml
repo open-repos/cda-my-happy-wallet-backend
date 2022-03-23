@@ -22,6 +22,7 @@ stages:
     - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
     - chmod 644 ~/.ssh/known_hosts
     - ls -la
+    
 # .base-rules:
 #   rules:
 #     - if: '$CI_COMMIT_BRANCH == "develop"'
