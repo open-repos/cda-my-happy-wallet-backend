@@ -26,7 +26,7 @@ module.exports = {
      user: SERVER_USER,
      host: SERVER_IP,
      key: "~/.ssh/id_ed25519.pub",
-     ref: 'develop',
+     ref: 'origin/develop',
      repo: REPO,
      ssh_options: 'StrictHostKeyChecking=no',
      path: TARGET_SERVER_APP_PATH,
