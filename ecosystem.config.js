@@ -22,7 +22,7 @@ module.exports = {
   }],
 
  deploy: {
-   stage: {
+   development: {
      user: SERVER_USER,
      host: SERVER_IP,
      key: "~/.ssh/id_ed25519.pub",
