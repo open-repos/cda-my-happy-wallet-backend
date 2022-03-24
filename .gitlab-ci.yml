@@ -3,7 +3,7 @@ image: node:16.8.0
 stages:
   # - publish
   - build_stage
-  - pm2_stage
+  # - pm2_stage
   # - deploy_stage
 
 variables:
@@ -24,6 +24,7 @@ variables:
     - ssh-keyscan -t rsa 64.227.1.160 > ~/.ssh/known_hosts
     - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
     - chmod 644 ~/.ssh/known_hosts
+    - npm i pm2 -g
 
 # .base-rules:
 #   rules:
@@ -40,7 +41,6 @@ cache: &global_cache
   paths:
     - node_modules/
     - package-lock.json
-    - dist/
 
 # publish:
 #   image: docker:latest
@@ -100,6 +100,9 @@ build:
     - echo "Setup tagget server directories"
     - node --version
     - npm i
+    - npm run build
+    - ls -a
+    - pm2 start ./dist/index.js
     # - cp ../.env ./
   cache:
     <<: *global_cache
@@ -108,7 +111,6 @@ build:
     - server_runner
 
 deploy:
-  image: keymetrics/pm2:6
   stage: pm2_stage
   rules: 
     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" ' 
