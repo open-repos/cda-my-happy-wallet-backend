@@ -101,7 +101,6 @@ build:
     - node --version
     - npm i
     # - cp ../.env ./
-    - npm run build
   cache:
     <<: *global_cache
     policy: push
@@ -122,6 +121,7 @@ deploy:
     # - ssh -o StrictHostKeyChecking=no -T "$SERVER_USER@$SERVER_IP"
     # Delploy
     - echo "Setup tagget server directories"
+    - npm run build
     - ls -a
     - pm2 start ./dist/index.js
   cache:
