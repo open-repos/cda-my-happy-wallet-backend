@@ -10,7 +10,7 @@ const REPO = 'git@gitlab.com:formation-cda1/projet-chef-oeuvre-rapport/projet-00
 module.exports = {
   apps : [{
     name:  'myhappywallet',
-    script: 'npm run start',
+    script: './dist/index.js',
     watch: 'true',
     env: {
       NODE_ENV: 'development'
