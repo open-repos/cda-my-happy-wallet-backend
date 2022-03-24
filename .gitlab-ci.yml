@@ -121,6 +121,7 @@ deploy:
     # - ssh -o StrictHostKeyChecking=no -T "$SERVER_USER@$SERVER_IP"
     # Delploy
     - echo "Setup tagget server directories"
+    - npm i
     - npm run build
     - ls -a
     - pm2 start ./dist/index.js
