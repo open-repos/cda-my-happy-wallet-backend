@@ -40,6 +40,7 @@ cache: &global_cache
   paths:
     - node_modules/
     - package-lock.json
+    - dist/
 
 # publish:
 #   image: docker:latest
@@ -99,6 +100,7 @@ build:
     - echo "Setup tagget server directories"
     - node --version
     - npm i
+    # - cp ../.env ./
     - npm run build
   cache:
     <<: *global_cache
@@ -121,7 +123,7 @@ deploy:
     # Delploy
     - echo "Setup tagget server directories"
     - ls -a
-    - pm2 start ecosystem.config.js --only myhappywallet
+    - pm2 start ./dist/index.js
   cache:
     <<: *global_cache
     policy: push
