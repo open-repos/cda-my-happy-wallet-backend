@@ -100,8 +100,6 @@ build:
     - node --version
     - npm i
     - npm run build
-    - ls -a
-    - pm2 start ecosystem.config.js --only myhappywallet
   cache:
     <<: *global_cache
     policy: push
