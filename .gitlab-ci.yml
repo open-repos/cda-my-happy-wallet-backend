@@ -3,6 +3,7 @@ image: node:16.8.0
 stages:
   # - publish
   - build_stage
+  - pm2_stage
   # - deploy_stage
 
 variables:
@@ -12,7 +13,7 @@ variables:
 .before_script_template:
   before_script:
     - echo "====== Pre script ======"
-    - printenv
+    # - printenv
     - echo "$CI_COMMIT_BRANCH" && echo "$CI_PIPELINE_SOURCE" && echo "$CI_COMMIT_TAG"
     - "which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )"
     - mkdir -p ~/.ssh
@@ -100,6 +101,28 @@ build:
     - node --version
     - npm i
     - npm run build
+    - ls -a
+    - pm2 start ecosystem.config.js --only myhappywallet
+  cache:
+    <<: *global_cache
+    policy: push
+  tags:
+    - server_runner
+
+deploy:
+  image: keymetrics/pm2:6
+  stage: pm2_stage
+  rules: 
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" ' 
+      when: always
+    - if: '$CI_COMMIT_BRANCH != "develop" || $CI_COMMIT_BRANCH != "main" ' 
+      when: never
+    - when: on_success
+  script:
+    - echo "====== pm2 stage to server ======"
+    # - ssh -o StrictHostKeyChecking=no -T "$SERVER_USER@$SERVER_IP"
+    # Delploy
+    - echo "Setup tagget server directories"
     - ls -a
     - pm2 start ecosystem.config.js --only myhappywallet
   cache:
