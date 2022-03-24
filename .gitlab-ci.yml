@@ -99,14 +99,15 @@ build:
     # Delploy
     - echo "Setup tagget server directories"
     - node --version
-    - npm i
-    - npm run build
+    # - npm i
+    # - npm run build
     - ls -a
     # - pm2 start ./dist/index.js
     # Delploy
     - echo "Setup tagget server directories"
     - pm2 deploy ecosystem.config.js development setup 2>&1 || true
     - echo "make deploy"
+    # - git add . commit -m 'build back'
     - pm2 deploy ecosystem.config.js development
     # - cp ../.env ./
   cache:
