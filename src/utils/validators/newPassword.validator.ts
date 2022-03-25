@@ -1,3 +1,4 @@
+import { nestedStrongPassword } from './register.validator';
 import Joi from "joi"
 
 
@@ -7,6 +8,6 @@ export type newPasswordUserProps = {
 }
 
 export const newPasswordSchema = Joi.object<newPasswordUserProps>({
-   password: Joi.string().min(8).trim(true).required(),
+   password: nestedStrongPassword,
    confirmPassword:Joi.string().trim(true).required().valid(Joi.ref('password')),
 });

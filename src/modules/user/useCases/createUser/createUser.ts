@@ -55,7 +55,7 @@ export class CreateUser {
             );
             // console.log("REGITER TOKEN", jwtToken);
 
-            const verificationLink = `http://localhost:${PORT}/${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
+            const verificationLink = `http://localhost:${PORT}${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
             const emailToSend: string = "andria.capai@gmail.com"; // userProps.email
             const subject: string = "Confirmez votre inscription à MyHappyWallet";
             const message: string = `Hi there

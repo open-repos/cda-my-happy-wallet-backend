@@ -8,7 +8,7 @@ import { confirmRegistrationUserController } from "../modules/user/useCases/conf
 import {resetPasswordUserController} from "../modules/user/useCases/resetPasswordUser"
 import { loginController } from "../modules/user/useCases/login";
 import {newPasswordUserController} from "../modules/user/useCases/newPasswordUser"
-import { swCreateUser } from "../modules/user/useCases/createUser";
+import { swRegisterUser } from './../modules/user/useCases/createUser/createUserController';
 // import { isResetTokenExpired } from "../middlewares/isResetTokenExpired.middleware";
 // import {SchemasJoi} from "../utils/validators/index"
 // const ApiUserEndpoints: string="/users"
@@ -16,7 +16,7 @@ import { swCreateUser } from "../modules/user/useCases/createUser";
 export const swUserRouter = {
   "/users/register": {
     "post": {
-      ...swCreateUser
+      ...swRegisterUser
     }
   } ,
   "/users/verify/:id/:token": {
@@ -24,19 +24,19 @@ export const swUserRouter = {
       ...swConfirmRegistrationUser
     }
   },
-  "/users/authenticate": {
-    "post": {
-    }
-  },
+  // "/users/authenticate": {
+  //   "post": {
+  //   }
+  // },
  
-  "/users/reset-password": {
-    "post": {
-    }
-  },
-  "/users/new-password/:token": {
-    "post": {
-    }
-  }
+  // "/users/reset-password": {
+  //   "post": {
+  //   }
+  // },
+  // "/users/new-password/:token": {
+  //   "post": {
+  //   }
+  // }
 }
 
 

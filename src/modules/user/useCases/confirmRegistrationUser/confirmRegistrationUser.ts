@@ -20,7 +20,7 @@ export class ConfirmRegistrationUser {
             console.log('JUSTE AVANT LE MODIF DE SATUS ET VERIF DE TOKEN')
 
             if (!user) {
-              throw new ErrorException(ErrorCode.SendEmaillError);
+              throw new ErrorException(ErrorCode.UnknownError);
             }
         
             const token_check = await verify(

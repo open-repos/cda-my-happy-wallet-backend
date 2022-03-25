@@ -1,3 +1,4 @@
+import { PORT, APP_BASE_URL } from './../../../../config/config';
 import { UserRepo } from "../../userRepo";
 import { ErrorException } from "../../../../utils/errors/errorException.error";
 import { ErrorCode } from "./../../../../utils/errors/errorCode.error";
@@ -34,7 +35,7 @@ export class ResetPasswordUser {
       throw new ErrorException(ErrorCode.PrismaError);
     }
 
-    const verificationLink = `http://localhost:4200/v1/users/reset-password/${resetToken}`;
+    const verificationLink = `http://localhost:${PORT}${APP_BASE_URL}/users/reset-password/${resetToken}`;
     const emailToSend: string = "andria.capai@gmail.com"; // user.email
     const subject: string = "Renouvellement de mot de passe sur MyHappyWallet";
     const message: string = `Salut ! 
