@@ -11,12 +11,16 @@ import {mainRouter} from './router'
 import { APP_BASE_URL,NODE_ENV } from './config/config';
 import { notFoundRouter } from './routes/notFound';
 import morgan from 'morgan'
+import swaggerUI from 'swagger-ui-express'
+import swDocument from './utils/swagger.def'
+
 export const createServer = async () => {
     //Initialization de notre server Express
     const server: express.Application = express();
-
+    
     server.use(bodyParser.urlencoded({ extended: true }))
     server.use(bodyParser.json())
+    server.use('/api-docs',swaggerUI.serve,swaggerUI.setup(swDocument))
     // use correspond à un middleware 
     //Notre serveur parsera les requête entrante en Json
     // server.use(express.json()) 

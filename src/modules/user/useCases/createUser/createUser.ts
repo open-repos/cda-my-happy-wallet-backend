@@ -1,9 +1,17 @@
 import { createUserProps } from './../../../../utils/validators/register.validator';
 //Faire la logique du useCase (ici création utilisateur)import { UserRepo } from "../../userRepo";
+import { ResultCode } from './../../../../utils/results/resultCode';
+import { Result } from './../../../../utils/results/resultList';
 import argon2 from 'argon2'
 import { UserRepo } from '../../userRepo';
 import { ErrorException } from '../../../../utils/errors/errorException.error';
 import { ErrorCode } from './../../../../utils/errors/errorCode.error';
+import {
+    PORT,
+    APP_BASE_URL,
+    REGISTER_TOKEN,
+  } from "./../../../../config/config";
+  import { sign } from "jsonwebtoken";
 // import { isRequestClean, validate } from '../../../../utils/validators/bodyRequestRegisterUser.validator';
 export class CreateUser {
     private userRepo: UserRepo;
@@ -30,9 +38,41 @@ export class CreateUser {
 
             console.log('JUSTE AVANT LE CREATE')
 
-            const result = await this.userRepo.create(props);
+            const user = await this.userRepo.create(props);
+
+            if(!user){
+                throw new ErrorException(ErrorCode.PrismaError)
+            }
+
             // const {register_token, ...userInfo}=newUserInfo
             console.log('JUSTE APRES LE CREATE et avant le return succes true')
-            return result
+
+            const expireIn = "5min";
+            const jwtToken = sign(
+            { email: props.email },
+            REGISTER_TOKEN as string,
+            { expiresIn: expireIn }
+            );
+            // console.log("REGITER TOKEN", jwtToken);
+
+            const verificationLink = `http://localhost:${PORT}/${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
+            const emailToSend: string = "andria.capai@gmail.com"; // userProps.email
+            const subject: string = "Confirmez votre inscription à MyHappyWallet";
+            const message: string = `Hi there
+            <br/>
+            Merci pour votre inscription à MyHappyWallet
+            <br/><br/>
+            Pour verifier votre compte veuillez cliquez sur le lien suivant: 
+            <a href="${verificationLink}">${verificationLink}</a>
+            <br/><br/>
+            Je vous souhaite une bonne journée!`;
+
+            const isEmailSent = await this.userRepo.sendMail(emailToSend, subject, message);
+
+            if (!isEmailSent) {
+            throw new ErrorException(ErrorCode.SendEmaillError);
+            }
+            return await new Result(ResultCode.Created,`Email was sent to ${emailToSend}`).response_post()
+
     }
 }

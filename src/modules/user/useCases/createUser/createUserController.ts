@@ -27,7 +27,8 @@ export class CreateUserController {
                 // return res.status(400).json({ message: result.message })
                 throw new ErrorException(ErrorCode.UnknownError)
             }
-            return res.status(201).json({succes:result.success, message:result.message});
+            return res.status(201).json({succes:result.success, message:result.message})
+            // return res.status(201).json({succes:result.success, message:result.message});
 
     }
 }

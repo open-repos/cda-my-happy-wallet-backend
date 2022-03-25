@@ -8,7 +8,7 @@ export class ErrorException extends Error {
 
   constructor(
     name: string = ErrorCode.UnknownError,
-    message:string= "Unknown Error",
+    message:string = 'Unknown Error',
     metaData: any = null,
   ) {
     super(name);

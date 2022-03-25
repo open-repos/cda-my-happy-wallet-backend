@@ -1,6 +1,8 @@
 import { UserRepo } from "../../userRepo";
 import { ErrorException } from "../../../../utils/errors/errorException.error";
 import { ErrorCode } from "./../../../../utils/errors/errorCode.error";
+import { ResultCode } from './../../../../utils/results/resultCode';
+import { Result } from './../../../../utils/results/resultList';
 // import { emailUserProps } from "../../../../utils/validators/email.validator";
 import crypto from "crypto";
 // import { confirmRegistrationUserController } from "../confirmRegistrationUser";
@@ -21,7 +23,12 @@ export class ResetPasswordUser {
     }
     const resetToken: string = crypto.randomBytes(64).toString("hex");
     console.log("resetToken", resetToken);
-    const result = await this.userRepo.resetPassword(email, resetToken);
+
+    const now = new Date()
+    const resetTokenExpiration=await this.addHoursToDate(now,1)
+    console.log('resetTokenExpiration',resetTokenExpiration)
+
+    const result = await this.userRepo.resetPassword(email, resetToken,resetTokenExpiration);
 
     if (!result.success) {
       throw new ErrorException(ErrorCode.PrismaError);
@@ -48,9 +55,19 @@ export class ResetPasswordUser {
     if (!isEmailSent) {
       throw new ErrorException(ErrorCode.SendEmaillError);
     }
-    return {
-      success: true,
-      message: `Email to reset password was sent to ${emailToSend}`,
-    };
+    const resp = await new Result(ResultCode.Read,'',`Email to reset password was sent to ${emailToSend}`).response_post()
+    return resp
+    // return {
+    //   success: true,
+    //   message: `Email to reset password was sent to ${emailToSend}`,
+    // };
   }
+
+  public async addHoursToDate(objDate:Date, intHours:number):Promise<Date>{
+    const numberOfMlSeconds = objDate.getTime();
+    const addMlSeconds = (intHours * 60) * 60 * 1000;
+    const newDateObj = new Date(numberOfMlSeconds + addMlSeconds);
+ 
+    return newDateObj;
+}
 }

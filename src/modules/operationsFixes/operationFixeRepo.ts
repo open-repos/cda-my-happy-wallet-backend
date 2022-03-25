@@ -1,5 +1,5 @@
-import { ErrorCode } from './../../utils/errors/errorCode.error';
-import { ErrorException } from './../../utils/errors/errorException.error';
+import { ResultCode } from './../../utils/results/resultCode';
+import { Result } from './../../utils/results/resultList';
 import { OperationFixeProps } from './../../utils/validators/operationFixe.validator';
 // On va utiliser notre ORM pour modifier notre BDD (couche de persistence)
 //script "générale" utilisable par notre service createOperationFixe.ts
@@ -40,7 +40,8 @@ export class OperationFixeRepo {
       })
     );
     
-    return;
+    const result = await new Result(ResultCode.Created,`${typeOperationFixe}`).response_post()
+    return result ;
   }
 
   public async read(
@@ -49,20 +50,10 @@ export class OperationFixeRepo {
     idOperation: string,
     typeOperationFixe: string,
   ) {
-    const typeFct:string="READ"
     const OperationFixeEntity = this.entities.operationFixe;
     const idUser = parseInt(userId)
     operationProps.id = +idOperation;
-    console.log(`${typeFct} - ID operationFixe :`, operationProps.id);
-    console.log(`${typeFct}- typeOperation selon l'appel d'API`, typeOperationFixe);
-    console.log(
-      `${typeFct}- Contenu Props envoyé selon l'appel d'API`,
-      operationProps
-    );
-    const exists = await this.exists(operationProps.id, idUser);
-    console.log("Operation exists ?", exists);
 
-    if (exists) {
       console.log(
         await OperationFixeEntity.findMany({
           where: {
@@ -87,37 +78,25 @@ export class OperationFixeRepo {
           devise: true,
         },
       })
-      return resultOperationFixeById
+      const result = await new Result(ResultCode.Read,`${typeOperationFixe}`).response_get()
+      result.data = resultOperationFixeById
+      return result
 
-    }
+    // }
 
-    throw new ErrorException(ErrorCode.PrismaError,`${typeFct} OperationFixe doesn't exist`)
+    //  throw new ErrorException(ErrorCode.PrismaError,`${typeFct} OperationFixe doesn't exist`)
   }
 
 
   public async update(
     operationProps: updateOperationFixeProps,
-    userId:string,
     idOperationFixe: string,
     typeOperationFixe: string,
   ) {
-    const typeFct:string="UPDATE"
     const OperationFixeEntity = this.entities.operationFixe;
 
     operationProps.id = +idOperationFixe;
-    const idUser = parseInt(userId)
-    console.log(`${typeFct} - ID operationFixe :`, operationProps.id);
-    console.log(`${typeFct}- typeOperation selon l'appel d'API`, typeOperationFixe);
     console.log(
-      `${typeFct}- Contenu Props envoyé selon l'appel d'API`,
-      operationProps
-    );
-
-    const exists = await this.exists(operationProps.id, idUser);
-    console.log("Operation exists ?", exists);
-
-    if (exists) {
-      console.log(
         await OperationFixeEntity.update({
           where: {
               idOperationFixe: operationProps.id,
@@ -129,10 +108,7 @@ export class OperationFixeRepo {
           },
         })
       );
-      return
-    }
-
-    throw new ErrorException(ErrorCode.PrismaError,`${typeFct} OperationFixe doesn't exist`)
+      return await new Result(ResultCode.Updated,`${typeOperationFixe}`).response_update()
   }
 
   public async exists(

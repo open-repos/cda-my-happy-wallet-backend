@@ -1,3 +1,4 @@
+
 import { NODE_ENV } from './config/config'
 // import suelement de la fonction depuis le fichier server.ts
 // import possible car on a "export" la fonction
@@ -9,7 +10,6 @@ import {PORT} from "./config/config"
 
 const main = async () => {
     const server = await createServer();
-    
     // const users = await prisma.utilisateur.findMany();
     // console.log("users",users);
 
