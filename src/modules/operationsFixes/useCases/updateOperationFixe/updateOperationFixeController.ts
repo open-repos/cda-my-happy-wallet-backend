@@ -25,7 +25,7 @@ export class UpdateOperationFixeController {
             // if (!result.success) {
             //     return res.status(400).json({ message: result })
             // }
-            return res.status(201).json(result);
+            return res.status(200).json(result);
         // }
         // catch (err) {
         //     console.log(`${this.fctnCall} controllers errors :`, err);

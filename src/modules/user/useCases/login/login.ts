@@ -1,4 +1,6 @@
 // import { NextFunction } from 'express';
+import { ResultCode } from './../../../../utils/results/resultCode';
+import { Result } from './../../../../utils/results/resultList';
 import { ErrorException } from './../../../../utils/errors/errorException.error';
 import { ErrorCode } from '../../../../utils/errors/errorCode.error';
 import { UserRepo } from '../../userRepo'
@@ -51,13 +53,21 @@ export class Login {
             if (jwtToken){
                 const { id, password, ...userWithoutPasswordAndId } = user
                 console.log('user controller without id and password', userWithoutPasswordAndId);
+                const result_class = await new Result(ResultCode.Post, '',`Successfully authenticated`).response_post()
+                result_class.payload = {
+                    user:userWithoutPasswordAndId,
+                    accesToken: jwtToken,
+                    expires:expireIn
+                }
+                
                 const result = {
-                    success: true,
-                    payload: {
-                        user:userWithoutPasswordAndId,
-                        accesToken: jwtToken,
-                        expires:expireIn
-                    },
+                    success: result_class.success,
+                    // payload: {
+                    //     user:userWithoutPasswordAndId,
+                    //     accesToken: jwtToken,
+                    //     expires:expireIn
+                    // },
+                    payload:result_class.payload,
                     refreshToken:refreshToken,
                     userId:user.id
                 }

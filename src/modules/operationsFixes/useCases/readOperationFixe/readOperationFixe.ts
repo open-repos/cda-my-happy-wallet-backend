@@ -1,3 +1,5 @@
+import { ErrorCode } from './../../../../utils/errors/errorCode.error';
+import { ErrorException } from './../../../../utils/errors/errorException.error';
 import { OperationFixeRepo } from '../../operationFixeRepo';
 //Faire la logique du useCase (ici création utilisateur)import { OperationFixeRepo } from "../../OperationFixeRepo";
 
@@ -13,22 +15,23 @@ export class ReadOperationFixe {
 
     public async execute(props: any,userId:string,id:string,typeOperationFixe:string) {
 
-        // try {
+
+        console.log(`${this.fctnCall} - ID operationFixe :`, props.id);
+        console.log(`${this.fctnCall}- typeOperation selon l'appel d'API`, typeOperationFixe);
+        console.log(
+          `${this.fctnCall}- Contenu Props envoyé selon l'appel d'API`,
+          props
+        );
+        const exists = await this.operationFixeRepo.exists(props.id, parseInt(userId));
+        console.log("Operation exists ?", exists);
+    
+        if (exists) {
             console.log(`JUSTE AVNAT LE ${this.fctnCall} OPERATION`)
             const result =await this.operationFixeRepo.read(props,userId,id,typeOperationFixe);
             console.log(`JUSTE APRES LE ${this.fctnCall} et avant le return succes true`)
-            return {
-                success: true,
-                message: `operationFixe type of : ${typeOperationFixe} , is correctly ${this.fctnCall}`,
-                result: result
-
-            }
-        // }
-        // catch (err) {
-        //     return {
-        //         success: false,
-        //         message: err
-        //     }
-        // }
+            return result
+        }
+        
+        throw new ErrorException(ErrorCode.PrismaError,`${this.fctnCall} OperationFixe doesn't exist`)
     }
 }

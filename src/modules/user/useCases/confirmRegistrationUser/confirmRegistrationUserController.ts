@@ -22,7 +22,7 @@ export class ConfirmRegistrationUserController {
 
             console.log("Dans la fonction execute du CreateUserController")
             const result = await this.useCase.execute(req.params.id , req.params.token);
-            console.log('result.success final', result.success);
+            // console.log('result.success final', result.success);
             if (!result) {
                 // return res.status(400).json({ message: result.message })
                 throw new ErrorException(ErrorCode.UnknownError)

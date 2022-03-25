@@ -1,3 +1,4 @@
+import { swConfirmRegistrationUser } from './../modules/user/useCases/confirmRegistrationUser/index';
 // import { register } from '../utils/validators/index';
 import { Router, Request, Response, NextFunction } from "express";
 import { Validator } from "../middlewares/validator.middleware";
@@ -7,8 +8,38 @@ import { confirmRegistrationUserController } from "../modules/user/useCases/conf
 import {resetPasswordUserController} from "../modules/user/useCases/resetPasswordUser"
 import { loginController } from "../modules/user/useCases/login";
 import {newPasswordUserController} from "../modules/user/useCases/newPasswordUser"
+import { swCreateUser } from "../modules/user/useCases/createUser";
 // import { isResetTokenExpired } from "../middlewares/isResetTokenExpired.middleware";
 // import {SchemasJoi} from "../utils/validators/index"
+// const ApiUserEndpoints: string="/users"
+
+export const swUserRouter = {
+  "/users/register": {
+    "post": {
+      ...swCreateUser
+    }
+  } ,
+  "/users/verify/:id/:token": {
+    "get": {
+      ...swConfirmRegistrationUser
+    }
+  },
+  "/users/authenticate": {
+    "post": {
+    }
+  },
+ 
+  "/users/reset-password": {
+    "post": {
+    }
+  },
+  "/users/new-password/:token": {
+    "post": {
+    }
+  }
+}
+
+
 const userRouter: Router = Router();
 
 // const asyncHandler = (fn: any) => (req: Request, res: Response, next: NextFunction) => Promise.resolve(fn(req, res, next)).catch(next);
