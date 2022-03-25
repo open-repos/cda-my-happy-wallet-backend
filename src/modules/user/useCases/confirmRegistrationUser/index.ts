@@ -1,4 +1,4 @@
-import { schema_register_swagger } from './../../../../utils/validators/register.validator';
+// import { SchemaSwg } from './../../../../utils/validators/index';
 import { ResultCode } from './../../../../utils/results/resultCode';
 import { Result } from './../../../../utils/results/resultList';
 // Il va s'occuper d'instancier les classes pour la création d'user iciimport { UserRepo } from '../../userRepo'
@@ -13,15 +13,15 @@ export const swConfirmRegistrationUser = {
     "tags": [
       "users"
     ],
-    "requestParams": {
-        "content": {
-          "application/json": {
-            "schema": {
-                ...schema_register_swagger
-            }
-          }
-        }
-      },
+    // "requestParams": {
+    //     "content": {
+    //       "application/json": {
+    //         "schema": {
+    //             ...SchemaSwg.register
+    //         }
+    //       }
+    //     }
+    //   },
       "responses": {
         "200": {
           "description": new Result(ResultCode.Created,'','User successfully registered').message

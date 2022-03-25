@@ -31,18 +31,24 @@ export class Result{
     switch (name) {
       case ResultCode.Created:
         this.status = 201;
-        this.message = `${this.additionalInfo} Successfully Created`;
+        if (this.message==""){
+            this.message = `${this.additionalInfo} Successfully Created`;
+        }
         break;
     case ResultCode.Post:
+        if (this.message=="")
         this.message = `${this.additionalInfo} Post Request Successfully executed`;
         break;
     case ResultCode.Read:
+        if (this.message=="")
         this.message = `${this.additionalInfo} Successfully Read`;
         break;
     case ResultCode.Updated:
+        if (this.message=="")
         this.message = `${this.additionalInfo} Successfully Updated`;
         break;
     case ResultCode.Updated:
+        if (this.message=="")
         this.message = `${this.additionalInfo} Successfully Deleted`;
         break;  
     default:
@@ -54,6 +60,8 @@ export class Result{
     // }
     // this.object = this.response()
   }
+
+
   public async response_post(){
     // if (!this.data && !this.payload){
         let objRes={

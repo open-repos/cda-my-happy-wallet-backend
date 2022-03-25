@@ -13,4 +13,5 @@ export class ErrorCode {
     public static readonly UnknownError = 'UnknownError';
     public static readonly PrismaError = 'PrismaError';
     public static readonly SendEmaillError = 'SendEmaillError';
+    public static readonly InvalidInput = 'InvalidInput';
   }
