@@ -1,4 +1,5 @@
-import { ErrorException,ErrorCode } from "./../../utils/errors";
+import { Result, ResultCode } from "./../../utils/results/";
+import { ErrorException, ErrorCode } from "./../../utils/errors";
 import { prisma } from "../../database/index";
 import {
   ACCESS_TOKEN_SECRET,
@@ -9,6 +10,82 @@ import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import { UserRepo } from "../user/userRepo";
 
+export const swRenewAccessToken = {
+  tags: ["Users"],
+  summary: "Renew access token",
+  operationId: "renewAccessToken",
+  requestBody: {
+    description: "Give email and grant_type to get new access token",
+    content: {
+      "application/json": {
+        schema: {
+          $ref: "#/components/schemas/RenewAccessToken",
+        },
+      },
+    },
+    required: true,
+  },
+  responses: {
+    "200": {
+      description: new Result(ResultCode.Created, "", "Successfully logged in")
+        .message,
+      content: {
+        "application/json": {
+          schema: {
+            $ref: "#/components/schemas/AuthResponse",
+          },
+        },
+      },
+      headers: {
+        "Set-Cookie": {
+          schema: {
+            type: "string",
+            example: {
+              refresh_token: "abcde12345",
+              Path: "/",
+              HttpOnly: true,
+            },
+          },
+        },
+        "\0Set-Cookie": {
+          schema: {
+            type: "string",
+            example: {
+              user_id: "1",
+              Path: "/",
+              HttpOnly: true,
+            },
+          },
+        },
+      },
+    },
+    "400": {
+      description: new ErrorException(ErrorCode.IncompleteRequestBody).message,
+    },
+    "401": {
+      $ref: "#/components/responses/UnauthorizedError401",
+    },
+    "403": {
+      description: new ErrorException(ErrorCode.Unauthorized).message,
+    },
+    "404": {
+      description: new ErrorException(ErrorCode.NotFound).message,
+    },
+    "405": {
+      description: new ErrorException(ErrorCode.InvalidInput).message,
+    },
+  },
+  security: [
+    {
+      accessToken_auth: [],
+    },
+    {
+      userId: [],
+      refreshToken: [],
+    },
+  ],
+};
+
 export const renewAccessToken = async (
   req: Request,
   res: Response,
@@ -18,13 +95,9 @@ export const renewAccessToken = async (
   const cookies = req.cookies;
   const userRepo = new UserRepo(prisma);
 
-  console.log(req.body);
-  console.log(req.cookies);
-  if (!email) {
-    // return res.status(401).send({
-    //   error: true,
-    //   message: "No email provided in body. ",
-    // });
+  console.log("body", req.body);
+  console.log("cookies", req.cookies);
+  if (email == null) {
     return next(
       new ErrorException(
         ErrorCode.IncompleteRequestBody,
@@ -33,32 +106,30 @@ export const renewAccessToken = async (
     );
   }
 
-
-  if (!cookies) {
-    // return res.status(401).send({
-    //   error: true,
-    //   message: "Cookie empty",
-    // });
+  if (cookies.id_user == null) {
     return next(
       new ErrorException(ErrorCode.IncompleteRequestCookie, "Cookie is empty")
     );
   }
   const userEmail = await userRepo.getUserByEmail(email);
   const user = await userRepo.getUserById(parseInt(cookies.id_user));
-  console.log("user",user)
-  if (!user || userEmail.email !== user.email || userEmail.id !== parseInt(cookies.id_user) ) {
-    // return res.status(403).send({
-    //   error: true,
-    //   message: "Email or password mismatch",
-    // });
-    return next(new ErrorException(ErrorCode.Unauthorized,"Invalid User"));
+  console.log("user", user);
+  console.log("userEmail!", userEmail!);
+  if (userEmail == null) {
+    return next(
+      new ErrorException(ErrorCode.EmailNotFound, "Email user not found")
+    );
+  }
+  if (user == null) {
+    return next(new ErrorException(ErrorCode.Unauthorized));
+  }
+  if (
+    userEmail.email !== user.email ||
+    userEmail.id !== parseInt(cookies.id_user)
+  ) {
+    return next(new ErrorException(ErrorCode.Unauthorized, "Invalid User"));
   }
 
-  // if (!token) {
-  //   return next(new ErrorException(ErrorCode.AccessForbidden,'Token is missing in request body'))
-  // }
-
-  // if (!cookies.refresh_token){
   jwt.verify(
     cookies.refresh_token,
     REFRESH_TOKEN_SECRET as string,

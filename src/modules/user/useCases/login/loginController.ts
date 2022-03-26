@@ -9,26 +9,6 @@ export const swLoginUser = {
     tags: ["Users"],
     summary: "Login on application",
     operationId: "loginUser",
-    // parameters: [
-    //   {
-    //     "name": "Email",
-    //     "in": "body",
-    //     "description": "Type your Email Account",
-    //     "required": true,
-    //     "schema": {
-    //       "type": "string",
-    //     }
-    //   },
-    //   {
-    //     "name": "Password",
-    //     "in": "body",
-    //     "description": "The password for login in clear text",
-    //     "required": true,
-    //     "schema": {
-    //       "type": "string",
-    //     }
-    //   },
-    // ],
     requestBody: {
       description: "Fill email and password about your application account",
       content: {
@@ -49,7 +29,30 @@ export const swLoginUser = {
               $ref: "#/components/schemas/AuthResponse",
             },
           },
-      }},
+      } ,
+      "headers": {
+        "Set-Cookie":{
+          "schema": {
+            "type": "string",
+            "example":{
+              "refresh_token":"abcde12345", 
+              "Path":"/",
+              "HttpOnly":true
+            } 
+          }
+          },
+        "\0Set-Cookie":{
+          "schema": {
+            "type": "string",
+            "example":{
+              "user_id":"1", 
+              "Path":"/",
+              "HttpOnly":true
+            } 
+          }
+          }
+      }
+    },
       "400": {
         description: new ErrorException(ErrorCode.IncompleteRequestBody).message,
       },

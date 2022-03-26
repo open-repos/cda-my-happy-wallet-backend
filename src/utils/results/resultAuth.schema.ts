@@ -1,17 +1,18 @@
+import { Role } from "@prisma/client";
 import Joi from "joi";
 import j2s from "joi-to-swagger";
 
-enum roleUser {
-"USER"=1,
-"ADMIN"
-}
+// enum roleUser {
+// "USER"=1,
+// "ADMIN"
+// }
 
 
 type userProps = {
 firstname:string;
 lastname:string;
 email:string;
-role:roleUser;
+role:Role;
 verified:boolean;
 }
 

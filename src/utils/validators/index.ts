@@ -2,7 +2,7 @@ import Joi from "joi"
 import { operationFixeSchema,OperationFixeProps } from './operationFixe.validator';
 import { loginSchema, loginUserProps, loginSchemaSwg } from './login.validator';
 import { registerSchema,createUserProps, registerSchemaSwg } from './register.validator';
-import { renewRefreshTokenSchema,renewRefreshTokenProps } from "./renewRefreshToken.validator";
+import { renewRefreshTokenSchema,renewRefreshTokenProps, renewAccessTokenSchemaSwg } from "./renewRefreshToken.validator";
 import { emailSchema, emailUserProps, emailSchemaSwg } from './email.validator';
 import { newPasswordSchema, newPasswordUserProps, newPasswordSchemaSwg } from './newPassword.validator';
 import { SwaggerSchema } from "joi-to-swagger";
@@ -32,11 +32,13 @@ interface ISchemaSwg{
     login:SwaggerSchema
     email:SwaggerSchema
     newpassword:SwaggerSchema
+    renewAccessToken:SwaggerSchema
 }
 
 export const SchemaSwg:ISchemaSwg={
     register: registerSchemaSwg,
     login:loginSchemaSwg,
     email:emailSchemaSwg,
-    newpassword:newPasswordSchemaSwg
+    newpassword:newPasswordSchemaSwg,
+    renewAccessToken:renewAccessTokenSchemaSwg
 }

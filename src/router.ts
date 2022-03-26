@@ -1,8 +1,20 @@
 import {Router, Request, Response} from 'express';
 import { operationFixeRouter } from './routes/operationsFixes';
-import {renewAccessToken} from './modules/auth/accessTokenRenew'
+import {renewAccessToken, swRenewAccessToken} from './modules/auth/accessTokenRenew'
 import { Validator } from './middlewares/validator.middleware';
 import { userRouter } from './routes/user';
+
+
+
+export const swRenewTokenRouter = {
+    "/token": {
+      "post": {
+        ...swRenewAccessToken
+      }
+    } ,
+}
+
+
 const mainRouter: Router = Router();
 
 mainRouter.get("/", (_: Request,res: Response) => {

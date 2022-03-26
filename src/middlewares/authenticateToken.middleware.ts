@@ -1,6 +1,6 @@
 
 import { ErrorException,ErrorCode } from './../utils/errors/';
-import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET,NODE_ENV } from "../config/config";
+import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET} from "../config/config";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 
@@ -9,29 +9,39 @@ export const tokenJwtTAuth = (
   _: Response,
   next: NextFunction
 ) => {
-  if (NODE_ENV==="development"){
-    console.log("MODE development : SKip middleware")
-    return next()
-  }
+  // if (NODE_ENV==="development"){
+  //   console.log("MODE development : SKip middleware")
+  //   return next()
+  // }
+  console.log("INSIDE MIDDLEWARE")
   const authHeader = req.headers.authorization;
-  if (authHeader) {
+  console.log("authHeader",authHeader)
+  if (authHeader!=null) {
     const token = authHeader.split(' ')[1];
+    console.log("token given",token)
     jwt.verify(token, ACCESS_TOKEN_SECRET as string,function(err:any, _:any) {
         if (err) {
           console.log("WRONG TOKEN")
-          req.shoulRunMiddleware2=false;
-          next(new ErrorException(ErrorCode.Unauthorized,"The access token is not valid."))
+          // req.shoulRunMiddleware2=false;
+          return next(new ErrorException(ErrorCode.Unauthorized,"The access token is not valid or is expired."))
           // return refreshTokenAuth(req,res,next)
         } 
-        req.shoulRunMiddleware2=false;
+        // req.shoulRunMiddleware2=false;
        return;
       });
-      req.shoulRunMiddleware2=false;
-      return;
+
+      return next()
     } else {
-        next(new ErrorException(ErrorCode.AccessForbidden,"Access Forbidden . Header is Missing"))
-    } 
-    next(new ErrorException(ErrorCode.AccessForbidden,"Access Forbidden . Error about accessToken"))
+      return next(new ErrorException(ErrorCode.AccessForbidden,"Access Forbidden . Error about accessToken"))
+    }
+
+      // req.shoulRunMiddleware2=false;
+      // return;
+    // } else {
+    //     next(new ErrorException(ErrorCode.AccessForbidden,"Access Forbidden . Header is Missing"))
+    // } 
+   
+
     }
 
 
