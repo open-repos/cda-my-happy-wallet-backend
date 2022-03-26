@@ -39,7 +39,7 @@ export const swUserRouter = {
       ...swResetUser
     }
   },
-  "/users/reset-password/:token": {
+  "/users/reset-password/{token}": {
     "get": {
       ...swResetPasswdTokenUser
     }

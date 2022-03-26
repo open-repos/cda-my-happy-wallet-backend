@@ -43,6 +43,11 @@ export const swnewPassdTokenUser = {
         description: new ErrorException(ErrorCode.InvalidInput).message,
       },
     },
+    security: [
+      {
+        "resetPsswdToken": []
+      }
+    ]
   };
 //Controller
 export class NewPasswordUserController {
