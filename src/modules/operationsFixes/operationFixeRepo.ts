@@ -1,5 +1,5 @@
-import { ResultCode } from './../../utils/results/resultCode';
-import { Result } from './../../utils/results/resultList';
+
+import { Result, ResultCode } from './../../utils/results/';
 import { OperationFixeProps } from './../../utils/validators/operationFixe.validator';
 // On va utiliser notre ORM pour modifier notre BDD (couche de persistence)
 //script "générale" utilisable par notre service createOperationFixe.ts

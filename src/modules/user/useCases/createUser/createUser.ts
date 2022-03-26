@@ -1,11 +1,9 @@
 import { createUserProps } from './../../../../utils/validators/register.validator';
 //Faire la logique du useCase (ici création utilisateur)import { UserRepo } from "../../userRepo";
-import { ResultCode } from './../../../../utils/results/resultCode';
-import { Result } from './../../../../utils/results/resultList';
+import { Result, ResultCode } from './../../../../utils/results/';
 import argon2 from 'argon2'
 import { UserRepo } from '../../userRepo';
-import { ErrorException } from '../../../../utils/errors/errorException.error';
-import { ErrorCode } from './../../../../utils/errors/errorCode.error';
+import { ErrorException,ErrorCode }  from '../../../../utils/errors/';
 import {
     PORT,
     APP_BASE_URL,

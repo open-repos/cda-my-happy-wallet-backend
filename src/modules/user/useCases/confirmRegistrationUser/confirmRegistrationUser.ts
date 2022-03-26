@@ -1,6 +1,5 @@
 import { UserRepo } from '../../userRepo';
-import { ErrorException } from '../../../../utils/errors/errorException.error';
-import { ErrorCode } from './../../../../utils/errors/errorCode.error';
+import { ErrorException,ErrorCode } from '../../../../utils/errors'
 import { verify } from "jsonwebtoken";
 import {
     REGISTER_TOKEN,

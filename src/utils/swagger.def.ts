@@ -1,20 +1,9 @@
+import { ResSchemaSwg } from './results/index';
 import { errorSchemaSwg } from './errors/index';
-import { ErrorCode } from './errors/errorCode.error';
-import { ErrorException } from './errors/errorException.error';
 import { SchemaSwg } from './validators/index';
 import {PORT, APP_BASE_URL} from '../config/config'
 import { swUserRouter } from '../routes/user';
-import { ErrorSchemaSwg } from './errors';
 
-
-// async function main() {
-//   var value = await Promise.resolve(new ErrorSchemaSwg("/users/register/",new ErrorException(ErrorCode.Unauthorized)).response_obj())
-//   console.log('inside: ' + value);
-//   return value;
-// }
-
-var text = new ErrorSchemaSwg("/users/register/",new ErrorException(ErrorCode.Unauthorized)).response_obj()
-console.log('outside: ' + text)
 
 
 const swagger  =  {
@@ -30,11 +19,40 @@ const swagger  =  {
         url: `http://localhost:${PORT}${APP_BASE_URL}`,
         description: 'Development server'
       },
+      {
+        url: `https://api.myhappywallet.andriacapai.com${APP_BASE_URL}`,
+        description: 'Production server'
+      },
     ],
-    tags:[
-        {
-            name:"OperationsFixe"
-        }
+    tags: [
+      {
+        "name": "Users",
+        "description": "Everything about Users (login, register, resetPassword and so on)"
+      },
+      {
+        "name": "OperationsFixe",
+        "description": "Everything about Operation Fixe (incomes, charges each month)",
+      },
+      {
+        "name": "Operations",
+        "description": "All Request about Operations (expenses, incomes)",
+      },
+      {
+        "name": "ResteAVivre",
+        "description": "All Request about ResteAVivre (disposable income)",
+      },
+      {
+        "name": "Evenements",
+        "description": "All Request about Evenements (Future Events scheduled in order to budget)",
+      },
+      {
+        "name": "Objectifs",
+        "description": "All Request about Objectifs (Goals targeted and budget to reach it)",
+      },
+      {
+        "name": "ResteAVivreFictif",
+        "description": "All Request about ResteAVivreFictif (fictive disposable income according to events and goals)",
+      },
     ],
     paths: {
         ...swUserRouter
@@ -42,7 +60,12 @@ const swagger  =  {
     components:{
         schemas:{
             Register:SchemaSwg.register,
-            ErrorResponse: errorSchemaSwg
+            Login:SchemaSwg.login,
+            ResetPassword:SchemaSwg.email,
+            NewPassword: SchemaSwg.newpassword,
+            ErrorResponse: errorSchemaSwg,
+            SuccessResponse: ResSchemaSwg.success,
+            AuthResponse: ResSchemaSwg.resAuth
             }
     }
   }

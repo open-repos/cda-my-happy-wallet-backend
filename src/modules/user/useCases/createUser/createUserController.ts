@@ -1,6 +1,4 @@
-import { ErrorSchemaSwg } from './../../../../utils/errors/index';
-import { ErrorCode } from "./../../../../utils/errors/errorCode.error";
-import { ErrorException } from "./../../../../utils/errors/errorException.error";
+import { ErrorException,ErrorCode } from "./../../../../utils/errors/";
 import { NextFunction } from "express";
 import { Result, ResultCode } from "./../../../../utils/results";
 // gérer reception requête et renvoyer une réponse (logique HTTP)
@@ -12,41 +10,38 @@ import { CreateUser } from "./createUser";
 import { Request, Response } from "express";
 
 // swagger info
-const err = new ErrorSchemaSwg("/users/register/",new ErrorException(ErrorCode.InvalidInput)).response_obj()
-console.log(err)
 export const swRegisterUser = {
-  tags: ["users"],
-  "summary": "Register on application by given some personal infos",
-  "operationId": "updatePet",
-  "requestBody": {
-    "description":  "Fill all fields in order to register to the application",
-    "content": {
+  tags: ["Users"],
+  summary: "Register on application by given some personal infos",
+  operationId: "registerUser",
+  requestBody: {
+    description: "Fill all fields in order to register to the application",
+    content: {
       "application/json": {
-        "schema": {
-          "$ref": "#/components/schemas/Register"
-        }
+        schema: {
+          $ref: "#/components/schemas/Register",
+        },
       },
     },
-    "required": true
-  }
-  ,
-  "responses": {
+    required: true,
+  },
+  responses: {
     "200": {
-      "description": new Result(ResultCode.Created).message,
+      description: new Result(ResultCode.Created,"","Successfully registered. Check your email to confirm your account").message,
     },
     "400": {
-      "description":new ErrorException(ErrorCode.IncompleteRequestBody).message,
+      description: new ErrorException(ErrorCode.IncompleteRequestBody).message,
     },
     "403": {
-      "description":new ErrorException(ErrorCode.Unauthorized).message,
+      description: new ErrorException(ErrorCode.Unauthorized).message,
     },
-      "404": {
-      "description":new ErrorException(ErrorCode.NotFound).message,
-      },
-      "405": {
-        "description":new ErrorException(ErrorCode.InvalidInput).message,
-        },
+    "404": {
+      description: new ErrorException(ErrorCode.NotFound).message,
     },
+    "405": {
+      description: new ErrorException(ErrorCode.InvalidInput).message,
+    },
+  },
 };
 
 //Controller

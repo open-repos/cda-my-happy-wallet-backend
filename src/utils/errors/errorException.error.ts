@@ -38,7 +38,7 @@ export class ErrorException extends Error {
       case ErrorCode.EmailNotFound:
           this.status = 401;
           if (this.message=="")
-          this.message = "No account with that email found.";
+          this.message = "No account with that email.";
           break;
       case ErrorCode.EmailPasswordNotValid:
         this.status = 401;

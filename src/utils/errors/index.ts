@@ -71,4 +71,10 @@ export class ErrorSchemaSwg {
   }
 }
 
+
+// const err = new ErrorSchemaSwg(
+//   "/users/register/",
+//   new ErrorException(ErrorCode.InvalidInput)
+// ).response_obj();
+// console.log(err);
 export { ErrorCode, ErrorException };

@@ -1,5 +1,4 @@
-import { ErrorCode } from './../utils/errors/errorCode.error';
-import { ErrorException } from './../utils/errors/errorException.error';
+import { ErrorException,ErrorCode } from './../utils/errors/';
 import { Router, Request, Response, NextFunction } from 'express';
 import { prisma } from '../database';
 import { createOperationFixeController } from '../modules/operationsFixes/useCases/createOperationFixe'

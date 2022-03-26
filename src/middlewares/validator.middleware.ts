@@ -1,5 +1,4 @@
-import { ErrorException } from "../utils/errors/errorException.error";
-import { ErrorCode } from "../utils/errors/errorCode.error";
+import { ErrorException,ErrorCode }  from "../utils/errors/";
 import { NextFunction, Request, Response } from "express";
 import {ISchema, Schemas} from "../utils/validators/index"
 // const Validators = require("../utils/validators/index");
