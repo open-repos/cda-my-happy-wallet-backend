@@ -1,3 +1,5 @@
+import { Result, ResultCode } from './../../../../utils/results/';
+import { ErrorException, ErrorCode } from './../../../../utils/errors/';
 // gérer reception requête et renvoyer une réponse (logique HTTP)
 // Route pour arriver dessus  http://localhost:3001/api/v1/OperationFixes/
 // Créer un objet sur cette route c'est POST http://localhost:3001/api/v1/OperationFixes/
@@ -35,3 +37,42 @@ export class CreateOperationFixeController {
 
     }
 }
+
+
+// swagger info
+export const swCreateCharge = {
+    tags: ["OperationsFixe"],
+    summary: "Create charge",
+    operationId: "postCharge",
+    requestBody: {
+      description: "Fill all fields in order to create charge",
+      content: {
+        "application/json": {
+          schema: {
+            $ref: "#/components/schemas/Charge",
+          },
+        },
+      },
+      required: true,
+    },
+    responses: {
+      "200": {
+        description: new Result(ResultCode.Created).message,
+      },
+      "401": {
+        $ref: "#/components/responses/UnauthorizedError401",
+      },
+      "400": {
+        description: new ErrorException(ErrorCode.IncompleteRequestBody).message,
+      },
+      "403": {
+        description: new ErrorException(ErrorCode.Unauthorized).message,
+      },
+      "404": {
+        description: new ErrorException(ErrorCode.NotFound).message,
+      },
+      "405": {
+        description: new ErrorException(ErrorCode.InvalidInput).message,
+      },
+    }
+  };

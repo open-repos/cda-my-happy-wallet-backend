@@ -1,3 +1,5 @@
+import { swCreateCharge } from './../modules/operationsFixes/useCases/createOperationFixe/createOperationFixeController';
+import { swGetAllOperationFixe, swGetAllCharge, swGetAllRevenu } from './../modules/operationsFixes/useCases/readAllOperationFixe/readAllOperationFixeController';
 import { Router, Request, Response, NextFunction } from "express";
 import { createOperationFixeController } from "../modules/operationsFixes/useCases/createOperationFixe";
 import { updateOperationFixeController } from "../modules/operationsFixes/useCases/updateOperationFixe";
@@ -11,20 +13,24 @@ import { readAllOperationFixeController } from "../modules/operationsFixes/useCa
 export const swOperationFixeRouter = {
     "/operations-fixes": {
       "get": {
+        ...swGetAllOperationFixe,
       }
     } ,
-    // "/operations-fixes/revenus": {
-    //   "post": {
-    //   },
-    //   "get": {
-    // },
-    // },
-    // "/operations-fixes/charges": {
-    //   "post": {
-    //   },
-    //   "get": {
-    // }
-    // },
+    "/operations-fixes/revenus": {
+      "post": {
+      },
+      "get": {
+        ...swGetAllRevenu,
+    },
+    },
+    "/operations-fixes/charges": {
+      "post": {
+        ...swCreateCharge
+      },
+      "get": {
+        ...swGetAllCharge
+    }
+    },
     // "/operations-fixes/revenus/{id}": {
     //   "put": {
     //   },

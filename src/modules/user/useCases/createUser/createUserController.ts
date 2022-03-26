@@ -9,6 +9,33 @@ import { Result, ResultCode } from "./../../../../utils/results";
 import { CreateUser } from "./createUser";
 import { Request, Response } from "express";
 
+
+
+//Controller
+export class CreateUserController {
+  private useCase: CreateUser;
+
+  constructor(createUser: CreateUser) {
+    this.useCase = createUser;
+  }
+
+  public async execute(req: Request, res: Response, _: NextFunction) {
+    console.log("Dans la fonction execute du CreateUserController");
+    const result = await this.useCase.execute(req.body);
+    console.log("result.success final", result.success);
+    if (!result) {
+      // return res.status(400).json({ message: result.message })
+      throw new ErrorException(ErrorCode.UnknownError);
+    }
+    return res
+      .status(201)
+      .json({ succes: result.success, message: result.message });
+    // return res.status(201).json({succes:result.success, message:result.message});
+  }
+}
+
+
+
 // swagger info
 export const swRegisterUser = {
   tags: ["Users"],
@@ -42,27 +69,13 @@ export const swRegisterUser = {
       description: new ErrorException(ErrorCode.InvalidInput).message,
     },
   },
+  // links:{
+  //   LoginEmail:{
+  //     operationId:"loginUser",
+  //     parameters:{
+  //       "email":'$request.body#/email'
+  //     },
+  //     description:"The email from request /users/register/"
+  //   }
+  // }
 };
-
-//Controller
-export class CreateUserController {
-  private useCase: CreateUser;
-
-  constructor(createUser: CreateUser) {
-    this.useCase = createUser;
-  }
-
-  public async execute(req: Request, res: Response, _: NextFunction) {
-    console.log("Dans la fonction execute du CreateUserController");
-    const result = await this.useCase.execute(req.body);
-    console.log("result.success final", result.success);
-    if (!result) {
-      // return res.status(400).json({ message: result.message })
-      throw new ErrorException(ErrorCode.UnknownError);
-    }
-    return res
-      .status(201)
-      .json({ succes: result.success, message: result.message });
-    // return res.status(201).json({succes:result.success, message:result.message});
-  }
-}
