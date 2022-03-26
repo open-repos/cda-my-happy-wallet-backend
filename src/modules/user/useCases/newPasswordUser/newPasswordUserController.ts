@@ -1,5 +1,5 @@
-import { ErrorCode } from './../../../../utils/errors/errorCode.error';
-import { ErrorException } from './../../../../utils/errors/errorException.error';
+import { ErrorException,ErrorCode } from './../../../../utils/errors/';
+import { Result, ResultCode } from './../../../../utils/results/';
 import { NextFunction } from 'express';
 // gérer reception requête et renvoyer une réponse (logique HTTP)
 // Route pour arriver dessus  http://localhost:3001/api/v1/users/
@@ -10,6 +10,40 @@ import { NextFunction } from 'express';
 import { NewPasswordUser } from './newPasswordUser'
 import { Request, Response } from 'express'
 
+
+export const swnewPassdTokenUser = {
+    tags: ["Users"],
+    summary: "New Password",
+    operationId: "newPassword",
+    requestBody: {
+      description: "Choose new password ",
+      content: {
+        "application/json": {
+          schema: {
+            $ref: "#/components/schemas/NewPassword",
+          },
+        },
+      },
+      required: true,
+    },
+    responses: {
+      "200": {
+        description: new Result(ResultCode.Created,"","New password created").message,
+      },
+      "400": {
+        description: new ErrorException(ErrorCode.IncompleteRequestBody).message,
+      },
+      "403": {
+        description: new ErrorException(ErrorCode.Unauthorized).message,
+      },
+      "404": {
+        description: new ErrorException(ErrorCode.NotFound).message,
+      },
+      "405": {
+        description: new ErrorException(ErrorCode.InvalidInput).message,
+      },
+    },
+  };
 //Controller
 export class NewPasswordUserController {
     private useCase: NewPasswordUser;
@@ -21,12 +55,13 @@ export class NewPasswordUserController {
     public async execute(req: Request, res: Response, _:NextFunction) {
 
             console.log("Dans la fonction execute du NewPasswordController")
-            const result = await this.useCase.execute(req.body.password, req.params.token);
+            const result = await this.useCase.execute(req.body.password, req.cookies.reset_token_password);
             console.log('result.success final', result.success);
             if (!result) {
                 // return res.status(400).json({ message: result.message })
                 throw new ErrorException(ErrorCode.UnknownError)
             }
+            res.clearCookie("reset_token_password")
             return res.status(201).json({succes:result.success, message:result.message});
 
     }

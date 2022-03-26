@@ -1,6 +1,5 @@
 
-import { ErrorCode } from './../../../../utils/errors/errorCode.error';
-import { ErrorException } from './../../../../utils/errors/errorException.error';
+import { ErrorException,ErrorCode } from './../../../../utils/errors/';
 import { OperationFixeRepo } from '../../operationFixeRepo';
 //Faire la logique du useCase (ici création utilisateur)import { OperationFixeRepo } from "../../OperationFixeRepo";
 

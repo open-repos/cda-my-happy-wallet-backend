@@ -1,8 +1,6 @@
 // import { NextFunction } from 'express';
-import { ResultCode } from './../../../../utils/results/resultCode';
-import { Result } from './../../../../utils/results/resultList';
-import { ErrorException } from './../../../../utils/errors/errorException.error';
-import { ErrorCode } from '../../../../utils/errors/errorCode.error';
+import { Result, ResultCode } from './../../../../utils/results/';
+import { ErrorException,ErrorCode } from './../../../../utils/errors/';
 import { UserRepo } from '../../userRepo'
 import argon2 from 'argon2'
 import { sign } from 'jsonwebtoken'
@@ -51,11 +49,12 @@ export class Login {
             console.log('REFRESH TOKEN', refreshToken);
 
             if (jwtToken){
-                const { id, password, ...userWithoutPasswordAndId } = user
-                console.log('user controller without id and password', userWithoutPasswordAndId);
+                // const { id, password, ...userWithoutPasswordAndId } = user
+                const{id,password,resetToken,resetTokenExpiration,created_at,updated_at,...userWithoutSensitiveInfo}=user
+                console.log('user controller without id and password', userWithoutSensitiveInfo);
                 const result_class = await new Result(ResultCode.Post, '',`Successfully authenticated`).response_post()
                 result_class.payload = {
-                    user:userWithoutPasswordAndId,
+                    user:userWithoutSensitiveInfo,
                     accesToken: jwtToken,
                     expires:expireIn
                 }

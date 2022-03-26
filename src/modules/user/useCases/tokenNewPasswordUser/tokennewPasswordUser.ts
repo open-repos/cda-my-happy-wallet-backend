@@ -1,14 +1,14 @@
+import { Result, ResultCode }  from './../../../../utils/results/';
 import { UserRepo } from "../../userRepo";
-import argon2 from "argon2"
 import { ErrorException,ErrorCode } from '../../../../utils/errors/';
-export class NewPasswordUser {
+export class TokenNewPasswordUser {
   private userRepo: UserRepo;
 
   constructor(userRepo: UserRepo) {
     this.userRepo = userRepo;
   }
 
-  public async execute(password: string, token: string) {
+  public async execute(token: string) {
 
     // A enlever une fois le middleware executé
     const existUserResetToken =  await this.userRepo.existUserResetToken(token)
@@ -16,12 +16,14 @@ export class NewPasswordUser {
         throw new ErrorException(ErrorCode.Unauthorized);
     }
 
-    const hashPassword = await argon2.hash(password);
-    console.log("hashed password", hashPassword);
+    return await new Result(ResultCode.Read).response_update()
 
-    password = hashPassword;
+    // const hashPassword = await argon2.hash(password);
+    // console.log("hashed password", hashPassword);
 
-    const result = await this.userRepo.newPassword(password, token);
-    return result;
+    // password = hashPassword;
+
+    // const result = await this.userRepo.newPassword(password, token);
+    // return result;
   }
 }

@@ -1,5 +1,4 @@
-import { ErrorCode } from "./../../utils/errors/errorCode.error";
-import { ErrorException } from "./../../utils/errors/errorException.error";
+import { ErrorException,ErrorCode } from "./../../utils/errors";
 import { prisma } from "../../database/index";
 import {
   ACCESS_TOKEN_SECRET,

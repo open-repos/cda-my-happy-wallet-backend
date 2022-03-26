@@ -1,11 +1,70 @@
-import { ErrorCode } from './../../../../utils/errors/errorCode.error';
+import { Result, ResultCode } from './../../../../utils/results/';
 import { NextFunction } from 'express';
 import { NODE_ENV } from '../../../../config/config';
 import { Login } from './login'
 import { Request, Response } from 'express'
-import { ErrorException } from './../../../../utils/errors/errorException.error';
+import { ErrorException,ErrorCode } from './../../../../utils/errors/';
 
-
+export const swLoginUser = {
+    tags: ["Users"],
+    summary: "Login on application",
+    operationId: "loginUser",
+    // parameters: [
+    //   {
+    //     "name": "Email",
+    //     "in": "body",
+    //     "description": "Type your Email Account",
+    //     "required": true,
+    //     "schema": {
+    //       "type": "string",
+    //     }
+    //   },
+    //   {
+    //     "name": "Password",
+    //     "in": "body",
+    //     "description": "The password for login in clear text",
+    //     "required": true,
+    //     "schema": {
+    //       "type": "string",
+    //     }
+    //   },
+    // ],
+    requestBody: {
+      description: "Fill email and password about your application account",
+      content: {
+        "application/json": {
+          schema: {
+            $ref: "#/components/schemas/Login",
+          },
+        },
+      },
+      required: true,
+    },
+    responses: {
+      "200": {
+        description: new Result(ResultCode.Created,"","Successfully logged in").message,
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/AuthResponse",
+            },
+          },
+      }},
+      "400": {
+        description: new ErrorException(ErrorCode.IncompleteRequestBody).message,
+      },
+      "403": {
+        description: new ErrorException(ErrorCode.Unauthorized).message,
+      },
+      "404": {
+        description: new ErrorException(ErrorCode.NotFound).message,
+      },
+      "405": {
+        description: new ErrorException(ErrorCode.InvalidInput).message,
+      },
+    },
+  };
+  
 export class LoginController {
     private useCase: Login;
 

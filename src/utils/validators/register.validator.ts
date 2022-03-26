@@ -1,19 +1,17 @@
 import Joi from "joi"
 import j2s from "joi-to-swagger"
 
-const regexGlobal = new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%\^&\*])(?=.{8,})");
+const regexGlobal = new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\$%\^\&*\)\(+=._-])(?=.{8,})");
 const regexOneLowerCase = new RegExp("^(?=.*[a-z])");
 const regexOneUpperCase = new RegExp("^(?=.*[A-Z])");
 const regexOneNumber= new RegExp("^(?=.*[0-9])");
-const regexOneSpecialCharacter= new RegExp("^(?=.*[!@#\$%\^&\*()\-_+.])");
+const regexOneSpecialCharacter= new RegExp("^(?=.*[!@#\$%\^\&*\)\(+=._-])");
 const regexMinLengtheight= new RegExp("^(?=.{8,})");
 
 
 export const nestedStrongPassword = Joi.string().pattern(regexGlobal)
   .trim(true).required().example("MypassworD!0").error((error:any)=> {
     error.forEach((err:any) => {
-      console.log("ERRO CODE:",err.code)
-      console.log("ERRO VALUE:",err.value)
       let list_error= []
       switch (err.code) {
         case "any.empty":
@@ -31,7 +29,7 @@ export const nestedStrongPassword = Joi.string().pattern(regexGlobal)
            list_error.push("1 Number is required")
          }
          if(!regexOneSpecialCharacter.test(err.value)){
-           list_error.push("1 Special character from [!@#\$%\^&\*()\-_+.]  is required")
+           list_error.push("1 Special character from [!@#\$%\^&\*]  is required")
          }
          if(!regexMinLengtheight.test(err.value)){
            list_error.push("Minimum length password 8 characters")
@@ -69,4 +67,4 @@ export const registerSchema = Joi.object<createUserProps>({
 
 
 export const registerSchemaSwg = j2s(registerSchema).swagger
-console.log(registerSchemaSwg, j2s(registerSchema).components)
+// console.log(registerSchemaSwg, j2s(registerSchema).components)

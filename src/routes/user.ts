@@ -1,4 +1,8 @@
-import { swConfirmRegistrationUser } from './../modules/user/useCases/confirmRegistrationUser/index';
+import { swnewPassdTokenUser } from './../modules/user/useCases/newPasswordUser/newPasswordUserController';
+import { swResetPasswdTokenUser } from './../modules/user/useCases/tokenNewPasswordUser/tokennewPasswordUserController';
+import { swResetUser } from './../modules/user/useCases/resetPasswordUser/resetPasswordUserController';
+import { swLoginUser } from './../modules/user/useCases/login/loginController';
+import { swConfirmRegistrationUser } from './../modules/user/useCases/confirmRegistrationUser/confirmRegistrationUserController';
 // import { register } from '../utils/validators/index';
 import { Router, Request, Response, NextFunction } from "express";
 import { Validator } from "../middlewares/validator.middleware";
@@ -9,6 +13,7 @@ import {resetPasswordUserController} from "../modules/user/useCases/resetPasswor
 import { loginController } from "../modules/user/useCases/login";
 import {newPasswordUserController} from "../modules/user/useCases/newPasswordUser"
 import { swRegisterUser } from './../modules/user/useCases/createUser/createUserController';
+import { tokennewPasswordUserController } from './../modules/user/useCases/tokenNewPasswordUser';
 // import { isResetTokenExpired } from "../middlewares/isResetTokenExpired.middleware";
 // import {SchemasJoi} from "../utils/validators/index"
 // const ApiUserEndpoints: string="/users"
@@ -19,24 +24,31 @@ export const swUserRouter = {
       ...swRegisterUser
     }
   } ,
-  "/users/verify/:id/:token": {
+  "/users/verify/{id}/{token}": {
     "get": {
       ...swConfirmRegistrationUser
     }
   },
-  // "/users/authenticate": {
-  //   "post": {
-  //   }
-  // },
- 
-  // "/users/reset-password": {
-  //   "post": {
-  //   }
-  // },
-  // "/users/new-password/:token": {
-  //   "post": {
-  //   }
-  // }
+  "/users/authenticate": {
+    "post": {
+      ...swLoginUser
+    }
+  },
+  "/users/reset-password": {
+    "post": {
+      ...swResetUser
+    }
+  },
+  "/users/reset-password/:token": {
+    "get": {
+      ...swResetPasswdTokenUser
+    }
+  },
+  "/users/new-password": {
+    "post": {
+    ...swnewPassdTokenUser
+    }
+  }
 }
 
 
@@ -79,9 +91,15 @@ userRouter.post(
       resetPasswordUserController.execute(req, res, next)
     ).catch(next)
 );
+userRouter.get(
+  "/reset-password/:token",
+  (req: Request, res: Response, next: NextFunction) =>
+    Promise.resolve(tokennewPasswordUserController.execute(req, res, next)).catch(next)
+);
 // isResetTokenExpired
 userRouter.post(
-  "/new-password/:token",
+  "/new-password",
+  Validator("newPassword"),
   (req: Request, res: Response, next: NextFunction) =>
     Promise.resolve(
       newPasswordUserController.execute(req, res, next)

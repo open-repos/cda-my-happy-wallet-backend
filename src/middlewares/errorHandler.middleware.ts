@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ErrorCode } from '../utils/errors/errorCode.error';
-import { ErrorException } from '../utils/errors/errorException.error';
+import { ErrorException,ErrorCode } from '../utils/errors';
 // import { ErrorModel } from '../utils/errors/errorModel.error';
 
 export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {

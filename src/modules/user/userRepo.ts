@@ -1,9 +1,7 @@
-import { ResultCode } from './../../utils/results/resultCode';
-import { Result } from './../../utils/results/resultList';
-import { NODE_ENV } from "./../../config/config";
-import { ErrorCode } from "./../../utils/errors/errorCode.error";
-import { ErrorException } from "./../../utils/errors/errorException.error";
+import { Result, ResultCode }  from './../../utils/results/';
+import { ErrorException,ErrorCode }  from "./../../utils/errors/";
 import {
+  NODE_ENV,
   SENDGRID_API_KEY,
   // REGISTER_TOKEN,
   EMAIL_SENDER,

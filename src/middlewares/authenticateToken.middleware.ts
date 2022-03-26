@@ -1,5 +1,5 @@
-import { ErrorCode } from './../utils/errors/errorCode.error';
-import { ErrorException} from './../utils/errors/errorException.error';
+
+import { ErrorException,ErrorCode } from './../utils/errors/';
 import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET,NODE_ENV } from "../config/config";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";

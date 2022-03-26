@@ -1,9 +1,7 @@
 import { PORT, APP_BASE_URL } from './../../../../config/config';
 import { UserRepo } from "../../userRepo";
-import { ErrorException } from "../../../../utils/errors/errorException.error";
-import { ErrorCode } from "./../../../../utils/errors/errorCode.error";
-import { ResultCode } from './../../../../utils/results/resultCode';
-import { Result } from './../../../../utils/results/resultList';
+import { ErrorException,ErrorCode } from "../../../../utils/errors/";
+import { Result, ResultCode }  from './../../../../utils/results/';
 // import { emailUserProps } from "../../../../utils/validators/email.validator";
 import crypto from "crypto";
 // import { confirmRegistrationUserController } from "../confirmRegistrationUser";
