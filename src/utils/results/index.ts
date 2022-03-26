@@ -1,3 +1,4 @@
+import { ListOperationFixeSchemaSwg, ListChargeSchemaSwg, ListRevenuSchemaSwg } from './resultOperationFixe.schema';
 import { resultAuthSchemaSwg } from './resultAuth.schema';
 import { Result } from "./resultList";
 import { ResultCode } from "./resultCode";
@@ -22,11 +23,17 @@ const successSchemaSwg = j2s(successResponseSchema).swagger;
 interface ISchemaSwg{
   success:SwaggerSchema
   resAuth:SwaggerSchema
+  arrayOperationFixe:SwaggerSchema
+  arrayCharge:SwaggerSchema
+  arrayRevenu:SwaggerSchema
 }
 
 export const ResSchemaSwg:ISchemaSwg={
   success: successSchemaSwg,
   resAuth:resultAuthSchemaSwg,
+  arrayOperationFixe:ListOperationFixeSchemaSwg,
+  arrayCharge:ListChargeSchemaSwg,
+  arrayRevenu:ListRevenuSchemaSwg
 }
 
 

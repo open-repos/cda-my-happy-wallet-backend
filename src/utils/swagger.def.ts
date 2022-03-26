@@ -6,6 +6,7 @@ import { errorSchemaSwg } from "./errors/index";
 import { SchemaSwg } from "./validators/index";
 import { PORT, APP_BASE_URL } from "../config/config";
 import { swUserRouter } from "../routes/user";
+import { swOperationFixeRouter } from '../routes/operationsFixes';
 
 const swagger = {
   openapi: "3.0.0",
@@ -63,6 +64,7 @@ const swagger = {
   paths: {
     ...swUserRouter,
     ...swRenewTokenRouter,
+    ...swOperationFixeRouter
   },
   components: {
     schemas: {
@@ -73,7 +75,12 @@ const swagger = {
       ErrorResponse: errorSchemaSwg,
       SuccessResponse: ResSchemaSwg.success,
       AuthResponse: ResSchemaSwg.resAuth,
-      RenewAccessToken: SchemaSwg.renewAccessToken
+      RenewAccessToken: SchemaSwg.renewAccessToken,
+      ListeOperationFixeResponse:ResSchemaSwg.arrayOperationFixe,
+      ListeChargeResponse:ResSchemaSwg.arrayCharge,
+      ListeRevenuResponse:ResSchemaSwg.arrayRevenu,
+      Charge:SchemaSwg.charge,
+      Revenu:SchemaSwg.revenu
     },
     responses: {
       UnauthorizedError401: {
@@ -121,9 +128,10 @@ const swagger = {
 };
 export default swagger;
 
-// "security": [
-//   {
-//     "userId": [],
-//     "refreshToken": [],
 
-//   }]
+
+
+// const templateResponsePostOperatioFixe
+
+// const templatePresenationOperationFixe
+
