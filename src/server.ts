@@ -1,7 +1,7 @@
 import { errorLogging } from './middlewares/errorLogging.middleware';
 import { errorHandler } from './middlewares/errorHandler.middleware';
 
-import express from 'express'
+import express, { Request, Response } from 'express'
 //import { Request, Response, NextFunction ,ErrorRequestHandler} from 'express'
 import cors from 'cors'
 // import morgan from 'morgan'
@@ -34,6 +34,10 @@ export const createServer = async () => {
     if (NODE_ENV === 'development') {
         server.use(morgan('dev'));
       }
+    server.get("/",(_: Request,res: Response) => {
+      res.redirect('/api-docs');
+  });
+      
     //On rajoute le router à notre server
     //Il sera accessible sur la route APP_BASE_URL, ici -> /v1/
     server.use(APP_BASE_URL as string, mainRouter)

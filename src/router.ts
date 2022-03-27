@@ -27,6 +27,7 @@ const mainRouter: Router = Router();
 
 mainRouter.get("/", (_: Request,res: Response) => {
     res.send("Racine de l'API. ")
+    // res.redirect('/api-docs');
 })
 
 mainRouter.post("/token",Validator("renewRefreshToken"),renewAccessToken)
