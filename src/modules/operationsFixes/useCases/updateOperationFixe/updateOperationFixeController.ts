@@ -1,3 +1,4 @@
+import { RespUpdateDelete,RequestOperationFixe } from './../../../../utils/models/';
 // gérer reception requête et renvoyer une réponse (logique HTTP)
 // Route pour arriver dessus  http://localhost:3001/api/v1/OperationFixes/
 // Créer un objet sur cette route c'est POST http://localhost:3001/api/v1/OperationFixes/
@@ -6,6 +7,7 @@
 
 import { UpdateOperationFixe } from './updateOperationFixe'
 import {Request, Response } from 'express'
+import { TypeOperationFixeEnum } from '@prisma/client';
 
 //Controller
 export class UpdateOperationFixeController {
@@ -16,7 +18,7 @@ export class UpdateOperationFixeController {
         this.useCase = updateOperationFixe;
     }
 
-    public async execute(req: Request, res: Response,typeOperation:string) {
+    public async execute(req: Request, res: Response,typeOperation:TypeOperationFixeEnum) {
 
         // try {
             console.log("Dans la fonction execute du operationController")
@@ -34,3 +36,25 @@ export class UpdateOperationFixeController {
 
     }
 }
+
+
+// DOCUMENTATION SWAGGER
+export const swUpdateChargeById = {
+    ...new RequestOperationFixe("Charge","Update","put").jsonStruct,
+    responses: new RespUpdateDelete('Update').jsonStruct,
+    security: [
+        {
+          accessToken_auth: [],
+        },
+      ],
+  };
+
+export const swUpdateRevenuById = {
+    ...new RequestOperationFixe("Revenu","Update","put").jsonStruct,
+    responses: new RespUpdateDelete('Update').jsonStruct,
+    security: [
+        {
+          accessToken_auth: [],
+        },
+      ],
+  };

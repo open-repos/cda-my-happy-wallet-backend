@@ -1,3 +1,7 @@
+import { ErrorException,ErrorCode } from './../utils/errors/';
+import { Result, ResultCode } from './../utils/results/';
+import { isAdmin } from './../middlewares/isAdmin.middleware';
+import { tokenJwtTAuth } from './../middlewares/authenticateToken.middleware';
 import { swnewPassdTokenUser } from './../modules/user/useCases/newPasswordUser/newPasswordUserController';
 import { swResetPasswdTokenUser } from './../modules/user/useCases/tokenNewPasswordUser/tokennewPasswordUserController';
 import { swResetUser } from './../modules/user/useCases/resetPasswordUser/resetPasswordUserController';
@@ -14,6 +18,8 @@ import { loginController } from "../modules/user/useCases/login";
 import {newPasswordUserController} from "../modules/user/useCases/newPasswordUser"
 import { swRegisterUser } from './../modules/user/useCases/createUser/createUserController';
 import { tokennewPasswordUserController } from './../modules/user/useCases/tokenNewPasswordUser';
+import { swDeleteAccount } from '../modules/user/useCases/deleteAccount/deleteAccountController';
+import { deleteAccountController } from '../modules/user/useCases/deleteAccount';
 // import { isResetTokenExpired } from "../middlewares/isResetTokenExpired.middleware";
 // import {SchemasJoi} from "../utils/validators/index"
 // const ApiUserEndpoints: string="/users"
@@ -48,6 +54,11 @@ export const swUserRouter = {
     "post": {
     ...swnewPassdTokenUser
     }
+  },
+  "/users/delete": {
+    "delete": {
+    ...swDeleteAccount
+    }
   }
 }
 
@@ -57,9 +68,10 @@ const userRouter: Router = Router();
 // const asyncHandler = (fn: any) => (req: Request, res: Response, next: NextFunction) => Promise.resolve(fn(req, res, next)).catch(next);
 
 // Get list of users
-userRouter.get("/", async (_: Request, res: Response) => {
+userRouter.get("/",tokenJwtTAuth,isAdmin, async (_: Request, res: Response) => {
   const users = await prisma.utilisateur.findMany();
-  res.status(200).json({ success: true, data: users });
+  const result = await new Result(ResultCode.Read,"List of all users","",users).response_get()
+  res.status(200).json(result);
 });
 //Register User
 userRouter.post(
@@ -105,8 +117,45 @@ userRouter.post(
       newPasswordUserController.execute(req, res, next)
     ).catch(next)
 );
+
+userRouter.delete(
+  "/delete",
+  tokenJwtTAuth,
+  (req: Request, res: Response, next: NextFunction) =>
+    Promise.resolve(
+      deleteAccountController.execute(req, res)
+    ).catch(next)
+);
 // userRouter.post('/authenticate', asyncHandler(loginController.execute))
 
 // userRouter.use('/users',userRouter)
 
 export { userRouter };
+
+
+// DOCUMENTATION SWAGGER
+export const swGetListUser = {
+  tags: ["Users"],
+  summary: "Get List of all Users (ADMIN Only)",
+  operationId: "getListUsers",
+  responses: {
+    "200": {
+      description: new Result(ResultCode.Read,"List of all User App").message,
+  },
+    "403": {
+      description: new ErrorException(ErrorCode.Unauthorized).message,
+    },
+    "404": {
+      description: new ErrorException(ErrorCode.NotFound).message,
+    }
+  },
+  security: [
+    {
+      accessToken_auth: [],
+    },
+    {
+      userId: [],
+      refreshToken: [],
+    },
+  ],
+};

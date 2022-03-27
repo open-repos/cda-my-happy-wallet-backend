@@ -61,7 +61,7 @@ export class CreateUser {
             Merci pour votre inscription à MyHappyWallet
             <br/><br/>
             Pour verifier votre compte veuillez cliquez sur le lien suivant: 
-            <a href="${verificationLink}">${verificationLink}</a>
+            <a href="${verificationLink}">Lien de confirmation</a>
             <br/><br/>
             Je vous souhaite une bonne journée!`;
 

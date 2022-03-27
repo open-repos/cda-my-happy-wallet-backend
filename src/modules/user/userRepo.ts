@@ -35,35 +35,19 @@ export class UserRepo {
     });
 
     return user
-    // const expireIn = "5min";
-    // const jwtToken = sign(
-    //   { email: userProps.email },
-    //   REGISTER_TOKEN as string,
-    //   { expiresIn: expireIn }
-    // );
-    // console.log("REGITER TOKEN", jwtToken);
-
-    // const verificationLink = `http://localhost:${PORT}/${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
-    // const emailToSend: string = "andria.capai@gmail.com"; // userProps.email
-    // const subject: string = "Confirmez votre inscription à MyHappyWallet";
-    // const message: string = `Hi there
-    //   <br/>
-    //   Merci pour votre inscription à MyHappyWallet
-    //   <br/><br/>
-    //   Pour verifier votre compte veuillez cliquez sur le lien suivant: 
-    //   <a href="${verificationLink}">${verificationLink}</a>
-    //   <br/><br/>
-    //   Je vous souhaite une bonne journée!`;
-
-    // const isEmailSent = await this.sendMail(emailToSend, subject, message);
-
-    // if (!isEmailSent) {
-    //   throw new ErrorException(ErrorCode.SendEmaillError);
-    // }
-    // return await new Result(ResultCode.Created,`Email was sent to ${emailToSend}`).response_post()
-    // return { success: true, message: `Email was sent to ${emailToSend}` };
   }
 
+  public async delete(email: string,userId:number) {
+    const UserEntity = this.entities.utilisateur;
+
+    console.log("dans UserRepo delete fctn");
+
+    await UserEntity.deleteMany({
+      where: { email: email,id:userId }
+    });
+
+    return await new Result(ResultCode.Deleted,`User with ${email} account`).response_delete()
+  }
   public async resetPassword(email: string, resetToken:string, resetTokenExpiration:Date) {
     const UserEntity = this.entities.utilisateur;
 

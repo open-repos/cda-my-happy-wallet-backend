@@ -57,19 +57,19 @@ export class OperationFixeRepo {
     const idUser = parseInt(userId);
     operationProps.id = +idOperation;
 
-    console.log(
-      await OperationFixeEntity.findMany({
-        where: {
-          idOperationFixe: operationProps.id,
-          userId: idUser,
-        },
-        select: {
-          titre: true,
-          montant: true,
-          devise: true,
-        },
-      })
-    );
+    // console.log(
+    //   await OperationFixeEntity.findMany({
+    //     where: {
+    //       idOperationFixe: operationProps.id,
+    //       userId: idUser,
+    //     },
+    //     select: {
+    //       titre: true,
+    //       montant: true,
+    //       devise: true,
+    //     },
+    //   })
+    // );
     const resultOperationFixeById = await OperationFixeEntity.findMany({
       where: {
         idOperationFixe: operationProps.id,
@@ -95,16 +95,18 @@ export class OperationFixeRepo {
 
   public async update(
     operationProps: updateOperationFixeProps,
+    userId: string,
     idOperationFixe: string,
     typeOperationFixe: string
   ) {
     const OperationFixeEntity = this.entities.operationFixe;
-
+    const idUser = parseInt(userId);
     operationProps.id = +idOperationFixe;
     console.log(
-      await OperationFixeEntity.update({
+      await OperationFixeEntity.updateMany({
         where: {
           idOperationFixe: operationProps.id,
+          userId: idUser,
         },
         data: {
           titre: operationProps.titre,
@@ -118,6 +120,32 @@ export class OperationFixeRepo {
       `${typeOperationFixe}`
     ).response_update();
   }
+
+
+
+  public async delete(
+    operationProps: updateOperationFixeProps,
+    userId: string,
+    idOperationFixe: string,
+    typeOperationFixe: string
+  ) {
+    const OperationFixeEntity = this.entities.operationFixe;
+    const idUser = parseInt(userId);
+    operationProps.id = +idOperationFixe;
+    console.log(
+      await OperationFixeEntity.deleteMany({
+        where: {
+          idOperationFixe: operationProps.id,
+          userId: idUser,
+        }
+      })
+    );
+    return await new Result(
+      ResultCode.Deleted,
+      `${typeOperationFixe}`
+    ).response_update();
+  }
+
 
   public async getAllOperationsFixes(userId: string) {
     const OperationFixeEntity = this.entities.operationFixe;
