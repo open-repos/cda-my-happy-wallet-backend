@@ -2,7 +2,7 @@ import {Router, Request, Response} from 'express';
 import { operationFixeRouter } from './routes/operationsFixes';
 import {renewAccessToken, swRenewAccessToken} from './modules/auth/accessTokenRenew'
 import { Validator } from './middlewares/validator.middleware';
-import { userRouter } from './routes/user';
+import { userRouter, swGetListUser } from './routes/user';
 
 
 
@@ -12,6 +12,14 @@ export const swRenewTokenRouter = {
         ...swRenewAccessToken
       }
     } ,
+}
+
+export const swAdminRouter = {
+  "/users": {
+    "get": {
+      ...swGetListUser
+    }
+  } ,
 }
 
 

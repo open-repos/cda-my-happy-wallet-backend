@@ -47,7 +47,7 @@ export class Result{
         if (this.message=="")
         this.message = `${this.additionalInfo} Successfully Updated`;
         break;
-    case ResultCode.Updated:
+    case ResultCode.Deleted:
         if (this.message=="")
         this.message = `${this.additionalInfo} Successfully Deleted`;
         break;  

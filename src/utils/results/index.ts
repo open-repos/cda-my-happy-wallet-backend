@@ -1,3 +1,4 @@
+import { ChargeSchemaSwg, RevenuSchemaSwg } from './resultOperationFixeById.schema';
 import { ListOperationFixeSchemaSwg, ListChargeSchemaSwg, ListRevenuSchemaSwg } from './resultOperationFixe.schema';
 import { resultAuthSchemaSwg } from './resultAuth.schema';
 import { Result } from "./resultList";
@@ -26,6 +27,8 @@ interface ISchemaSwg{
   arrayOperationFixe:SwaggerSchema
   arrayCharge:SwaggerSchema
   arrayRevenu:SwaggerSchema
+  charge:SwaggerSchema
+  revenu:SwaggerSchema
 }
 
 export const ResSchemaSwg:ISchemaSwg={
@@ -33,7 +36,9 @@ export const ResSchemaSwg:ISchemaSwg={
   resAuth:resultAuthSchemaSwg,
   arrayOperationFixe:ListOperationFixeSchemaSwg,
   arrayCharge:ListChargeSchemaSwg,
-  arrayRevenu:ListRevenuSchemaSwg
+  arrayRevenu:ListRevenuSchemaSwg,
+  charge:ChargeSchemaSwg,
+  revenu:RevenuSchemaSwg
 }
 
 

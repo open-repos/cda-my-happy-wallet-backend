@@ -1,4 +1,4 @@
-import { swRenewTokenRouter } from './../router';
+import { swRenewTokenRouter, swAdminRouter } from './../router';
 import { ErrorCode } from "./errors/errorCode.error";
 import { ErrorException } from "./errors/errorException.error";
 import { ResSchemaSwg } from "./results/index";
@@ -62,6 +62,7 @@ const swagger = {
     },
   ],
   paths: {
+    ...swAdminRouter,
     ...swUserRouter,
     ...swRenewTokenRouter,
     ...swOperationFixeRouter
@@ -70,6 +71,7 @@ const swagger = {
     schemas: {
       Register: SchemaSwg.register,
       Login: SchemaSwg.login,
+      Email: SchemaSwg.email,
       ResetPassword: SchemaSwg.email,
       NewPassword: SchemaSwg.newpassword,
       ErrorResponse: errorSchemaSwg,
@@ -91,18 +93,6 @@ const swagger = {
       },
     },
     securitySchemes: {
-      // "registration_auth": {
-      //   "registerToken":{
-      //     "type": "apiKey",
-      //     "in":"params",
-      //     "name":"token"
-      //   },
-      //   "userId":{
-      //     "type": "apiKey",
-      //     "in":"params",
-      //     "name":"id"
-      //   },
-      // },
       resetPsswdToken: {
         type: "apiKey",
         in: "cookie",
@@ -129,9 +119,4 @@ const swagger = {
 export default swagger;
 
 
-
-
-// const templateResponsePostOperatioFixe
-
-// const templatePresenationOperationFixe
 

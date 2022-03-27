@@ -51,7 +51,7 @@ export const swRenewAccessToken = {
           schema: {
             type: "string",
             example: {
-              user_id: "1",
+              id_user: "1",
               Path: "/",
               HttpOnly: true,
             },

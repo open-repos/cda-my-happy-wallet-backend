@@ -45,7 +45,7 @@ export const swLoginUser = {
           "schema": {
             "type": "string",
             "example":{
-              "user_id":"1", 
+              "id_user":"1", 
               "Path":"/",
               "HttpOnly":true
             } 
@@ -78,6 +78,7 @@ export class LoginController {
     async execute(req: Request, res: Response, _:NextFunction): Promise<void | any> {
             res.clearCookie("refresh_token");
             res.clearCookie("id_user");
+            // res.clearCookie("role_user");
             const result= await this.useCase.execute(req.body)
             console.log("avant de check si success",result)
             if (!result) {
@@ -97,6 +98,13 @@ export class LoginController {
                 maxAge: 900000 //15min
 
             })
+
+          //   res.cookie("role_user",result.payload.user.role,{
+          //     httpOnly:true,
+          //     secure:NODE_ENV === "production",
+          //     maxAge: 900000 //15min
+
+          // })
 
             return res.status(200).json({success:result.success,payload:result.payload})
 
