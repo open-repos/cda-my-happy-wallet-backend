@@ -1,3 +1,4 @@
+import { TypeOperationFixeEnum } from '@prisma/client';
 import { responseOperationFixePost, RequestOperationFixe } from './../../../../utils/models/index';
 // gérer reception requête et renvoyer une réponse (logique HTTP)
 
@@ -12,7 +13,7 @@ export class CreateOperationFixeController {
         this.useCase = createOperationFixe;
     }
 
-    public async execute(req: Request, res: Response,typeOperation:string) {
+    public async execute(req: Request, res: Response,typeOperation:TypeOperationFixeEnum) {
 
             console.log("Dans la fonction execute du operationController")
             const result = await this.useCase.execute(req.body,req.cookies.id_user,typeOperation);
