@@ -1,19 +1,8 @@
 import { responseOperationFixePost, RequestOperationFixe } from './../../../../utils/models/index';
 // gérer reception requête et renvoyer une réponse (logique HTTP)
-// Route pour arriver dessus  http://localhost:3001/api/v1/OperationFixes/
-// Créer un objet sur cette route c'est POST http://localhost:3001/api/v1/OperationFixes/
-// Pour DELETE http://localhost:3001/api/v1/OperationFixes/:id
-// Pour UPDATE http://localhost:3001/api/v1/OperationFixes/:id
 
 import { CreateOperationFixe } from './createOperationFixe'
 import { Request, Response } from 'express'
-
-//DTO
-// import { RequestCreateOperationFixeDto } from './createOperationFixeDto'
-
-// type typeOperationFixeProps = {
-//     type:string
-// }
 
 //Controller
 export class CreateOperationFixeController {
