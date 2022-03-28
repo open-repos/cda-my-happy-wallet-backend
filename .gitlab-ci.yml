@@ -2,9 +2,9 @@ image: node:16.8.0
 
 stages:
   # - publish
-  - build_stage
+  # - build_stage
   # - pm2_stage
-  # - deploy_stage
+  - deploy_stage
 
 variables:
   TAG_LATEST: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME:latest
@@ -83,8 +83,8 @@ cache: &global_cache
 #     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f myhappywallet || true"
 #     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -p 80:80 --name myhappywallet $TAG_COMMIT"
 
-build:
-  stage: build_stage
+deploy:
+  stage: deploy_stage
   extends: .before_script_template
   rules: 
     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" ' 
