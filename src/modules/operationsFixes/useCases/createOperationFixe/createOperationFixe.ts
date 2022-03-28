@@ -1,3 +1,5 @@
+import { TypeOperationFixeEnum } from '@prisma/client';
+import { OperationFixeProps } from './../../../../utils/validators/operationFixe.validator';
 import { OperationFixeRepo } from '../../operationFixeRepo';
 //Faire la logique du useCase (ici création utilisateur)import { OperationFixeRepo } from "../../OperationFixeRepo";
 
@@ -9,7 +11,7 @@ export class CreateOperationFixe {
         this.operationFixeRepo = operationFixeRepo
     }
 
-    public async execute(props: any,userId:string,typeOperationFixe:string) {
+    public async execute(props: OperationFixeProps,userId:string,typeOperationFixe:TypeOperationFixeEnum) {
 
 
             const result = await this.operationFixeRepo.create(props,userId,typeOperationFixe);
