@@ -65,7 +65,9 @@ export class ConfirmRegistrationUserController {
                 // return res.status(400).json({ message: result.message })
                 throw new ErrorException(ErrorCode.UnknownError)
             }
-            return res.status(201).json({succes:result.success, message:result.message});
+            // return res.status(201).json({succes:result.success, message:result.message});
+            return res.status(201).redirect("http://localhost:3000/login?success=true&message=registrationok")
+
 
     }
 }
