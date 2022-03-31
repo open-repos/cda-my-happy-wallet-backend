@@ -49,12 +49,14 @@ export type createUserProps = {
     password: string;
     firstname: string;
     lastname: string;
+    confirmpassword:string;
   };
 export const registerSchema = Joi.object<createUserProps>({
     email: Joi.string().email().lowercase().trim(true).required().example("thibault@example.com"),
     password: nestedStrongPassword,
     firstname: Joi.string().min(1).trim(true).required().example("Thibault"),
-    lastname: Joi.string().min(1).trim(true).required().example("Dupont")
+    lastname: Joi.string().min(1).trim(true).required().example("Dupont"),
+    confirmpassword:Joi.string().trim(true).required().valid(Joi.ref('password')),
 });
 
 // ^                               start anchor
