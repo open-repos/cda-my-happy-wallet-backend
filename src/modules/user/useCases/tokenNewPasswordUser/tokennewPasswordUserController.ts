@@ -63,7 +63,8 @@ export class TokenNewPasswordUserController {
             res.cookie("reset_token_password",req.params.token,{
                 httpOnly:true,
                 secure:NODE_ENV === "production",
-                maxAge: 900000 //15min
+                maxAge: 900000, //15min
+                sameSite: 'none'
 
             })
             return res.status(201).json({succes:result.success, message:result.message});
