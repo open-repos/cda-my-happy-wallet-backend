@@ -89,13 +89,15 @@ export class LoginController {
             res.cookie("id_user",result.userId,{
                 httpOnly:true,
                 secure:NODE_ENV === "production",
-                maxAge: 900000 //15min
+                maxAge: 900000, //15min,
+                sameSite: 'none'
 
             })
             res.cookie("refresh_token",result.refreshToken,{
                 httpOnly:true,
                 secure:NODE_ENV === "production",
-                maxAge: 900000 //15min
+                maxAge: 900000, //15min
+                sameSite: 'none'
 
             })
 
