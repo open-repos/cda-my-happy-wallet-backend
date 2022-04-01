@@ -27,12 +27,13 @@ export const createServer = async () => {
     server.use(cookieParser());
     //On indique les cors (qui peut emettre des call depuis notre API)
     // blocking cors errors:
-  let origin=""
+  let origin:string | Array<string>="" || [""]
+  // console.log(NODE_ENV)
   if (NODE_ENV=='production'){
     origin="https://myhappywallet.andriacapai.com"
   }
   if (NODE_ENV=='development'){
-    origin="http://localhost:3000"
+    origin=["http://localhost:3000","https://myhappywallet.andriacapai.com"]
   }
   
   const corsOptions = {
