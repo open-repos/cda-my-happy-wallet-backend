@@ -66,7 +66,6 @@ export const swUserRouter = {
 const userRouter: Router = Router();
 
 // const asyncHandler = (fn: any) => (req: Request, res: Response, next: NextFunction) => Promise.resolve(fn(req, res, next)).catch(next);
-
 // Get list of users
 userRouter.get("/",tokenJwtTAuth,isAdmin, async (_: Request, res: Response) => {
   const users = await prisma.utilisateur.findMany();
