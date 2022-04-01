@@ -4,8 +4,8 @@ import { prisma } from "../../database/index";
 import {
   ACCESS_TOKEN_SECRET,
   REFRESH_TOKEN_SECRET,
-  NODE_ENV,
-} from "../../config/config";
+}
+ from "../../config/config";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import { UserRepo } from "../user/userRepo";
