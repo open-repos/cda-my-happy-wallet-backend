@@ -9,8 +9,13 @@ export type loginUserProps = {
 
 export const loginSchema = Joi.object<loginUserProps>({
     email: Joi.string().email().lowercase().trim(true).required().example("thibault@example.com"),
+    // password: nestedStrongPassword
+});
+
+export const loginSchemaToSwg = Joi.object<loginUserProps>({
+    email: Joi.string().email().lowercase().trim(true).required().example("thibault@example.com"),
     password: nestedStrongPassword
 });
 
-export const loginSchemaSwg = j2s(loginSchema).swagger
+export const loginSchemaSwg = j2s(loginSchemaToSwg).swagger
 // console.log(loginSchemaSwg, j2s(loginSchema).components)

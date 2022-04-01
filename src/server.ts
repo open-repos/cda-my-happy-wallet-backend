@@ -26,9 +26,26 @@ export const createServer = async () => {
     // server.use(express.json()) 
     server.use(cookieParser());
     //On indique les cors (qui peut emettre des call depuis notre API)
-    server.use(cors({
-        origin:["http://localhost:1234","https://myhappywallet.andriacapai.com"]
-    }))
+    // blocking cors errors:
+  let origin=""
+  if (NODE_ENV=='production'){
+    origin="https://myhappywallet.andriacapai.com"
+  }
+  if (NODE_ENV=='development'){
+    origin="http://localhost:3000"
+  }
+  
+  const corsOptions = {
+    origin: origin,
+    credentials: true,            //access-control-allow-credentials:true
+    methods: ["OPTIONS,GET,HEAD,PUT,PATCH,POST,DELETE"],
+    // "preflightContinue": true,
+    optionSuccessStatus: 200,
+  }
+    server.use(cors(
+      corsOptions
+    ))
+    // server.options("*",cors(cors))
 
         
     if (NODE_ENV === 'development') {
@@ -38,6 +55,12 @@ export const createServer = async () => {
       res.redirect('/api-docs');
   });
       
+  // server.use(function(_:Request, res:Response, next) {
+  //   res.header('Access-Control-Allow-Origin', "http://localhost:3000");
+  //   res.header('Access-Control-Allow-Credentials', "true");
+  //   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  //   next();
+  // });
     //On rajoute le router à notre server
     //Il sera accessible sur la route APP_BASE_URL, ici -> /v1/
     server.use(APP_BASE_URL as string, mainRouter)
