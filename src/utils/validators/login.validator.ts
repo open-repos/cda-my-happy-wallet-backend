@@ -9,7 +9,7 @@ export type loginUserProps = {
 
 export const loginSchema = Joi.object<loginUserProps>({
     email: Joi.string().email().lowercase().trim(true).required().example("thibault@example.com"),
-    // password: nestedStrongPassword
+    password:  Joi.string()
 });
 
 export const loginSchemaToSwg = Joi.object<loginUserProps>({
