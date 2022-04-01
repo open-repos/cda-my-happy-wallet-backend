@@ -174,15 +174,13 @@ export const renewAccessToken = async (
 
       res.cookie("id_user", user.id, {
         httpOnly: true,
-        secure: NODE_ENV === "production",
+        secure: true,
         maxAge: 900000, //15min
-        sameSite: 'none',
       });
       res.cookie("refresh_token", refreshToken, {
         httpOnly: true,
-        secure: NODE_ENV === "production",
+        secure: true,
         maxAge: 900000, //15min
-        sameSite: 'none',
       });
       return res.status(200).json({
         success: true,
