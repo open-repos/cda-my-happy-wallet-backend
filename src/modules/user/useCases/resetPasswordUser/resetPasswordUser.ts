@@ -1,7 +1,7 @@
-import { PORT, APP_BASE_URL } from './../../../../config/config';
+import { PORT, APP_BASE_URL, NODE_ENV } from "./../../../../config/config";
 import { UserRepo } from "../../userRepo";
-import { ErrorException,ErrorCode } from "../../../../utils/errors/";
-import { Result, ResultCode }  from './../../../../utils/results/';
+import { ErrorException, ErrorCode } from "../../../../utils/errors/";
+import { Result, ResultCode } from "./../../../../utils/results/";
 // import { emailUserProps } from "../../../../utils/validators/email.validator";
 import crypto from "crypto";
 // import { confirmRegistrationUserController } from "../confirmRegistrationUser";
@@ -23,17 +23,26 @@ export class ResetPasswordUser {
     const resetToken: string = crypto.randomBytes(64).toString("hex");
     console.log("resetToken", resetToken);
 
-    const now = new Date()
-    const resetTokenExpiration=await this.addHoursToDate(now,1)
-    console.log('resetTokenExpiration',resetTokenExpiration)
+    const now = new Date();
+    const resetTokenExpiration = await this.addHoursToDate(now, 1);
+    console.log("resetTokenExpiration", resetTokenExpiration);
 
-    const result = await this.userRepo.resetPassword(email, resetToken,resetTokenExpiration);
+    const result = await this.userRepo.resetPassword(
+      email,
+      resetToken,
+      resetTokenExpiration
+    );
 
     if (!result.success) {
       throw new ErrorException(ErrorCode.PrismaError);
     }
+    let verificationLink = "";
+    if (NODE_ENV == "production") {
+      verificationLink = `https://api.myhappywallet.andriacapai.com${APP_BASE_URL}/users/reset-password/${resetToken}`;
+    } else {
+      verificationLink = `http://localhost:${PORT}${APP_BASE_URL}/users/reset-password/${resetToken}`;
+    }
 
-    const verificationLink = `http://localhost:${PORT}${APP_BASE_URL}/users/reset-password/${resetToken}`;
     const emailToSend: string = "andria.capai@gmail.com"; // user.email
     const subject: string = "Renouvellement de mot de passe sur MyHappyWallet";
     const message: string = `Salut ! 
@@ -54,19 +63,23 @@ export class ResetPasswordUser {
     if (!isEmailSent) {
       throw new ErrorException(ErrorCode.SendEmaillError);
     }
-    const resp = await new Result(ResultCode.Read,'',`Email to reset password was sent to ${emailToSend}`).response_post()
-    return resp
+    const resp = await new Result(
+      ResultCode.Read,
+      "",
+      `Email to reset password was sent to ${emailToSend}`
+    ).response_post();
+    return resp;
     // return {
     //   success: true,
     //   message: `Email to reset password was sent to ${emailToSend}`,
     // };
   }
 
-  public async addHoursToDate(objDate:Date, intHours:number):Promise<Date>{
+  public async addHoursToDate(objDate: Date, intHours: number): Promise<Date> {
     const numberOfMlSeconds = objDate.getTime();
-    const addMlSeconds = (intHours * 60) * 60 * 1000;
+    const addMlSeconds = intHours * 60 * 60 * 1000;
     const newDateObj = new Date(numberOfMlSeconds + addMlSeconds);
- 
+
     return newDateObj;
-}
+  }
 }

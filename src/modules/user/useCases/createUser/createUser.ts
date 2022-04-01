@@ -8,6 +8,7 @@ import {
     PORT,
     APP_BASE_URL,
     REGISTER_TOKEN,
+    NODE_ENV,
   } from "./../../../../config/config";
   import { sign } from "jsonwebtoken";
 // import { isRequestClean, validate } from '../../../../utils/validators/bodyRequestRegisterUser.validator';
@@ -52,8 +53,12 @@ export class CreateUser {
             { expiresIn: expireIn }
             );
             // console.log("REGITER TOKEN", jwtToken);
-
-            const verificationLink = `http://localhost:${PORT}${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
+            let verificationLink=``
+            if (NODE_ENV=="production"){
+                verificationLink = `https://api.myhappywallet.andriacapai.com${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
+            }else{
+                verificationLink = `http://localhost:${PORT}${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
+            }
             const emailToSend: string = "andria.capai@gmail.com"; // userProps.email
             const subject: string = "Confirmez votre inscription à MyHappyWallet";
             const message: string = `Hi there
