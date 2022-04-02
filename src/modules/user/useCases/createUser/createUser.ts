@@ -5,7 +5,6 @@ import argon2 from 'argon2'
 import { UserRepo } from '../../userRepo';
 import { ErrorException,ErrorCode }  from '../../../../utils/errors/';
 import {
-    PORT,
     APP_BASE_URL,
     REGISTER_TOKEN,
     NODE_ENV,
@@ -57,8 +56,8 @@ export class CreateUser {
             if (NODE_ENV=="production"){
                 verificationLink = `https://api.myhappywallet.andriacapai.com${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
             }else{
-                verificationLink = `https://api.myhappywallet.andriacapai.com${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
-                // verificationLink = `http://localhost:${PORT}${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
+                // verificationLink = `https://api.myhappywallet.andriacapai.com${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
+                verificationLink = `http://localhost:4200${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
             }
             const emailToSend: string = "andria.capai@gmail.com"; // userProps.email
             const subject: string = "Confirmez votre inscription à MyHappyWallet";
