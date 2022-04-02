@@ -38,12 +38,12 @@ module.exports = {
     production: {
       user: SERVER_USER,
       host: SERVER_IP,
-      ref: 'main',
+      ref: 'origin/main',
       repo: REPO,
       ssh_options: 'StrictHostKeyChecking=no',
       path: TARGET_SERVER_APP_PATH,
       //  'post-deploy' : 'npm install && pm2 reload ecosystem.config.js --env production',
-       "post-deploy": "cp ../.env ./ && npm i && npm run build && pm2 startOrGracefulReload ecosystem.json --env production && pm2 save"
+       "post-deploy": "cp ../.env ./ && npm i && npm run build && pm2 startOrGracefulReload ecosystem.config.js && pm2 save"
        // "post-deploy": "npm i --no-optional && npm run build && pm2 startOrGracefulReload ecosystem.json --env production && pm2 save"
        // 'post-deploy': 'git pull && npm install && npm run build && pm2 startOrGracefulReload pm2-ecosystem.config.js --env production && pm2 save',
      }
