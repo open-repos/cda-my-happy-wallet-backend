@@ -238,7 +238,7 @@ export class OperationFixeRepo {
     console.log(resultOperationFixeUser);
 
     // const result = resultOperationFixeUser
-    if (resultOperationFixeUser == [] || resultOperationFixeUser == null) {
+    if (resultOperationFixeUser.length === 0  || resultOperationFixeUser == null) {
       this.operationFixeExist = false;
     } else {
       this.operationFixeExist = true;
