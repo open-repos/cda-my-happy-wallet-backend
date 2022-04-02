@@ -57,7 +57,8 @@ export class CreateUser {
             if (NODE_ENV=="production"){
                 verificationLink = `https://api.myhappywallet.andriacapai.com${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
             }else{
-                verificationLink = `http://localhost:${PORT}${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
+                verificationLink = `https://api.myhappywallet.andriacapai.com${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
+                // verificationLink = `http://localhost:${PORT}${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
             }
             const emailToSend: string = "andria.capai@gmail.com"; // userProps.email
             const subject: string = "Confirmez votre inscription à MyHappyWallet";

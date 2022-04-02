@@ -29,8 +29,8 @@ export class Login {
                 throw new ErrorException(ErrorCode.EmailPasswordNotValid);
             }
 
-            console.log('password user in database', user.password);
-            console.log('password in body', password);
+            // console.log('password user in database', user.password);
+            // console.log('password in body', password);
 
             const passwordMatches = await argon2.verify(user.password,password)
             console.log('passwordMatches', passwordMatches);

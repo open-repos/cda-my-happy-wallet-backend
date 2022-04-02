@@ -1,4 +1,4 @@
-import { PORT, APP_BASE_URL, NODE_ENV } from "./../../../../config/config";
+import { NODE_ENV } from "./../../../../config/config";
 import { UserRepo } from "../../userRepo";
 import { ErrorException, ErrorCode } from "../../../../utils/errors/";
 import { Result, ResultCode } from "./../../../../utils/results/";
@@ -38,9 +38,10 @@ export class ResetPasswordUser {
     }
     let verificationLink = "";
     if (NODE_ENV == "production") {
-      verificationLink = `https://api.myhappywallet.andriacapai.com${APP_BASE_URL}/users/reset-password/${resetToken}`;
+      verificationLink = `https://myhappywallet.andriacapai.com/new-password?resetToken=${resetToken}`;
     } else {
-      verificationLink = `http://localhost:${PORT}${APP_BASE_URL}/users/reset-password/${resetToken}`;
+      verificationLink = `https://myhappywallet.andriacapai.com/new-password?resetToken=${resetToken}`;
+      // verificationLink = `http://localhost:3000/new-password?resetToken=${resetToken}`;
     }
 
     const emailToSend: string = "andria.capai@gmail.com"; // user.email

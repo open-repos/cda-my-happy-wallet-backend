@@ -8,6 +8,7 @@ import { NextFunction } from 'express';
 // Pour UPDATE http://localhost:3001/api/v1/users/:id
 import { ConfirmRegistrationUser } from './confirmRegistrationUser'
 import { Request, Response } from 'express'
+import {NODE_ENV} from "../../../../config/config"
 
 
 export const swConfirmRegistrationUser = {
@@ -66,7 +67,12 @@ export class ConfirmRegistrationUserController {
                 throw new ErrorException(ErrorCode.UnknownError)
             }
             // return res.status(201).json({succes:result.success, message:result.message});
-            return res.status(201).redirect("http://localhost:3000/login?success=true&message=registrationok")
+            if (NODE_ENV =="production"){
+              return res.status(201).redirect("https://myhappywallet.andriacapai.com/login?success=true&message=registrationok")
+            } else{
+              return res.status(201).redirect("http://localhost:3000/login?success=true&message=registrationok")
+            }
+           
 
 
     }

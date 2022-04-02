@@ -31,7 +31,7 @@ export class ReadAllOperationFixe {
     }
     
     console.log("result",result)
-    if (result==null || result==undefined){
+    if (result==null || result==undefined || result.length ===0){
         throw new ErrorException(
             ErrorCode.PrismaError,
             `${this.fctnCall} OperationsFixes doesn't exist`

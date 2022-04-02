@@ -53,7 +53,7 @@ export class UserRepo {
 
       const user = await UserEntity.findUnique({
         where: { email: email },
-      }).catch((err:any) => {console.log("Inside Prisma",err) ;throw new ErrorException(ErrorCode.PrismaError)});
+      }).catch((err:any) => {console.log("Inside Prisma",err) ;throw new ErrorException(ErrorCode.PrismaError,"Account email not found , you can register")});
 
       await UserEntity.update({
         where: {
@@ -87,7 +87,7 @@ export class UserRepo {
         },
       },
     })
-    if (result===[] || result[0]==undefined ){
+    if (result.length === 0 || result[0]==undefined ){
       throw new ErrorException(ErrorCode.Unauthorized)
     }
 
@@ -209,7 +209,8 @@ export class UserRepo {
       where: { resetToken: resetToken },
     });
     console.log("Check resetToken", result);
-    if (result === null) {
+    console.log(result === null || result == []);
+    if (result === null || result.length === 0 ) {
       this.resetTokenExist = false;
     } else {
       this.resetTokenExist = true;
