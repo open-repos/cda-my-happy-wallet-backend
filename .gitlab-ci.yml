@@ -98,7 +98,7 @@ deploy:
     - ls -a
     # Delploy
     - echo "Setup tagget server directories"
-    - pm2 deploy ecosystem.config.js development setup 2>&1 || true
+    - pm2 deploy ecosystem.config.js production setup 2>&1 || true
     - echo "make deploy"
     # - git add . commit -m 'build back'
     - pm2 deploy ecosystem.config.js production
