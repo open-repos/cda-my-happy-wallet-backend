@@ -40,8 +40,8 @@ export class ResetPasswordUser {
     if (NODE_ENV == "production") {
       verificationLink = `https://myhappywallet.andriacapai.com/new-password?resetToken=${resetToken}`;
     } else {
-      verificationLink = `https://myhappywallet.andriacapai.com/new-password?resetToken=${resetToken}`;
-      // verificationLink = `http://localhost:3000/new-password?resetToken=${resetToken}`;
+      // verificationLink = `https://myhappywallet.andriacapai.com/new-password?resetToken=${resetToken}`;
+      verificationLink = `http://localhost:3000/new-password?resetToken=${resetToken}`;
     }
 
     const emailToSend: string = "andria.capai@gmail.com"; // user.email
