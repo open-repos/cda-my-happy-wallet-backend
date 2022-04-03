@@ -108,7 +108,7 @@ export const renewAccessToken = async (
 
   if (cookies.id_user == null) {
     return next(
-      new ErrorException(ErrorCode.IncompleteRequestCookie, "Cookie is empty")
+      new ErrorException(ErrorCode.Unauthorized, "Cookie is empty")
     );
   }
   const userEmail = await userRepo.getUserByEmail(email);
