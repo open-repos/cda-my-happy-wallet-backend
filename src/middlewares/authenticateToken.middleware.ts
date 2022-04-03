@@ -32,7 +32,7 @@ export const tokenJwtTAuth = (
 
       return next()
     } else {
-      return next(new ErrorException(ErrorCode.AccessForbidden,"Access Forbidden . Error about accessToken"))
+      return next(new ErrorException(ErrorCode.AccessForbidden,"Access Forbidden . Error about headers"))
     }
 
       // req.shoulRunMiddleware2=false;

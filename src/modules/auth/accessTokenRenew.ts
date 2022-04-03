@@ -184,9 +184,9 @@ export const renewAccessToken = async (
       });
       return res.status(200).json({
         success: true,
-        user: data,
+        payload: {user:data,
         accessToken: accessToken,
-        expires: expireIn,
+        expires: expireIn}
       });
     }
   );

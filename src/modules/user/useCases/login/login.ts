@@ -55,7 +55,7 @@ export class Login {
                 const result_class = await new Result(ResultCode.Post, '',`Successfully authenticated`).response_post()
                 result_class.payload = {
                     user:userWithoutSensitiveInfo,
-                    accesToken: jwtToken,
+                    accessToken: jwtToken,
                     expires:expireIn
                 }
                 
@@ -63,7 +63,7 @@ export class Login {
                     success: result_class.success,
                     // payload: {
                     //     user:userWithoutPasswordAndId,
-                    //     accesToken: jwtToken,
+                    //     accessToken: jwtToken,
                     //     expires:expireIn
                     // },
                     payload:result_class.payload,
