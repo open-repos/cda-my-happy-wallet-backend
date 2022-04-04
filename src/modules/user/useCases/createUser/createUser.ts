@@ -61,12 +61,12 @@ export class CreateUser {
             }
             const emailToSend: string = "andria.capai@gmail.com"; // userProps.email
             const subject: string = "Confirmez votre inscription à MyHappyWallet";
-            const message: string = `Hi there
+            const message: string = `Bonjour ${props.firstname} ${props.lastname} ! 
             <br/>
             Merci pour votre inscription à MyHappyWallet
             <br/><br/>
             Pour verifier votre compte veuillez cliquez sur le lien suivant: 
-            <a href="${verificationLink}">Lien de confirmation</a>
+            <a href="${verificationLink}">Lien de confirmation (expire dans ${expireIn})</a>
             <br/><br/>
             Je vous souhaite une bonne journée!`;
 
