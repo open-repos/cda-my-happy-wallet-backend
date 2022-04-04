@@ -24,7 +24,8 @@ export class ResetPasswordUser {
     console.log("resetToken", resetToken);
 
     const now = new Date();
-    const resetTokenExpiration = await this.addHoursToDate(now, 1);
+    // const resetTokenExpiration = await this.addHoursToDate(now, 1);
+    const resetTokenExpiration = await this.addMinToDate(now, 15);
     console.log("resetTokenExpiration", resetTokenExpiration);
 
     const result = await this.userRepo.resetPassword(
@@ -51,7 +52,7 @@ export class ResetPasswordUser {
       Vous souhaitez modifier votre mot de passe ?
       <br/><br/>
       Si vous êtes à l'origine de cette demande, cliquez sur le lien suivant pour modifier le mot de passe: 
-      <a href="${verificationLink}">Lien de renouvellement de mot de passe</a>
+      <a href="${verificationLink}">Lien de renouvellement de mot de passe</a> (expire le ${resetTokenExpiration.toLocaleDateString("fr-FR",{ month: 'long', day: 'numeric' ,hour:"numeric",minute:"numeric", second:"numeric"})})
       <br/><br/>
       Je vous souhaite une bonne journée!`;
 
@@ -79,6 +80,14 @@ export class ResetPasswordUser {
   public async addHoursToDate(objDate: Date, intHours: number): Promise<Date> {
     const numberOfMlSeconds = objDate.getTime();
     const addMlSeconds = intHours * 60 * 60 * 1000;
+    const newDateObj = new Date(numberOfMlSeconds + addMlSeconds);
+
+    return newDateObj;
+  }
+
+  public async addMinToDate(objDate: Date, intMin: number): Promise<Date> {
+    const numberOfMlSeconds = objDate.getTime();
+    const addMlSeconds = intMin * 60 * 1000;
     const newDateObj = new Date(numberOfMlSeconds + addMlSeconds);
 
     return newDateObj;
