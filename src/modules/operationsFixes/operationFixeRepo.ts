@@ -28,17 +28,7 @@ export class OperationFixeRepo {
     const idUser = parseInt(userId);
     console.log("typeOperation selon l'appel d'API", typeOperationFixe);
     console.log("Contenu Props envoyé selon l'appel d'API", operationProps);
-    // console.log(
-    // await OperationFixeEntity.create({
-    //     data: {
-    //       titre: operationProps.titre,
-    //       montant: operationProps.montant,
-    //       devise: operationProps.devise,
-    //       typeOperation: typeOperationFixe,
-    //       userId: idUser,
-    //     },
-    //   })
-    // );
+
     const response = await OperationFixeEntity.create({
       data: {
         titre: operationProps.titre,
@@ -55,6 +45,7 @@ export class OperationFixeRepo {
     ).response_get();
     const {idOperationFixe,titre,montant,devise} = response
     result.data= {idOperationFixe,titre,montant,devise}
+
     return result;
   }
 
@@ -68,19 +59,6 @@ export class OperationFixeRepo {
     const idUser = parseInt(userId);
     operationProps.id = +idOperation;
 
-    // console.log(
-    //   await OperationFixeEntity.findMany({
-    //     where: {
-    //       idOperationFixe: operationProps.id,
-    //       userId: idUser,
-    //     },
-    //     select: {
-    //       titre: true,
-    //       montant: true,
-    //       devise: true,
-    //     },
-    //   })
-    // );
     const resultOperationFixeById = await OperationFixeEntity.findMany({
       where: {
         idOperationFixe: operationProps.id,
@@ -259,5 +237,152 @@ export class OperationFixeRepo {
       this.operationFixeExist = true;
     }
     return this.operationFixeExist;
+  }
+
+  public async updateRaV(userId:string, idRaV:number){
+
+    console.log("INSIDE updateRav")
+    const RaVEntity = this.entities.resteAVivre
+    const allRevenus = await this.getAllRevenus(userId,"REVENU")
+    const allCharges= await this.getAllCharges(userId,"CHARGE")
+    const totalCharges = allCharges.data.reduce(
+      (accumulator:any, current:any) => accumulator + parseFloat(current.montant),
+      0
+    );
+    const totalRevenus = allRevenus.data.reduce(
+      (accumulator:any, current:any) => accumulator + parseFloat(current.montant),
+      0
+    );
+
+    const rav = totalRevenus - totalCharges;
+
+    const response = await RaVEntity.updateMany({
+        where: {
+          idRaV: idRaV,
+          userId: parseInt(userId),
+        },
+        data: {
+          montantRaV: rav,
+          montantTotalDepense:totalCharges,
+          montantTotalEntree: totalRevenus,
+        },
+      })
+      console.log("reponse updated rav",response)
+    
+    const result = await new Result(
+      ResultCode.Created,
+      "Rest à Vivre Mis à jour"
+    ).response_get();
+
+    console.log("result",result)
+    return result
+
+  }
+
+
+  public async createRaV(userId:string){
+
+    console.log("INSIDE updateRav")
+    const RaVEntity = this.entities.resteAVivre
+    const allRevenus = await this.getAllRevenus(userId,"REVENU")
+    const allCharges= await this.getAllCharges(userId,"CHARGE")
+    const totalCharges = allCharges.data.reduce(
+      (accumulator:any, current:any) => accumulator + parseFloat(current.montant),
+      0
+    );
+    const totalRevenus = allRevenus.data.reduce(
+      (accumulator:any, current:any) => accumulator + parseFloat(current.montant),
+      0
+    );
+
+    const rav = totalRevenus - totalCharges;
+
+    const response = await RaVEntity.create({
+        data: {
+          montantRaV: rav,
+          montantTotalDepense:totalCharges,
+          montantTotalEntree: totalRevenus,
+          userId:parseInt(userId)
+        },
+      })
+      console.log("reponse create rav",response)
+    
+    const result = await new Result(
+      ResultCode.Created,
+      "Rest à Vivre Mis à jour"
+    ).response_get();
+
+    console.log("result",result)
+    return result
+
+  }
+  // public async getRaV(userId:string){
+
+  //   console.log("INSIDE updateOrCreate")
+  //   const RaVEntity = this.entities.resteAVivre
+
+  //   const responseGet = await RaVEntity.findMany({
+  //     take: 1,
+  //     where: {
+  //       userId: parseInt(userId),
+  //     },
+  //     orderBy: {
+  //       updated_at: 'desc',
+  //     },
+  //   })
+  // }
+
+
+
+  public async updateOrCreateRaV(userId:string){
+
+    console.log("INSIDE updateOrCreate")
+    const RaVEntity = this.entities.resteAVivre
+
+    const responseGet = await RaVEntity.findMany({
+      take: 1,
+      where: {
+        userId: parseInt(userId),
+      },
+      orderBy: {
+        updated_at: 'desc',
+      },
+    })
+
+    let now = new Date();
+    let isRaVpastMonth = true 
+
+    if(responseGet.length==0){
+      return [isRaVpastMonth, ] as const;
+    }
+
+    console.log("Rav Findmany",responseGet)
+    console.log("Rav Findmany last",responseGet[0].updated_at)
+    console.log("Rav Findmany Month",responseGet[0].updated_at.getMonth())
+    console.log("now Month",now.getMonth())
+    console.log("Rav Findmany year",responseGet[0].updated_at.getFullYear())
+    console.log("now year",now.getFullYear())
+    console.log("typeof year and month",`${typeof(now.getFullYear())} and ${typeof(now.getMonth())} ` )
+
+    let monthLastRav = responseGet[0].updated_at.getMonth()
+    let currentMonth = now.getMonth()
+    let yearLastRav = responseGet[0].updated_at.getFullYear()
+    let currentYear = now.getFullYear()
+    if(currentYear == yearLastRav ){
+      console.log("currentYear == yearLastRav")
+      if(currentMonth == monthLastRav){
+        console.log("currentYear == yearLastRav && currentMonth == monthLastRav")
+        isRaVpastMonth = false
+      } else{
+        console.log("currentYear == yearLastRav && currentMonth != monthLastRav")
+        isRaVpastMonth = true
+      }
+    } else{
+      console.log("currentYear != yearLastRav")
+      isRaVpastMonth = true
+    }
+
+    const idRav = responseGet[0].idRaV
+     return [isRaVpastMonth, idRav] as const;
   }
 }
