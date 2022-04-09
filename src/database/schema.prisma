@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
-  // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 // model Administrateur {
@@ -138,9 +138,9 @@ model Periodique {
 
 model ResteAVivre {
   idRaV               Int       @id @default(autoincrement())
-  montantRaV          Decimal  @db.Decimal(10, 0)
-  montantTotalDepense Decimal  @db.Decimal(10, 0)
-  montantTotalEntree  Decimal  @db.Decimal(10, 0)
+  montantRaV          Decimal  @db.Decimal(10, 0) @default(0)
+  montantTotalDepense Decimal  @db.Decimal(10, 0) @default(0)
+  montantTotalEntree  Decimal  @db.Decimal(10, 0) @default(0)
   created_at          DateTime @default(now()) @db.Timestamp(0)
   updated_at          DateTime @default(now()) @db.DateTime(0)
   User Utilisateur @relation(fields: [userId],references: [id])
