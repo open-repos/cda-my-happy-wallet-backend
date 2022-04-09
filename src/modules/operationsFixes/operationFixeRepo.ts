@@ -28,22 +28,33 @@ export class OperationFixeRepo {
     const idUser = parseInt(userId);
     console.log("typeOperation selon l'appel d'API", typeOperationFixe);
     console.log("Contenu Props envoyé selon l'appel d'API", operationProps);
-    console.log(
-      await OperationFixeEntity.create({
-        data: {
-          titre: operationProps.titre,
-          montant: operationProps.montant,
-          devise: operationProps.devise,
-          typeOperation: typeOperationFixe,
-          userId: idUser,
-        },
-      })
-    );
-
+    // console.log(
+    // await OperationFixeEntity.create({
+    //     data: {
+    //       titre: operationProps.titre,
+    //       montant: operationProps.montant,
+    //       devise: operationProps.devise,
+    //       typeOperation: typeOperationFixe,
+    //       userId: idUser,
+    //     },
+    //   })
+    // );
+    const response = await OperationFixeEntity.create({
+      data: {
+        titre: operationProps.titre,
+        montant: operationProps.montant,
+        devise: operationProps.devise,
+        typeOperation: typeOperationFixe,
+        userId: idUser,
+      },
+    })
+    console.log("reponse create opfixe",response)
     const result = await new Result(
       ResultCode.Created,
       `${typeOperationFixe}`
-    ).response_post();
+    ).response_get();
+    const {idOperationFixe,titre,montant,devise} = response
+    result.data= {idOperationFixe,titre,montant,devise}
     return result;
   }
 
@@ -76,6 +87,7 @@ export class OperationFixeRepo {
         userId: idUser,
       },
       select: {
+        idOperationFixe:true,
         titre: true,
         montant: true,
         devise: true,
@@ -155,6 +167,7 @@ export class OperationFixeRepo {
         userId: idUser,
       },
       select: {
+        idOperationFixe:true,
         titre: true,
         montant: true,
         devise: true,
@@ -180,6 +193,7 @@ export class OperationFixeRepo {
         typeOperation:typeOperationFixe
       },
       select: {
+        idOperationFixe:true,
         titre: true,
         montant: true,
         devise: true,
@@ -204,6 +218,7 @@ export class OperationFixeRepo {
         typeOperation:typeOperationFixe
       },
       select: {
+        idOperationFixe:true,
         titre: true,
         montant: true,
         devise: true,
