@@ -15,8 +15,17 @@ export class CreateOperationFixe {
 
 
             const result = await this.operationFixeRepo.create(props,userId,typeOperationFixe);
+
+            const [isRaVpastMonth, idRav]=  await this.operationFixeRepo.updateOrCreateRaV(userId)
+            if(isRaVpastMonth){
+                const resultRav=  await this.operationFixeRepo.createRaV(userId)
+                return  [result, resultRav] as const;
+            }else{
+                const resultRav=  await this.operationFixeRepo.updateRaV(userId,idRav)
+                return  [result, resultRav] as const;
+            }
+
             
-            return result
 
     }
 }
