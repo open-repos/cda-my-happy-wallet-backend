@@ -23,7 +23,7 @@ export class DeleteAccountController {
 
 
             console.log("Dans la fonction execute du Delete Account")
-            const result = await this.useCase.execute(req.body,req.cookies.id_user);
+            const result = await this.useCase.execute(req.body,req.body.userId);
             console.log('result.success final', result.success);
             res.clearCookie("refresh_token");
             res.clearCookie("id_user");
@@ -40,11 +40,11 @@ export const swDeleteAccount = {
     summary: "Delete Account with authorization access Token (Headers) and id Cookie",
     operationId: "DeleteAccount",
     requestBody: {
-      description: "Fill email about application account in order to delete user account ",
+      description: "Fill email and userId about application account in order to delete user account ",
       content: {
         "application/json": {
           schema: {
-            $ref: "#/components/schemas/Email",
+            $ref: "#/components/schemas/DeleteEmailAccount",
           },
         },
       },
