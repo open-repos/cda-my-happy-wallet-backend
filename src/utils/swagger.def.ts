@@ -4,7 +4,7 @@ import { ErrorException } from "./errors/errorException.error";
 import { ResSchemaSwg } from "./results/index";
 import { errorSchemaSwg } from "./errors/index";
 import { SchemaSwg } from "./validators/index";
-import { PORT, APP_BASE_URL } from "../config/config";
+import { APP_BASE_URL } from "../config/config";
 import { swUserRouter } from "../routes/user";
 import { swOperationFixeRouter } from '../routes/operationsFixes';
 
@@ -18,7 +18,7 @@ const swagger = {
   basePath: APP_BASE_URL,
   servers: [
     {
-      url: `http://localhost:${PORT}${APP_BASE_URL}`,
+      url: `http://localhost:42OO${APP_BASE_URL}`,
       description: "Development server",
     },
     {
@@ -82,7 +82,8 @@ const swagger = {
       ListeChargeResponse:ResSchemaSwg.arrayCharge,
       ListeRevenuResponse:ResSchemaSwg.arrayRevenu,
       Charge:SchemaSwg.charge,
-      Revenu:SchemaSwg.revenu
+      Revenu:SchemaSwg.revenu,
+      DeleteEmailAccount:SchemaSwg.deleteEmail
     },
     responses: {
       UnauthorizedError401: {

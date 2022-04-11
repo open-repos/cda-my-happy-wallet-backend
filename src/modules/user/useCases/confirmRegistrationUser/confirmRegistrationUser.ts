@@ -6,7 +6,6 @@ import {
   } from "./../../../../config/config";
 export class ConfirmRegistrationUser {
     private userRepo: UserRepo;
-
     constructor(userRepo: UserRepo) {
         this.userRepo = userRepo
     }
@@ -17,7 +16,8 @@ export class ConfirmRegistrationUser {
             const user = await this.userRepo.getUserById(parseInt(id));
             console.log("exists user?", user);
             console.log('JUSTE AVANT LE MODIF DE SATUS ET VERIF DE TOKEN')
-
+            
+            
             if (!user) {
               throw new ErrorException(ErrorCode.UnknownError);
             }

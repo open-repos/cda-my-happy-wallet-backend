@@ -29,6 +29,10 @@ export class Login {
                 throw new ErrorException(ErrorCode.EmailPasswordNotValid);
             }
 
+            const isAccountVerified = await this.userRepo.isUserAccountVerified(email)
+            if (!isAccountVerified) {
+                throw new ErrorException(ErrorCode.EmailPasswordNotValid);
+            }
             // console.log('password user in database', user.password);
             // console.log('password in body', password);
 

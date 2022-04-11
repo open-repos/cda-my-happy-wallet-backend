@@ -15,6 +15,7 @@ export class UserRepo {
   private entities: any;
   private emailExist: boolean;
   private resetTokenExist: boolean;
+  private isVerified:boolean;
 
   constructor(entities: any) {
     this.entities = entities;
@@ -97,22 +98,6 @@ export class UserRepo {
       throw new ErrorException(ErrorCode.Unauthorized,"Reset Token is expired")
     }
 
-    // const today = new Date();
-   
-   
-    // // const diffDate = datToCompare - resetTokenExpiratin// 36e5;
-    // const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    // console.log("timezone",timezone); // Asia/Karachi
-    // console.log("date now", today)
-    // console.log("date resetTokenExpiration", user.resetTokenExpiration)
-    // console.log("date time zone diff",today.getTimezoneOffset() )
-    // const Time = user.resetTokenExpiration.getTime()  - today.getTime(); 
-    // const HoursDiff = Time / (1000 * 3600); //Diference in Days
-    // console.log("diff date Hours",HoursDiff)
-    // if (HoursDiff<0){
-    //     throw new ErrorException(ErrorCode.Unauthorized)
-    // }
-
     await UserEntity.updateMany({
       where: {
         id: user.id,
@@ -130,30 +115,6 @@ export class UserRepo {
 
   public async confirmRegistration(id: string) {
     const UserEntity = this.entities.utilisateur;
-    // console.log(userProps.email)
-    // const user = await this.getUserById(parseInt(id));
-    // console.log("exists user?", user);
-
-    // if (!user) {
-    //   throw new ErrorException(ErrorCode.SendEmaillError);
-    // }
-
-    // const token_check = await verify(
-    //   token,
-    //   REGISTER_TOKEN as string,
-    //   function (err: any, _: any) {
-    //     if (err) {
-    //       console.log("WRONG REGISTER TOKEN");
-    //       throw new ErrorException(
-    //         ErrorCode.Unauthorized,
-    //         "The register token is not valid."
-    //       );
-    //       // return refreshTokenAuth(req,res,next)
-    //     }
-    //   }
-    // );
-    // console.log("register_token_check", token_check);
-
     console.log(
       await UserEntity.update({
         where: {
@@ -216,6 +177,19 @@ export class UserRepo {
       this.resetTokenExist = true;
     }
     return this.resetTokenExist;
+  }
+
+
+  public async isUserAccountVerified(email: string) {
+    const UserEntity = this.entities.utilisateur;
+
+    const result = await UserEntity.findUnique({ where: { email: email } });
+    if (result === null) {
+      this.isVerified = false;
+    } else {
+      this.isVerified = result.verified;
+    }
+    return this.isVerified;
   }
 
   public async sendMail(email: string, subject: string, text: string) {

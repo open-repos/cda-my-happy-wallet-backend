@@ -13,7 +13,6 @@ import {
 // import { isRequestClean, validate } from '../../../../utils/validators/bodyRequestRegisterUser.validator';
 export class CreateUser {
     private userRepo: UserRepo;
-
     constructor(userRepo: UserRepo) {
         this.userRepo = userRepo
     }
@@ -23,8 +22,10 @@ export class CreateUser {
             console.log("Dans fonction execute CreatUser",props);
             const userAlreadyExists = await this.userRepo.exists(props.email)
             console.log(`userAlreadyExists`,userAlreadyExists)
-            if (userAlreadyExists) {
-                throw new ErrorException(ErrorCode.EmailAlreadyTaken);
+            const isAccountVerified = await this.userRepo.isUserAccountVerified(props.email)
+            console.log("isaccountverified",isAccountVerified)
+            if (userAlreadyExists && isAccountVerified) {
+                    throw new ErrorException(ErrorCode.EmailAlreadyTaken);
             }
 
             console.log('already exists ?',userAlreadyExists)
@@ -36,14 +37,24 @@ export class CreateUser {
 
             console.log('JUSTE AVANT LE CREATE')
 
+            let userId:number
+            console.log("!isAccountVerified && userAlreadyExists!",!isAccountVerified && userAlreadyExists!)
+            if (!userAlreadyExists) {
+                console.log("!isAccountVerified && userAlreadyExists!",!isAccountVerified && userAlreadyExists!)
             const user = await this.userRepo.create(props);
-
             if(!user){
                 throw new ErrorException(ErrorCode.PrismaError)
+            }
+            userId=user.id
+
+            } else{
+                const user = await this.userRepo.getUserByEmail(props.email);
+            userId=user.id
             }
 
             // const {register_token, ...userInfo}=newUserInfo
             console.log('JUSTE APRES LE CREATE et avant le return succes true')
+            
 
             const expireIn = "5min";
             const jwtToken = sign(
@@ -54,10 +65,10 @@ export class CreateUser {
             // console.log("REGITER TOKEN", jwtToken);
             let verificationLink=``
             if (NODE_ENV=="production"){
-                verificationLink = `https://api.myhappywallet.andriacapai.com${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
+                verificationLink = `https://api.myhappywallet.andriacapai.com${APP_BASE_URL}/users/verify/${userId}/${jwtToken}`;
             }else{
                 // verificationLink = `https://api.myhappywallet.andriacapai.com${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
-                verificationLink = `http://localhost:4200${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
+                verificationLink = `http://localhost:4200${APP_BASE_URL}/users/verify/${userId}/${jwtToken}`;
             }
             const emailToSend: string = "andria.capai@gmail.com"; // userProps.email
             const subject: string = "Confirmez votre inscription à MyHappyWallet";
