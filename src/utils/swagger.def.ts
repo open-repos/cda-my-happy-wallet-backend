@@ -18,7 +18,7 @@ const swagger = {
   basePath: APP_BASE_URL,
   servers: [
     {
-      url: `http://localhost:42OO${APP_BASE_URL}`,
+      url: `http://localhost:4200${APP_BASE_URL}`,
       description: "Development server",
     },
     {
