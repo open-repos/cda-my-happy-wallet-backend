@@ -38,7 +38,7 @@ export const createServer = async () => {
   
   const corsOptions = {
     origin: origin,
-    credentials: true,            //access-control-allow-credentials:true
+    credentials: true,           
     methods: ["OPTIONS,GET,HEAD,PUT,PATCH,POST,DELETE"],
     // "preflightContinue": true,
     optionSuccessStatus: 200,
@@ -46,7 +46,7 @@ export const createServer = async () => {
     server.use(cors(
       corsOptions
     ))
-    // server.options("*",cors(cors))
+
 
         
     if (NODE_ENV === 'development') {
