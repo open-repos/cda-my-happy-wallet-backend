@@ -1,14 +1,14 @@
 import { ErrorException,ErrorCode } from './../../../../utils/errors/';
-import { OperationFixeRepo } from '../../operationFixeRepo';
+import { IOperationFixeRepository } from '../../operationFixeRepository.interface';
 //Faire la logique du useCase (ici création utilisateur)import { OperationFixeRepo } from "../../OperationFixeRepo";
 
 
 export class ReadOperationFixe {
-    private operationFixeRepo: OperationFixeRepo;
+    private operationFixeRepo: IOperationFixeRepository;
     private fctnCall:string="read";
 
 
-    constructor(operationFixeRepo: OperationFixeRepo) {
+    constructor(operationFixeRepo: IOperationFixeRepository) {
         this.operationFixeRepo = operationFixeRepo
     }
 

@@ -1,17 +1,15 @@
 import { TypeOperationFixeEnum } from '@prisma/client';
 import { Result, ResultCode } from "./../../utils/results/";
 import { OperationFixeProps } from "./../../utils/validators/operationFixe.validator";
+import {
+  IOperationFixeRepository,
+  OperationFixeWithIdProps,
+  ReadOperationFixeProps,
+} from "./operationFixeRepository.interface";
 // On va utiliser notre ORM pour modifier notre BDD (couche de persistence)
 //script "générale" utilisable par notre service createOperationFixe.ts
 
-interface updateOperationFixeProps extends OperationFixeProps {
-  id: number;
-}
-type readOperationFixeProps = {
-  id: number;
-};
-
-export class OperationFixeRepo {
+export class OperationFixeRepo implements IOperationFixeRepository {
   private entities: any;
   private operationFixeExist: boolean;
 
@@ -50,7 +48,7 @@ export class OperationFixeRepo {
   }
 
   public async read(
-    operationProps: readOperationFixeProps,
+    operationProps: ReadOperationFixeProps,
     userId: string,
     idOperation: string,
     typeOperationFixe: string
@@ -84,7 +82,7 @@ export class OperationFixeRepo {
   }
 
   public async update(
-    operationProps: updateOperationFixeProps,
+    operationProps: OperationFixeWithIdProps,
     userId: string,
     idOperationFixe: string,
     typeOperationFixe: string
@@ -114,7 +112,7 @@ export class OperationFixeRepo {
 
 
   public async delete(
-    operationProps: updateOperationFixeProps,
+    operationProps: OperationFixeWithIdProps,
     userId: string,
     idOperationFixe: string,
     typeOperationFixe: string

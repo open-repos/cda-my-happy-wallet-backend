@@ -1,13 +1,13 @@
 import { TypeOperationFixeEnum } from '@prisma/client';
 import { OperationFixeProps } from './../../../../utils/validators/operationFixe.validator';
-import { OperationFixeRepo } from '../../operationFixeRepo';
+import { IOperationFixeRepository } from '../../operationFixeRepository.interface';
 //Faire la logique du useCase (ici création utilisateur)import { OperationFixeRepo } from "../../OperationFixeRepo";
 
 
 export class CreateOperationFixe {
-    private operationFixeRepo: OperationFixeRepo;
+    private operationFixeRepo: IOperationFixeRepository;
 
-    constructor(operationFixeRepo: OperationFixeRepo) {
+    constructor(operationFixeRepo: IOperationFixeRepository) {
         this.operationFixeRepo = operationFixeRepo
     }
 
