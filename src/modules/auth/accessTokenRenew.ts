@@ -6,9 +6,11 @@ import {
   REFRESH_TOKEN_SECRET,
 }
  from "../../config/config";
-import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import { UserRepo } from "../user/userRepo";
+import { JsonWebTokenService } from "./token/JsonWebTokenService";
+
+const tokenService = new JsonWebTokenService();
 
 export const swRenewAccessToken = {
   tags: ["Users"],
@@ -130,7 +132,7 @@ export const renewAccessToken = async (
     return next(new ErrorException(ErrorCode.Unauthorized, "Invalid User"));
   }
 
-  jwt.verify(
+  tokenService.verify(
     cookies.refresh_token,
     REFRESH_TOKEN_SECRET as string,
     (err: any, _: any) => {
@@ -150,7 +152,7 @@ export const renewAccessToken = async (
       }
 
       const expireIn = "5min";
-      const accessToken = jwt.sign(
+      const accessToken = tokenService.sign(
         { id: user.id },
         ACCESS_TOKEN_SECRET as string,
         {
@@ -166,7 +168,7 @@ export const renewAccessToken = async (
       );
       data = userWithoutPasswordAndId;
 
-      const refreshToken = jwt.sign(
+      const refreshToken = tokenService.sign(
         { id: user.id },
         REFRESH_TOKEN_SECRET as string,
         { expiresIn: "20min" }

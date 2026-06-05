@@ -1,8 +1,10 @@
 
 import { ErrorException,ErrorCode } from './../utils/errors/';
 import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET} from "../config/config";
-import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
+import { JsonWebTokenService } from "../modules/auth/token/JsonWebTokenService";
+
+const tokenService = new JsonWebTokenService();
 
 export const tokenJwtTAuth = (
   req: Request,
@@ -19,7 +21,7 @@ export const tokenJwtTAuth = (
   if (authHeader!=null) {
     const token = authHeader.split(' ')[1];
     console.log("token given",token)
-    jwt.verify(token, ACCESS_TOKEN_SECRET as string,function(err:any, _:any) {
+    tokenService.verify(token, ACCESS_TOKEN_SECRET as string,function(err:any, _:any) {
         if (err) {
           console.log("WRONG TOKEN")
           // req.shoulRunMiddleware2=false;
@@ -61,7 +63,7 @@ export const refreshTokenAuth =  (
       return next(new ErrorException(ErrorCode.AccessForbidden,"No refresh-token provided."))
     } else {
       try {
-        const user =  jwt.verify(token, REFRESH_TOKEN_SECRET  as string);
+        const user =  tokenService.verify(token, REFRESH_TOKEN_SECRET  as string);
         req.user = user;
         console.log("req.user", req.user);
         return

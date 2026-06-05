@@ -9,12 +9,18 @@ import {
     REGISTER_TOKEN,
     NODE_ENV,
   } from "./../../../../config/config";
-  import { sign } from "jsonwebtoken";
+import { ITokenService } from "../../../auth/token/TokenService.interface";
+import { JsonWebTokenService } from "../../../auth/token/JsonWebTokenService";
 // import { isRequestClean, validate } from '../../../../utils/validators/bodyRequestRegisterUser.validator';
 export class CreateUser {
     private userRepo: IUserRepository;
-    constructor(userRepo: IUserRepository) {
+    private tokenService: ITokenService;
+    constructor(
+        userRepo: IUserRepository,
+        tokenService: ITokenService = new JsonWebTokenService()
+    ) {
         this.userRepo = userRepo
+        this.tokenService = tokenService
     }
 
     public async execute(props: createUserProps) {
@@ -57,7 +63,7 @@ export class CreateUser {
             
 
             const expireIn = "5min";
-            const jwtToken = sign(
+            const jwtToken = this.tokenService.sign(
             { email: props.email },
             REGISTER_TOKEN as string,
             { expiresIn: expireIn }

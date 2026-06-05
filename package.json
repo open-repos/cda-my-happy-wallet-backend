@@ -17,6 +17,7 @@
     "db:visualize": "npx prisma studio",
     "test:rav": "ts-node test/modules/operationsFixes/ResteAVivreCalculator.test.ts",
     "test:mailer": "ts-node test/modules/user/FakeMailer.test.ts",
+    "test:token-service": "ts-node test/modules/auth/TokenService.test.ts",
     "test": "npm run type-check"
   },
   "repository": {

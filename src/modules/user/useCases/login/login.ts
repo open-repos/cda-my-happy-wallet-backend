@@ -3,17 +3,23 @@ import { Result, ResultCode } from './../../../../utils/results/';
 import { ErrorException,ErrorCode } from './../../../../utils/errors/';
 import { IUserRepository } from '../../userRepository.interface'
 import argon2 from 'argon2'
-import { sign } from 'jsonwebtoken'
 import { ACCESS_TOKEN_SECRET ,REFRESH_TOKEN_SECRET } from '../../../../config/config'
 import {loginUserProps} from "../../../../utils/validators/login.validator"
+import { ITokenService } from '../../../auth/token/TokenService.interface';
+import { JsonWebTokenService } from '../../../auth/token/JsonWebTokenService';
 
 
 //Equivalent to a specific service in a CRUD API
 export class Login {
     private userRepo: IUserRepository
+    private tokenService: ITokenService
 
-    constructor(userRepo: IUserRepository) {
+    constructor(
+        userRepo: IUserRepository,
+        tokenService: ITokenService = new JsonWebTokenService()
+    ) {
         this.userRepo = userRepo
+        this.tokenService = tokenService
     }
 
     //This is what our use case will do
@@ -45,11 +51,11 @@ export class Login {
 
             //Création de notre JWT token
             const expireIn="60s"
-            const jwtToken = sign({ id: user.id }, ACCESS_TOKEN_SECRET as string, {expiresIn:expireIn})
+            const jwtToken = this.tokenService.sign({ id: user.id }, ACCESS_TOKEN_SECRET as string, {expiresIn:expireIn})
             console.log('TOKEN', jwtToken);
 
             //Création de notre JWT token
-            const refreshToken = sign({ id: user.id }, REFRESH_TOKEN_SECRET as string, {expiresIn:"15min"})
+            const refreshToken = this.tokenService.sign({ id: user.id }, REFRESH_TOKEN_SECRET as string, {expiresIn:"15min"})
             console.log('REFRESH TOKEN', refreshToken);
 
             if (jwtToken){

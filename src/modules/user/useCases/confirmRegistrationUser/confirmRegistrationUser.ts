@@ -1,13 +1,19 @@
 import { IUserRepository } from '../../userRepository.interface';
 import { ErrorException,ErrorCode } from '../../../../utils/errors'
-import { verify } from "jsonwebtoken";
 import {
     REGISTER_TOKEN,
   } from "./../../../../config/config";
+import { ITokenService } from '../../../auth/token/TokenService.interface';
+import { JsonWebTokenService } from '../../../auth/token/JsonWebTokenService';
 export class ConfirmRegistrationUser {
     private userRepo: IUserRepository;
-    constructor(userRepo: IUserRepository) {
+    private tokenService: ITokenService;
+    constructor(
+      userRepo: IUserRepository,
+      tokenService: ITokenService = new JsonWebTokenService()
+    ) {
         this.userRepo = userRepo
+        this.tokenService = tokenService
     }
 
     public async execute(id: string, token:string) {
@@ -22,7 +28,7 @@ export class ConfirmRegistrationUser {
               throw new ErrorException(ErrorCode.UnknownError);
             }
         
-            const token_check = await verify(
+            const token_check = await this.tokenService.verify(
               token,
               REGISTER_TOKEN as string,
               function (err: any, _: any) {
