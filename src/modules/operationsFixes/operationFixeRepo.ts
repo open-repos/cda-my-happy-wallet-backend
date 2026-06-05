@@ -6,6 +6,7 @@ import {
   OperationFixeWithIdProps,
   ReadOperationFixeProps,
 } from "./operationFixeRepository.interface";
+import { ResteAVivreCalculator } from "./services/ResteAVivreCalculator";
 // On va utiliser notre ORM pour modifier notre BDD (couche de persistence)
 //script "générale" utilisable par notre service createOperationFixe.ts
 
@@ -243,16 +244,10 @@ export class OperationFixeRepo implements IOperationFixeRepository {
     const RaVEntity = this.entities.resteAVivre
     const allRevenus = await this.getAllRevenus(userId,"REVENU")
     const allCharges= await this.getAllCharges(userId,"CHARGE")
-    const totalCharges = allCharges.data.reduce(
-      (accumulator:any, current:any) => accumulator + parseFloat(current.montant),
-      0
+    const ravCalculation = ResteAVivreCalculator.calculate(
+      allRevenus.data,
+      allCharges.data
     );
-    const totalRevenus = allRevenus.data.reduce(
-      (accumulator:any, current:any) => accumulator + parseFloat(current.montant),
-      0
-    );
-
-    const rav = totalRevenus - totalCharges;
 
     const response = await RaVEntity.updateMany({
         where: {
@@ -260,9 +255,9 @@ export class OperationFixeRepo implements IOperationFixeRepository {
           userId: parseInt(userId),
         },
         data: {
-          montantRaV: rav,
-          montantTotalDepense:totalCharges,
-          montantTotalEntree: totalRevenus,
+          montantRaV: ravCalculation.montantRaV,
+          montantTotalDepense:ravCalculation.montantTotalDepense,
+          montantTotalEntree: ravCalculation.montantTotalEntree,
         },
       })
       console.log("reponse updated rav",response)
@@ -284,22 +279,16 @@ export class OperationFixeRepo implements IOperationFixeRepository {
     const RaVEntity = this.entities.resteAVivre
     const allRevenus = await this.getAllRevenus(userId,"REVENU")
     const allCharges= await this.getAllCharges(userId,"CHARGE")
-    const totalCharges = allCharges.data.reduce(
-      (accumulator:any, current:any) => accumulator + parseFloat(current.montant),
-      0
+    const ravCalculation = ResteAVivreCalculator.calculate(
+      allRevenus.data,
+      allCharges.data
     );
-    const totalRevenus = allRevenus.data.reduce(
-      (accumulator:any, current:any) => accumulator + parseFloat(current.montant),
-      0
-    );
-
-    const rav = totalRevenus - totalCharges;
 
     const response = await RaVEntity.create({
         data: {
-          montantRaV: rav,
-          montantTotalDepense:totalCharges,
-          montantTotalEntree: totalRevenus,
+          montantRaV: ravCalculation.montantRaV,
+          montantTotalDepense:ravCalculation.montantTotalDepense,
+          montantTotalEntree: ravCalculation.montantTotalEntree,
           userId:parseInt(userId)
         },
       })

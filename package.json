@@ -15,6 +15,7 @@
     "format": "prettier --check package.json .eslintrc.json",
     "db:migrate": "npx prisma migrate dev",
     "db:visualize": "npx prisma studio",
+    "test:rav": "ts-node test/modules/operationsFixes/ResteAVivreCalculator.test.ts",
     "test": "npm run type-check"
   },
   "repository": {
