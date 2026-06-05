@@ -1,15 +1,10 @@
 import { Result, ResultCode }  from './../../utils/results/';
 import { ErrorException,ErrorCode }  from "./../../utils/errors/";
-import {
-  NODE_ENV,
-  SENDGRID_API_KEY,
-  // REGISTER_TOKEN,
-  EMAIL_SENDER,
-} from "./../../config/config";
 // On va utiliser notre ORM pour modifier notre BDD (couche de persistence)
 //script "générale" utilisable par notre service lié aux Users
 import { createUserProps } from "../../utils/validators/register.validator";
-import sgMail from "@sendgrid/mail";
+import { IMailer } from "./mail/Mailer.interface";
+import { SendGridMailer } from "./mail/SendGridMailer";
 import { IUserRepository } from "./userRepository.interface";
 
 export class UserRepo implements IUserRepository {
@@ -17,9 +12,11 @@ export class UserRepo implements IUserRepository {
   private emailExist: boolean;
   private resetTokenExist: boolean;
   private isVerified:boolean;
+  private mailer: IMailer;
 
-  constructor(entities: any) {
+  constructor(entities: any, mailer: IMailer = new SendGridMailer()) {
     this.entities = entities;
+    this.mailer = mailer;
   }
 
   public async create(userProps: createUserProps) {
@@ -194,48 +191,7 @@ export class UserRepo implements IUserRepository {
   }
 
   public async sendMail(email: string, subject: string, text: string) {
-    console.log("await sending email confirmation");
-    sgMail.setApiKey(SENDGRID_API_KEY as string);
-    let trackingFalse: boolean = false;
-    if (NODE_ENV === "production") {
-      trackingFalse = true;
-    } else {
-      trackingFalse = false;
-    }
-    const msg = {
-      to: email, // Change to your recipient
-      from: EMAIL_SENDER as string, // Change to your verified sender
-      subject: subject,
-      // text:text,
-      html: text,
-      trackingSettings: {
-        clickTracking: {
-          enable: trackingFalse,
-          enableText: trackingFalse,
-        },
-        openTracking: {
-          enable: trackingFalse,
-        },
-      },
-    };
-
-    const isEmailSent: Promise<boolean> = sgMail
-      .send(msg)
-      .then(async (response) => {
-        console.log("RESPONSE MAIL", response[0].statusCode);
-        console.log("RESPONSE HEADER", response[0].headers);
-        if (response[0].statusCode == 202) {
-          return true;
-        } else {
-          return false;
-        }
-      })
-      .catch((error) => {
-        console.log("ERROR EMAIL", error);
-        throw new ErrorException(ErrorCode.SendEmaillError);
-      });
-    console.log("OUTSIDE THEN CATCH", isEmailSent);
-    return isEmailSent;
+    return this.mailer.sendMail(email, subject, text);
   }
 
 }
