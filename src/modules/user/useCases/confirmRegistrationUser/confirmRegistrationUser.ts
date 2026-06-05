@@ -1,12 +1,12 @@
-import { UserRepo } from '../../userRepo';
+import { IUserRepository } from '../../userRepository.interface';
 import { ErrorException,ErrorCode } from '../../../../utils/errors'
 import { verify } from "jsonwebtoken";
 import {
     REGISTER_TOKEN,
   } from "./../../../../config/config";
 export class ConfirmRegistrationUser {
-    private userRepo: UserRepo;
-    constructor(userRepo: UserRepo) {
+    private userRepo: IUserRepository;
+    constructor(userRepo: IUserRepository) {
         this.userRepo = userRepo
     }
 

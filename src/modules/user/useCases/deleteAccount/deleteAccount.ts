@@ -1,14 +1,14 @@
 import { ErrorException,ErrorCode } from '../../../../utils/errors';
-import { UserRepo } from '../../userRepo'
+import { IUserRepository } from '../../userRepository.interface'
 //Faire la logique du useCase (ici création utilisateur)import { userRepo } from "../../userRepo";
 
 
 export class DeleteAccount {
-    private userRepo: UserRepo;
+    private userRepo: IUserRepository;
     private fctnCall:string="delete";
 
 
-    constructor(userRepo: UserRepo) {
+    constructor(userRepo: IUserRepository) {
         this.userRepo = userRepo
     }
 

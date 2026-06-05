@@ -10,8 +10,9 @@ import {
 //script "générale" utilisable par notre service lié aux Users
 import { createUserProps } from "../../utils/validators/register.validator";
 import sgMail from "@sendgrid/mail";
+import { IUserRepository } from "./userRepository.interface";
 
-export class UserRepo {
+export class UserRepo implements IUserRepository {
   private entities: any;
   private emailExist: boolean;
   private resetTokenExist: boolean;

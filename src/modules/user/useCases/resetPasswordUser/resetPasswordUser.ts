@@ -1,5 +1,5 @@
 import { NODE_ENV } from "./../../../../config/config";
-import { UserRepo } from "../../userRepo";
+import { IUserRepository } from "../../userRepository.interface";
 import { ErrorException, ErrorCode } from "../../../../utils/errors/";
 import { Result, ResultCode } from "./../../../../utils/results/";
 // import { emailUserProps } from "../../../../utils/validators/email.validator";
@@ -7,9 +7,9 @@ import crypto from "crypto";
 // import { confirmRegistrationUserController } from "../confirmRegistrationUser";
 
 export class ResetPasswordUser {
-  private userRepo: UserRepo;
+  private userRepo: IUserRepository;
 
-  constructor(userRepo: UserRepo) {
+  constructor(userRepo: IUserRepository) {
     this.userRepo = userRepo;
   }
 

@@ -2,7 +2,7 @@ import { createUserProps } from './../../../../utils/validators/register.validat
 //Faire la logique du useCase (ici création utilisateur)import { UserRepo } from "../../userRepo";
 import { Result, ResultCode } from './../../../../utils/results/';
 import argon2 from 'argon2'
-import { UserRepo } from '../../userRepo';
+import { IUserRepository } from '../../userRepository.interface';
 import { ErrorException,ErrorCode }  from '../../../../utils/errors/';
 import {
     APP_BASE_URL,
@@ -12,8 +12,8 @@ import {
   import { sign } from "jsonwebtoken";
 // import { isRequestClean, validate } from '../../../../utils/validators/bodyRequestRegisterUser.validator';
 export class CreateUser {
-    private userRepo: UserRepo;
-    constructor(userRepo: UserRepo) {
+    private userRepo: IUserRepository;
+    constructor(userRepo: IUserRepository) {
         this.userRepo = userRepo
     }
 

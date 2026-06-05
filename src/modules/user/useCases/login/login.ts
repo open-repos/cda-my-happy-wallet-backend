@@ -1,7 +1,7 @@
 // import { NextFunction } from 'express';
 import { Result, ResultCode } from './../../../../utils/results/';
 import { ErrorException,ErrorCode } from './../../../../utils/errors/';
-import { UserRepo } from '../../userRepo'
+import { IUserRepository } from '../../userRepository.interface'
 import argon2 from 'argon2'
 import { sign } from 'jsonwebtoken'
 import { ACCESS_TOKEN_SECRET ,REFRESH_TOKEN_SECRET } from '../../../../config/config'
@@ -10,9 +10,9 @@ import {loginUserProps} from "../../../../utils/validators/login.validator"
 
 //Equivalent to a specific service in a CRUD API
 export class Login {
-    private userRepo: UserRepo
+    private userRepo: IUserRepository
 
-    constructor(userRepo: UserRepo) {
+    constructor(userRepo: IUserRepository) {
         this.userRepo = userRepo
     }
 

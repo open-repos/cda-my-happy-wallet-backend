@@ -1,10 +1,10 @@
 import { Result, ResultCode }  from './../../../../utils/results/';
-import { UserRepo } from "../../userRepo";
+import { IUserRepository } from "../../userRepository.interface";
 import { ErrorException,ErrorCode } from '../../../../utils/errors/';
 export class TokenNewPasswordUser {
-  private userRepo: UserRepo;
+  private userRepo: IUserRepository;
 
-  constructor(userRepo: UserRepo) {
+  constructor(userRepo: IUserRepository) {
     this.userRepo = userRepo;
   }
 

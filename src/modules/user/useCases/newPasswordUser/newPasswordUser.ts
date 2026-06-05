@@ -1,10 +1,10 @@
-import { UserRepo } from "../../userRepo";
+import { IUserRepository } from "../../userRepository.interface";
 import argon2 from "argon2"
 import { ErrorException,ErrorCode } from '../../../../utils/errors/';
 export class NewPasswordUser {
-  private userRepo: UserRepo;
+  private userRepo: IUserRepository;
 
-  constructor(userRepo: UserRepo) {
+  constructor(userRepo: IUserRepository) {
     this.userRepo = userRepo;
   }
 
