@@ -28,11 +28,15 @@ export class ResetPasswordUser {
     const resetTokenExpiration = await this.addMinToDate(now, 15);
     console.log("resetTokenExpiration", resetTokenExpiration);
 
-    const result = await this.userRepo.resetPassword(
+    await this.userRepo.resetPassword(
       email,
       resetToken,
       resetTokenExpiration
     );
+    const result = await new Result(
+      ResultCode.Created,
+      `ResetToken successfully added`
+    ).response_post();
 
     if (!result.success) {
       throw new ErrorException(ErrorCode.PrismaError);

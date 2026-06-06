@@ -1,6 +1,7 @@
 import { ErrorException, ErrorCode } from "./../../../../utils/errors/";
 import { IOperationFixeRepository } from "../../operationFixeRepository.interface";
 import { TypeOperationFixeEnum } from "@prisma/client";
+import { Result, ResultCode } from "../../../../utils/results";
 //Faire la logique du useCase (ici création utilisateur)import { OperationFixeRepo } from "../../OperationFixeRepo";
 
 export class ReadAllOperationFixe {
@@ -16,17 +17,32 @@ export class ReadAllOperationFixe {
     let result:any=undefined
     console.log("GET typeOperationFixe", typeOperationFixe)
     if(typeOperationFixe==undefined){
-      result = await this.operationFixeRepo.getAllOperationsFixes(userId);
+      const operationFixes = await this.operationFixeRepo.getAllOperationsFixes(userId);
+      result = await new Result(
+        ResultCode.Read,
+        "All OperationsFixes"
+      ).response_get();
+      result.data = operationFixes;
       console.log("result find many operationsfixes",result)
     }
 
     if(typeOperationFixe=="CHARGE"){
-     result = await this.operationFixeRepo.getAllCharges(userId,typeOperationFixe);
+      const operationFixes = await this.operationFixeRepo.getAllCharges(userId,typeOperationFixe);
+      result = await new Result(
+        ResultCode.Read,
+        `All ${typeOperationFixe}`
+      ).response_get();
+      result.data = operationFixes;
       console.log("result find many operationsfixes",result)
     }
 
     if(typeOperationFixe=="REVENU"){
-      result = await this.operationFixeRepo.getAllRevenus(userId,typeOperationFixe);
+      const operationFixes = await this.operationFixeRepo.getAllRevenus(userId,typeOperationFixe);
+      result = await new Result(
+        ResultCode.Read,
+        `All ${typeOperationFixe}`
+      ).response_get();
+      result.data = operationFixes;
       console.log("result find many operationsfixes",result)
     }
     

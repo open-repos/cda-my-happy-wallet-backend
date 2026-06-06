@@ -1,6 +1,7 @@
 import { IUserRepository } from "../../userRepository.interface";
 import argon2 from "argon2"
 import { ErrorException,ErrorCode } from '../../../../utils/errors/';
+import { Result, ResultCode } from "../../../../utils/results";
 export class NewPasswordUser {
   private userRepo: IUserRepository;
 
@@ -21,7 +22,7 @@ export class NewPasswordUser {
 
     password = hashPassword;
 
-    const result = await this.userRepo.newPassword(password, token);
-    return result;
+    await this.userRepo.newPassword(password, token);
+    return await new Result(ResultCode.Created,`New password created`).response_post();
   }
 }

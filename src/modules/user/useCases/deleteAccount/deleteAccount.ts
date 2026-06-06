@@ -1,4 +1,5 @@
 import { ErrorException,ErrorCode } from '../../../../utils/errors';
+import { Result, ResultCode } from '../../../../utils/results';
 import { IUserRepository } from '../../userRepository.interface'
 //Faire la logique du useCase (ici création utilisateur)import { userRepo } from "../../userRepo";
 
@@ -28,7 +29,11 @@ export class DeleteAccount {
     
         if (exists) {
             console.log(`JUSTE AVNAT LE ${this.fctnCall} OPERATION`)
-            const result =await this.userRepo.delete(props.email,parseInt(userId));
+            await this.userRepo.delete(props.email,parseInt(userId));
+            const result = await new Result(
+                ResultCode.Deleted,
+                `User with ${props.email} account`
+            ).response_delete()
             console.log(`JUSTE APRES LE ${this.fctnCall} et avant le return succes true`)
             return result
         }

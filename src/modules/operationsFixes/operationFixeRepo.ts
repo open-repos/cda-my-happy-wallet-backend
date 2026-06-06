@@ -1,5 +1,4 @@
 import { TypeOperationFixeEnum } from '@prisma/client';
-import { Result, ResultCode } from "./../../utils/results/";
 import { OperationFixeProps } from "./../../utils/validators/operationFixe.validator";
 import {
   IOperationFixeRepository,
@@ -38,21 +37,16 @@ export class OperationFixeRepo implements IOperationFixeRepository {
       },
     })
     console.log("reponse create opfixe",response)
-    const result = await new Result(
-      ResultCode.Created,
-      `${typeOperationFixe}`
-    ).response_get();
     const {idOperationFixe,titre,montant,devise} = response
-    result.data= {idOperationFixe,titre,montant,devise}
 
-    return result;
+    return {idOperationFixe,titre,montant,devise};
   }
 
   public async read(
     operationProps: ReadOperationFixeProps,
     userId: string,
     idOperation: string,
-    typeOperationFixe: string
+    _typeOperationFixe: string
   ) {
     const OperationFixeEntity = this.entities.operationFixe;
     const idUser = parseInt(userId);
@@ -70,12 +64,7 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         devise: true,
       },
     });
-    const result = await new Result(
-      ResultCode.Read,
-      `${typeOperationFixe}`
-    ).response_get();
-    result.data = resultOperationFixeById;
-    return result;
+    return resultOperationFixeById;
 
     // }
 
@@ -86,13 +75,12 @@ export class OperationFixeRepo implements IOperationFixeRepository {
     operationProps: OperationFixeWithIdProps,
     userId: string,
     idOperationFixe: string,
-    typeOperationFixe: string
+    _typeOperationFixe: string
   ) {
     const OperationFixeEntity = this.entities.operationFixe;
     const idUser = parseInt(userId);
     operationProps.id = +idOperationFixe;
-    console.log(
-      await OperationFixeEntity.updateMany({
+    const response = await OperationFixeEntity.updateMany({
         where: {
           idOperationFixe: operationProps.id,
           userId: idUser,
@@ -102,12 +90,9 @@ export class OperationFixeRepo implements IOperationFixeRepository {
           montant: operationProps.montant,
           devise: operationProps.devise,
         },
-      })
-    );
-    return await new Result(
-      ResultCode.Updated,
-      `${typeOperationFixe}`
-    ).response_update();
+      });
+    console.log(response);
+    return response;
   }
 
 
@@ -116,23 +101,19 @@ export class OperationFixeRepo implements IOperationFixeRepository {
     operationProps: OperationFixeWithIdProps,
     userId: string,
     idOperationFixe: string,
-    typeOperationFixe: string
+    _typeOperationFixe: string
   ) {
     const OperationFixeEntity = this.entities.operationFixe;
     const idUser = parseInt(userId);
     operationProps.id = +idOperationFixe;
-    console.log(
-      await OperationFixeEntity.deleteMany({
+    const response = await OperationFixeEntity.deleteMany({
         where: {
           idOperationFixe: operationProps.id,
           userId: idUser,
         }
-      })
-    );
-    return await new Result(
-      ResultCode.Deleted,
-      `${typeOperationFixe}`
-    ).response_update();
+      });
+    console.log(response);
+    return response;
   }
 
 
@@ -151,12 +132,7 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         typeOperation: true,
       },
     });
-    const result = await new Result(
-      ResultCode.Read,
-      "All OperationsFixes"
-    ).response_get();
-    result.data = resultOperationFixeById;
-    return result;
+    return resultOperationFixeById;
 
   }
 
@@ -177,12 +153,7 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         typeOperation: true,
       },
     });
-    const result = await new Result(
-      ResultCode.Read,
-      `All ${typeOperationFixe}`
-    ).response_get();
-    result.data = resultOperationFixeById;
-    return result;
+    return resultOperationFixeById;
 
   }
 
@@ -202,12 +173,7 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         typeOperation: true,
       },
     });
-    const result = await new Result(
-      ResultCode.Read,
-      `All ${typeOperationFixe}`
-    ).response_get();
-    result.data = resultOperationFixeById;
-    return result;
+    return resultOperationFixeById;
 
   }
 
@@ -245,8 +211,8 @@ export class OperationFixeRepo implements IOperationFixeRepository {
     const allRevenus = await this.getAllRevenus(userId,"REVENU")
     const allCharges= await this.getAllCharges(userId,"CHARGE")
     const ravCalculation = ResteAVivreCalculator.calculate(
-      allRevenus.data,
-      allCharges.data
+      allRevenus,
+      allCharges
     );
 
     const response = await RaVEntity.updateMany({
@@ -262,13 +228,7 @@ export class OperationFixeRepo implements IOperationFixeRepository {
       })
       console.log("reponse updated rav",response)
     
-    const result = await new Result(
-      ResultCode.Created,
-      "Rest à Vivre Mis à jour"
-    ).response_get();
-
-    console.log("result",result)
-    return result
+    return response
 
   }
 
@@ -280,8 +240,8 @@ export class OperationFixeRepo implements IOperationFixeRepository {
     const allRevenus = await this.getAllRevenus(userId,"REVENU")
     const allCharges= await this.getAllCharges(userId,"CHARGE")
     const ravCalculation = ResteAVivreCalculator.calculate(
-      allRevenus.data,
-      allCharges.data
+      allRevenus,
+      allCharges
     );
 
     const response = await RaVEntity.create({
@@ -294,13 +254,7 @@ export class OperationFixeRepo implements IOperationFixeRepository {
       })
       console.log("reponse create rav",response)
     
-    const result = await new Result(
-      ResultCode.Created,
-      "Rest à Vivre Mis à jour"
-    ).response_get();
-
-    console.log("result",result)
-    return result
+    return response
 
   }
   // public async getRaV(userId:string){

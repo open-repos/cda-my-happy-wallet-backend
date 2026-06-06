@@ -1,5 +1,6 @@
 import { IUserRepository } from '../../userRepository.interface';
 import { ErrorException,ErrorCode } from '../../../../utils/errors'
+import { Result, ResultCode } from '../../../../utils/results'
 import {
     REGISTER_TOKEN,
   } from "./../../../../config/config";
@@ -43,7 +44,11 @@ export class ConfirmRegistrationUser {
               }
             );
             console.log("register_token_check", token_check);
-            const result = await this.userRepo.confirmRegistration(id);
+            await this.userRepo.confirmRegistration(id);
+            const result = await new Result(
+              ResultCode.Created,
+              `Registration User is successfull`
+            ).response_get()
             // const {register_token, ...userInfo}=newUserInfo
             return result
     }

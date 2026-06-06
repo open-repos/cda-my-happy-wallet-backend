@@ -1,5 +1,6 @@
 import { ErrorException,ErrorCode } from './../../../../utils/errors/';
 import { IOperationFixeRepository } from '../../operationFixeRepository.interface';
+import { Result, ResultCode } from '../../../../utils/results';
 //Faire la logique du useCase (ici création utilisateur)import { OperationFixeRepo } from "../../OperationFixeRepo";
 
 
@@ -26,7 +27,12 @@ export class ReadOperationFixe {
     
         if (exists) {
             console.log(`JUSTE AVNAT LE ${this.fctnCall} OPERATION`)
-            const result =await this.operationFixeRepo.read(props,userId,id,typeOperationFixe);
+            const operationFixe = await this.operationFixeRepo.read(props,userId,id,typeOperationFixe);
+            const result = await new Result(
+                ResultCode.Read,
+                `${typeOperationFixe}`
+            ).response_get();
+            result.data = operationFixe;
             console.log(`JUSTE APRES LE ${this.fctnCall} et avant le return succes true`)
             return result
         }

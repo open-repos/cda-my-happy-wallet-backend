@@ -1,4 +1,3 @@
-import { Result, ResultCode }  from './../../utils/results/';
 import { ErrorException,ErrorCode }  from "./../../utils/errors/";
 // On va utiliser notre ORM pour modifier notre BDD (couche de persistence)
 //script "générale" utilisable par notre service lié aux Users
@@ -41,11 +40,11 @@ export class UserRepo implements IUserRepository {
 
     console.log("dans UserRepo delete fctn");
 
-    await UserEntity.deleteMany({
+    const result = await UserEntity.deleteMany({
       where: { email: email,id:userId }
     });
 
-    return await new Result(ResultCode.Deleted,`User with ${email} account`).response_delete()
+    return result
   }
   public async resetPassword(email: string, resetToken:string, resetTokenExpiration:Date) {
     const UserEntity = this.entities.utilisateur;
@@ -54,7 +53,7 @@ export class UserRepo implements IUserRepository {
         where: { email: email },
       }).catch((err:any) => {console.log("Inside Prisma",err) ;throw new ErrorException(ErrorCode.PrismaError,"Account email not found , you can register")});
 
-      await UserEntity.update({
+      const result = await UserEntity.update({
         where: {
           id: user.id,
         },
@@ -64,7 +63,7 @@ export class UserRepo implements IUserRepository {
         },
       }).catch((err:any) => {console.log("Inside Prisma",err);throw new ErrorException(ErrorCode.PrismaError)});
       
-      return await new Result(ResultCode.Created,`ResetToken successfully added`).response_post()
+      return result
       // return {
       //   success: true,
       //   message: `ResetToken successfully added`,
@@ -96,7 +95,7 @@ export class UserRepo implements IUserRepository {
       throw new ErrorException(ErrorCode.Unauthorized,"Reset Token is expired")
     }
 
-    await UserEntity.updateMany({
+    const resultUpdate = await UserEntity.updateMany({
       where: {
         id: user.id,
       },
@@ -107,24 +106,22 @@ export class UserRepo implements IUserRepository {
       },
     });
 
-    return await new Result(ResultCode.Created,`New password created`).response_post()
+    return resultUpdate
     // return { success: true, message: `New password created` };
   }
 
   public async confirmRegistration(id: string) {
     const UserEntity = this.entities.utilisateur;
-    console.log(
-      await UserEntity.update({
+    const result = await UserEntity.update({
         where: {
           id: parseInt(id),
         },
         data: {
           verified: true,
         },
-      })
-    );
+      });
+    console.log(result);
     
-    const result = await new Result(ResultCode.Created, `Registration User is successfull`).response_get()
     return result
     // return {
     //   success: true,
