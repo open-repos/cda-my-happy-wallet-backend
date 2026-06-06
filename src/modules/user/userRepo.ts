@@ -1,4 +1,5 @@
 import { ErrorException,ErrorCode }  from "./../../utils/errors/";
+import { toPrismaErrorException } from "../../utils/errors/prismaError.error";
 // On va utiliser notre ORM pour modifier notre BDD (couche de persistence)
 //script "générale" utilisable par notre service lié aux Users
 import { createUserProps } from "../../utils/validators/register.validator";
@@ -51,7 +52,7 @@ export class UserRepo implements IUserRepository {
 
       const user = await UserEntity.findUnique({
         where: { email: email },
-      }).catch((err:any) => {console.log("Inside Prisma",err) ;throw new ErrorException(ErrorCode.PrismaError,"Account email not found , you can register")});
+      }).catch((error:unknown) => {throw toPrismaErrorException(error,"Account email not found , you can register")});
 
       const result = await UserEntity.update({
         where: {
@@ -61,7 +62,7 @@ export class UserRepo implements IUserRepository {
           resetToken: resetToken,
           resetTokenExpiration:resetTokenExpiration ,
         },
-      }).catch((err:any) => {console.log("Inside Prisma",err);throw new ErrorException(ErrorCode.PrismaError)});
+      }).catch((error:unknown) => {throw toPrismaErrorException(error)});
       
       return result
       // return {
