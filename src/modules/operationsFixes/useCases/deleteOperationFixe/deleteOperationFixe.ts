@@ -16,18 +16,23 @@ export class DeleteOperationFixe {
     public async execute(props: any,userId:string,id:string,typeOperationFixe:string) {
 
 
-        console.log(`${this.fctnCall} - ID operationFixe :`, props.id);
+        const idOperationFixe = parseInt(id);
+        const operationProps = {
+            ...props,
+            id: idOperationFixe,
+        };
+        console.log(`${this.fctnCall} - ID operationFixe :`, operationProps.id);
         console.log(`${this.fctnCall}- typeOperation selon l'appel d'API`, typeOperationFixe);
         console.log(
           `${this.fctnCall}- Contenu Props envoyé selon l'appel d'API`,
-          props
+          operationProps
         );
-        const exists = await this.operationFixeRepo.exists(props.id, parseInt(userId));
+        const exists = await this.operationFixeRepo.exists(idOperationFixe, parseInt(userId));
         console.log("Operation exists ?", exists);
     
         if (exists) {
             console.log(`JUSTE AVNAT LE ${this.fctnCall} OPERATION`)
-            await this.operationFixeRepo.delete(props,userId,id,typeOperationFixe);
+            await this.operationFixeRepo.delete(operationProps,userId,id,typeOperationFixe);
             const result = await new Result(
                 ResultCode.Deleted,
                 `${typeOperationFixe}`

@@ -21,6 +21,9 @@ import { OperationFixeProps } from "../../src/utils/validators/operationFixe.val
 
 class FakeOperationFixeRepository implements IOperationFixeRepository {
   public calls: string[] = [];
+  public lastDeleteIdOperationFixe: string | null = null;
+  public lastDeletePropsId: number | null = null;
+  public lastExistsId: number | null = null;
   public updateExistingRaV = false;
 
   public async create(
@@ -66,12 +69,14 @@ class FakeOperationFixeRepository implements IOperationFixeRepository {
   }
 
   public async delete(
-    _operationProps: OperationFixeWithIdProps,
+    operationProps: OperationFixeWithIdProps,
     _userId: string,
-    _idOperationFixe: string,
+    idOperationFixe: string,
     _typeOperationFixe: string
   ): Promise<any> {
     this.calls.push("delete");
+    this.lastDeleteIdOperationFixe = idOperationFixe;
+    this.lastDeletePropsId = operationProps.id;
     return { count: 1 };
   }
 
@@ -113,10 +118,11 @@ class FakeOperationFixeRepository implements IOperationFixeRepository {
   }
 
   public async exists(
-    _idOperationFixe: number,
+    idOperationFixe: number,
     _idUser: number
   ): Promise<boolean> {
     this.calls.push("exists");
+    this.lastExistsId = idOperationFixe;
     return true;
   }
 
@@ -280,6 +286,19 @@ async function runOperationFixeResultTests() {
     success: true,
     message: "CHARGE Successfully Deleted",
   });
+
+  const deleteRouteIdRepository = new FakeOperationFixeRepository();
+  const deleteRouteIdResult = await new DeleteOperationFixe(
+    deleteRouteIdRepository
+  ).execute({}, "42", "8", "REVENU");
+  assert.deepStrictEqual(deleteRouteIdResult, {
+    success: true,
+    message: "REVENU Successfully Deleted",
+  });
+  assert.strictEqual(deleteRouteIdRepository.lastExistsId, 8);
+  assert.strictEqual(deleteRouteIdRepository.lastDeleteIdOperationFixe, "8");
+  assert.strictEqual(deleteRouteIdRepository.lastDeletePropsId, 8);
+  assert.deepStrictEqual(deleteRouteIdRepository.calls, ["exists", "delete"]);
 
   const emptyChargesResult = await new ReadAllOperationFixe(repository).execute(
     "42",
