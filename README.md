@@ -19,6 +19,14 @@ La tache suivante doit ajouter Supertest et la configuration Jest minimale, puis
 
 L'environnement de test Docker cible est decrit dans [docs/test-environment.md](docs/test-environment.md).
 
+Tests unitaires de services metier :
+
+```bash
+npm run test:services
+```
+
+Ce script couvre actuellement `ResteAVivreCalculator`, le service metier pur extrait.
+
 ## TODO
 
 [ ] Relancer les différentes requêtes pour vérifier que le refactoring n'a pas impacté le code

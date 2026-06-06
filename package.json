@@ -16,6 +16,7 @@
     "db:migrate": "npx prisma migrate dev",
     "db:visualize": "npx prisma studio",
     "test:rav": "ts-node test/modules/operationsFixes/ResteAVivreCalculator.test.ts",
+    "test:services": "npm run test:rav",
     "test:mailer": "ts-node test/modules/user/FakeMailer.test.ts",
     "test:token-service": "ts-node test/modules/auth/TokenService.test.ts",
     "test:delete-revenu-route": "ts-node test/modules/operationsFixes/DeleteRevenuRoute.test.ts",
