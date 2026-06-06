@@ -18,6 +18,12 @@ import { ResetPasswordUser } from "../../src/modules/user/useCases/resetPassword
 import { IUserRepository } from "../../src/modules/user/userRepository.interface";
 import { createUserProps } from "../../src/utils/validators/register.validator";
 import { OperationFixeProps } from "../../src/utils/validators/operationFixe.validator";
+import {
+  operationFixeFixtures,
+  operationFixeListFixtures,
+} from "../fixtures/operationsFixes.fixture";
+import { resteAVivreFixtures } from "../fixtures/resteAVivre.fixture";
+import { userFixtures } from "../fixtures/users.fixture";
 
 class FakeOperationFixeRepository implements IOperationFixeRepository {
   public calls: string[] = [];
@@ -33,10 +39,7 @@ class FakeOperationFixeRepository implements IOperationFixeRepository {
   ): Promise<any> {
     this.calls.push("create");
     return {
-      idOperationFixe: 7,
-      titre: "Loyer",
-      montant: 600,
-      devise: "EUR",
+      ...operationFixeFixtures.charge.result,
       ignored: true,
     };
   }
@@ -48,14 +51,7 @@ class FakeOperationFixeRepository implements IOperationFixeRepository {
     _typeOperationFixe: string
   ): Promise<any> {
     this.calls.push("read");
-    return [
-      {
-        idOperationFixe: 7,
-        titre: "Loyer",
-        montant: 600,
-        devise: "EUR",
-      },
-    ];
+    return [operationFixeFixtures.charge.result];
   }
 
   public async update(
@@ -82,15 +78,7 @@ class FakeOperationFixeRepository implements IOperationFixeRepository {
 
   public async getAllOperationsFixes(_userId: string): Promise<any> {
     this.calls.push("getAllOperationsFixes");
-    return [
-      {
-        idOperationFixe: 7,
-        titre: "Loyer",
-        montant: 600,
-        devise: "EUR",
-        typeOperation: "CHARGE",
-      },
-    ];
+    return [operationFixeListFixtures.charge];
   }
 
   public async getAllCharges(
@@ -106,15 +94,7 @@ class FakeOperationFixeRepository implements IOperationFixeRepository {
     _typeOperationFixe: TypeOperationFixeEnum
   ): Promise<any> {
     this.calls.push("getAllRevenus");
-    return [
-      {
-        idOperationFixe: 8,
-        titre: "Salaire",
-        montant: 2000,
-        devise: "EUR",
-        typeOperation: "REVENU",
-      },
-    ];
+    return [operationFixeListFixtures.revenu];
   }
 
   public async exists(
@@ -133,12 +113,14 @@ class FakeOperationFixeRepository implements IOperationFixeRepository {
 
   public async createRaV(_userId: string): Promise<any> {
     this.calls.push("createRaV");
-    return { idRaV: 1 };
+    return resteAVivreFixtures.created;
   }
 
   public async updateOrCreateRaV(_userId: string): Promise<any> {
     this.calls.push("updateOrCreateRaV");
-    return this.updateExistingRaV ? ([false, 3] as const) : ([true] as const);
+    return this.updateExistingRaV
+      ? resteAVivreFixtures.updateExistingResponse
+      : resteAVivreFixtures.createRequiredResponse;
   }
 }
 
@@ -149,7 +131,7 @@ class FakeUserRepository implements IUserRepository {
 
   public async create(_userProps: createUserProps): Promise<any> {
     this.calls.push("create");
-    return { id: 42 };
+    return { id: userFixtures.id };
   }
 
   public async delete(_email: string, _userId: number): Promise<any> {
@@ -164,7 +146,7 @@ class FakeUserRepository implements IUserRepository {
   ): Promise<any> {
     this.calls.push("resetPassword");
     this.lastResetToken = resetToken;
-    return { id: 42 };
+    return { id: userFixtures.id };
   }
 
   public async newPassword(
@@ -178,7 +160,7 @@ class FakeUserRepository implements IUserRepository {
 
   public async confirmRegistration(_id: string): Promise<any> {
     this.calls.push("confirmRegistration");
-    return { id: 42, verified: true };
+    return { id: userFixtures.id, verified: true };
   }
 
   public async exists(_email: string): Promise<boolean> {
@@ -188,12 +170,12 @@ class FakeUserRepository implements IUserRepository {
 
   public async getUserByEmail(_email: string): Promise<any> {
     this.calls.push("getUserByEmail");
-    return { id: 42 };
+    return { id: userFixtures.id };
   }
 
   public async getUserById(_id: number): Promise<any> {
     this.calls.push("getUserById");
-    return { id: 42 };
+    return { id: userFixtures.id };
   }
 
   public async existUserResetToken(_resetToken: string): Promise<boolean> {
@@ -220,20 +202,15 @@ async function runOperationFixeResultTests() {
   const repository = new FakeOperationFixeRepository();
   const createUseCase = new CreateOperationFixe(repository);
   const [createResult, createRaVResult] = await createUseCase.execute(
-    { titre: "Loyer", montant: 600, devise: "EUR" },
-    "42",
-    "CHARGE" as TypeOperationFixeEnum
+    operationFixeFixtures.charge.input,
+    operationFixeFixtures.userId,
+    operationFixeFixtures.charge.type
   );
 
   assert.deepStrictEqual(createResult, {
     success: true,
     message: "CHARGE Successfully Created",
-    data: {
-      idOperationFixe: 7,
-      titre: "Loyer",
-      montant: 600,
-      devise: "EUR",
-    },
+    data: operationFixeFixtures.charge.result,
   });
   assert.deepStrictEqual(createRaVResult, {
     success: true,
@@ -247,29 +224,22 @@ async function runOperationFixeResultTests() {
   ]);
 
   const readResult = await new ReadOperationFixe(repository).execute(
-    { id: 7 },
-    "42",
-    "7",
-    "CHARGE"
+    operationFixeFixtures.charge.readProps,
+    operationFixeFixtures.userId,
+    operationFixeFixtures.charge.routeId,
+    operationFixeFixtures.charge.type
   );
   assert.deepStrictEqual(readResult, {
     success: true,
     message: "CHARGE Successfully Read",
-    data: [
-      {
-        idOperationFixe: 7,
-        titre: "Loyer",
-        montant: 600,
-        devise: "EUR",
-      },
-    ],
+    data: [operationFixeFixtures.charge.result],
   });
 
   const updateResult = await new UpdateOperationFixe(repository).execute(
-    { id: 7, titre: "Loyer", montant: 650, devise: "EUR" },
-    "42",
-    "7",
-    "CHARGE"
+    operationFixeFixtures.charge.updatedInput,
+    operationFixeFixtures.userId,
+    operationFixeFixtures.charge.routeId,
+    operationFixeFixtures.charge.type
   );
   assert.deepStrictEqual(updateResult, {
     success: true,
@@ -277,10 +247,10 @@ async function runOperationFixeResultTests() {
   });
 
   const deleteResult = await new DeleteOperationFixe(repository).execute(
-    { id: 7, titre: "Loyer", montant: 650, devise: "EUR" },
-    "42",
-    "7",
-    "CHARGE"
+    operationFixeFixtures.charge.updatedInput,
+    operationFixeFixtures.userId,
+    operationFixeFixtures.charge.routeId,
+    operationFixeFixtures.charge.type
   );
   assert.deepStrictEqual(deleteResult, {
     success: true,
@@ -290,19 +260,33 @@ async function runOperationFixeResultTests() {
   const deleteRouteIdRepository = new FakeOperationFixeRepository();
   const deleteRouteIdResult = await new DeleteOperationFixe(
     deleteRouteIdRepository
-  ).execute({}, "42", "8", "REVENU");
+  ).execute(
+    {},
+    operationFixeFixtures.userId,
+    operationFixeFixtures.revenu.routeId,
+    operationFixeFixtures.revenu.type
+  );
   assert.deepStrictEqual(deleteRouteIdResult, {
     success: true,
     message: "REVENU Successfully Deleted",
   });
-  assert.strictEqual(deleteRouteIdRepository.lastExistsId, 8);
-  assert.strictEqual(deleteRouteIdRepository.lastDeleteIdOperationFixe, "8");
-  assert.strictEqual(deleteRouteIdRepository.lastDeletePropsId, 8);
+  assert.strictEqual(
+    deleteRouteIdRepository.lastExistsId,
+    operationFixeFixtures.revenu.id
+  );
+  assert.strictEqual(
+    deleteRouteIdRepository.lastDeleteIdOperationFixe,
+    operationFixeFixtures.revenu.routeId
+  );
+  assert.strictEqual(
+    deleteRouteIdRepository.lastDeletePropsId,
+    operationFixeFixtures.revenu.id
+  );
   assert.deepStrictEqual(deleteRouteIdRepository.calls, ["exists", "delete"]);
 
   const emptyChargesResult = await new ReadAllOperationFixe(repository).execute(
-    "42",
-    "CHARGE" as TypeOperationFixeEnum
+    operationFixeFixtures.userId,
+    operationFixeFixtures.charge.type
   );
   assert.deepStrictEqual(emptyChargesResult, {
     success: true,
@@ -315,18 +299,18 @@ async function runUserResultTests() {
   const repository = new FakeUserRepository();
 
   const deleteResult = await new DeleteAccount(repository).execute(
-    { email: "user@example.com" },
-    "42"
+    { email: userFixtures.email },
+    userFixtures.idAsString
   );
   assert.deepStrictEqual(deleteResult, {
     success: true,
-    message: "User with user@example.com account Successfully Deleted",
+    message: `User with ${userFixtures.email} account Successfully Deleted`,
   });
 
   const confirmResult = await new ConfirmRegistrationUser(
     repository,
-    new FakeTokenService({ id: 42 })
-  ).execute("42", "fake-register-token");
+    new FakeTokenService({ id: userFixtures.id })
+  ).execute(userFixtures.idAsString, "fake-register-token");
   assert.deepStrictEqual(confirmResult, {
     success: true,
     message: "Registration User is successfull Successfully Created",
@@ -334,7 +318,7 @@ async function runUserResultTests() {
   });
 
   const resetPasswordResult = await new ResetPasswordUser(repository).execute(
-    "user@example.com"
+    userFixtures.email
   );
   assert.deepStrictEqual(resetPasswordResult, {
     success: true,
@@ -345,15 +329,15 @@ async function runUserResultTests() {
   assert.strictEqual(repository.lastResetToken?.length, 128);
 
   const newPasswordResult = await new NewPasswordUser(repository).execute(
-    "NewPassword!1",
-    "reset-token"
+    userFixtures.newPassword,
+    userFixtures.resetToken
   );
   assert.deepStrictEqual(newPasswordResult, {
     success: true,
     message: "New password created Successfully Created",
     payload: null,
   });
-  assert.notStrictEqual(repository.lastNewPassword, "NewPassword!1");
+  assert.notStrictEqual(repository.lastNewPassword, userFixtures.newPassword);
 }
 
 async function runResultConstructionTests() {
