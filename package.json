@@ -23,6 +23,7 @@
     "test:prisma-errors": "ts-node test/modules/errors/PrismaErrorHandling.test.ts",
     "test:result-construction": "ts-node test/modules/ResultConstruction.test.ts",
     "test:repositories": "ts-node test/modules/repositories/RepositoriesDataAccess.test.ts",
+    "test:api": "ts-node test/modules/api/ApiCharacterization.test.ts",
     "test": "npm run type-check"
   },
   "repository": {
