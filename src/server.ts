@@ -12,13 +12,40 @@ import { notFoundRouter } from './routes/notFound';
 import morgan from 'morgan'
 import swaggerUI from 'swagger-ui-express'
 import swDocument from './utils/swagger.def'
+import { prisma } from './database'
 
-export const createServer = async () => {
+type ServerDependencies = {
+  checkDatabase: () => Promise<void>;
+};
+
+const defaultDependencies: ServerDependencies = {
+  checkDatabase: async () => {
+    await prisma.$queryRaw`SELECT 1`;
+  },
+};
+
+export const createServer = async (
+  dependencies: ServerDependencies = defaultDependencies
+) => {
     //Initialization de notre server Express
     const server: express.Application = express();
     
     server.use(express.urlencoded({ extended: true }))
     server.use(express.json())
+    server.get('/health/live', (_: Request, res: Response) => {
+      res.set('Cache-Control', 'no-store').status(200).json({ status: 'ok' });
+    });
+    server.get('/health/ready', async (_: Request, res: Response) => {
+      try {
+        await dependencies.checkDatabase();
+        res.set('Cache-Control', 'no-store').status(200).json({ status: 'ok' });
+      } catch {
+        res
+          .set('Cache-Control', 'no-store')
+          .status(503)
+          .json({ status: 'unavailable' });
+      }
+    });
     server.use('/api-docs',swaggerUI.serve,swaggerUI.setup(swDocument))
     // use correspond à un middleware 
     //Notre serveur parsera les requête entrante en Json
