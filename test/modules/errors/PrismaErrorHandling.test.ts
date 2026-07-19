@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import type { NextFunction, Request, Response } from "express";
 import supertest from "supertest";
 import { errorHandler } from "../../../src/middlewares/errorHandler.middleware";
+import { ErrorCode } from "../../../src/utils/errors/errorCode.error";
+import { ErrorException } from "../../../src/utils/errors/errorException.error";
 
 async function runPrismaErrorHandlingTest() {
   const express = require("express") as typeof import("express");
@@ -21,6 +23,18 @@ async function runPrismaErrorHandlingTest() {
       );
     }
   );
+  app.get("/known-error", (_req: Request, _res: Response, next: NextFunction) => {
+    next(
+      new ErrorException(
+        ErrorCode.IncompleteRequestBody,
+        "Invalid request",
+        { fields: ["email"] }
+      )
+    );
+  });
+  app.get("/unknown-error", (_req: Request, _res: Response, next: NextFunction) => {
+    next(new Error("Internal database detail"));
+  });
   app.use(errorHandler);
 
   const response = await supertest(app).get("/prisma-error");
@@ -35,6 +49,20 @@ async function runPrismaErrorHandlingTest() {
       type: "PrismaError",
     },
   });
+
+  const knownResponse = await supertest(app).get("/known-error");
+
+  assert.strictEqual(knownResponse.status, 400);
+  assert.deepStrictEqual(knownResponse.body.error.details, {
+    fields: ["email"],
+  });
+
+  const unknownResponse = await supertest(app).get("/unknown-error");
+
+  assert.strictEqual(unknownResponse.status, 500);
+  assert.strictEqual(unknownResponse.body.error.type, ErrorCode.UnknownError);
+  assert.strictEqual(unknownResponse.body.error.message, "Unknown Error");
+  assert.ok(!JSON.stringify(unknownResponse.body).includes("database detail"));
 }
 
 runPrismaErrorHandlingTest()
