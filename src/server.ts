@@ -5,7 +5,6 @@ import express, { Request, Response } from 'express'
 //import { Request, Response, NextFunction ,ErrorRequestHandler} from 'express'
 import cors from 'cors'
 // import morgan from 'morgan'
-import bodyParser from 'body-parser'
 import cookieParser from "cookie-parser"
 import {mainRouter} from './router'
 import { APP_BASE_URL,CORS_ORIGINS,NODE_ENV } from './config/config';
@@ -18,8 +17,8 @@ export const createServer = async () => {
     //Initialization de notre server Express
     const server: express.Application = express();
     
-    server.use(bodyParser.urlencoded({ extended: true }))
-    server.use(bodyParser.json())
+    server.use(express.urlencoded({ extended: true }))
+    server.use(express.json())
     server.use('/api-docs',swaggerUI.serve,swaggerUI.setup(swDocument))
     // use correspond à un middleware 
     //Notre serveur parsera les requête entrante en Json
@@ -27,7 +26,7 @@ export const createServer = async () => {
     server.use(cookieParser());
     //On indique les cors (qui peut emettre des call depuis notre API)
     // blocking cors errors:
-  let origin:string | Array<string>="" || [""]
+  let origin:string | Array<string>=""
   // console.log(NODE_ENV)
   if (NODE_ENV=='production'){
     origin="https://myhappywallet.andriacapai.com"

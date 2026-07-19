@@ -165,13 +165,7 @@ export class UserRepo implements IUserRepository {
     const result = await UserEntity.findMany({
       where: { resetToken: resetToken },
     });
-    console.log("Check resetToken", result);
-    console.log(result === null || result == []);
-    if (result === null || result.length === 0 ) {
-      this.resetTokenExist = false;
-    } else {
-      this.resetTokenExist = true;
-    }
+    this.resetTokenExist = result.length > 0;
     return this.resetTokenExist;
   }
 
