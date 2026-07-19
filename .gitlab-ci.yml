@@ -121,7 +121,7 @@ deploy_production:
   timeout: 15m
   resource_group: backend-production
   tags:
-    - server_runner_2
+    - server_runner
   cache: []
   needs:
     - job: container_image

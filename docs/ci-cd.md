@@ -131,4 +131,4 @@ sudo cat /var/lib/myhappywallet-backend/current-image
 Nginx continue de proxifier `127.0.0.1:4201`; aucun port du conteneur n'est
 expose publiquement. Activer `Prevent outdated deployment jobs`, proteger
 `main` et l'environnement `production`, et reserver le runner tague
-`server_runner_2` aux refs protegees.
+`server_runner` aux refs protegees.
