@@ -27,7 +27,14 @@ export const Validator = (validator: keyof ISchema) => {
             ErrorCode.IncompleteRequestBody,
             `Validators error: ${error.details
               .map((x: any) => x.message)
-              .join(", ")}`
+              .join(", ")}`,
+            {
+              fields: error.details.map((detail: any) => ({
+                field: detail.path.join("."),
+                message: detail.message,
+                rule: detail.type,
+              })),
+            }
           )
         )
       );

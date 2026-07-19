@@ -173,6 +173,13 @@ async function runApiCharacterizationTests() {
     invalidLoginResponse.body.error.type,
     "IncompleteRequestBody"
   );
+  assert.deepStrictEqual(invalidLoginResponse.body.error.details.fields, [
+    {
+      field: "email",
+      message: '"email" is required',
+      rule: "any.required",
+    },
+  ]);
 
   const refreshToken = createRefreshToken(authenticatedUser.id);
   const refreshResponse = await supertest(app)
