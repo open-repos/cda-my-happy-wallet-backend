@@ -25,28 +25,18 @@ export class CreateUser {
 
     public async execute(props: createUserProps) {
 
-            console.log("Dans fonction execute CreatUser",props);
             const userAlreadyExists = await this.userRepo.exists(props.email)
-            console.log(`userAlreadyExists`,userAlreadyExists)
             const isAccountVerified = await this.userRepo.isUserAccountVerified(props.email)
-            console.log("isaccountverified",isAccountVerified)
             if (userAlreadyExists && isAccountVerified) {
                     throw new ErrorException(ErrorCode.EmailAlreadyTaken);
             }
 
-            console.log('already exists ?',userAlreadyExists)
-
             const hashPassword = await argon2.hash(props.password);
-            console.log('hashed password', hashPassword);
 
             props.password = hashPassword;
 
-            console.log('JUSTE AVANT LE CREATE')
-
             let userId:number
-            console.log("!isAccountVerified && userAlreadyExists!",!isAccountVerified && userAlreadyExists!)
             if (!userAlreadyExists) {
-                console.log("!isAccountVerified && userAlreadyExists!",!isAccountVerified && userAlreadyExists!)
             const user = await this.userRepo.create(props);
             if(!user){
                 throw new ErrorException(ErrorCode.PrismaError)
@@ -59,9 +49,6 @@ export class CreateUser {
             }
 
             // const {register_token, ...userInfo}=newUserInfo
-            console.log('JUSTE APRES LE CREATE et avant le return succes true')
-            
-
             const expireIn = "5min";
             const jwtToken = this.tokenService.sign(
             { email: props.email },

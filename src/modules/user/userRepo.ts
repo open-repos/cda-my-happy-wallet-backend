@@ -22,8 +22,6 @@ export class UserRepo implements IUserRepository {
   public async create(userProps: createUserProps) {
     const UserEntity = this.entities.utilisateur;
 
-    console.log("dans UserRepo create fctn", userProps);
-
     const user = await UserEntity.create({
       data: {
         email: userProps.email,
@@ -38,8 +36,6 @@ export class UserRepo implements IUserRepository {
 
   public async delete(email: string,userId:number) {
     const UserEntity = this.entities.utilisateur;
-
-    console.log("dans UserRepo delete fctn");
 
     const result = await UserEntity.deleteMany({
       where: { email: email,id:userId }
@@ -91,7 +87,6 @@ export class UserRepo implements IUserRepository {
     }
 
     const user = result[0]
-    console.log("user found by resetToken", user);
     if (user.length > 1){
       throw new ErrorException(ErrorCode.Unauthorized,"Reset Token is expired")
     }
@@ -121,8 +116,6 @@ export class UserRepo implements IUserRepository {
           verified: true,
         },
       });
-    console.log(result);
-    
     return result
     // return {
     //   success: true,

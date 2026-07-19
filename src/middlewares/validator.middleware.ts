@@ -9,7 +9,6 @@ export const Validator = (validator: keyof ISchema) => {
     throw new Error(`'${validator}' validator is not exist`);
 
   return async function (req: Request, _: Response, next: NextFunction) {
-    console.log("INSIDE MIDDLEWARE VALIDATOR");
     const options = {
       abortEarly: false, // include all errors
       allowUnknown: true, // ignore unknown props

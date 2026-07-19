@@ -21,20 +21,17 @@ export class ConfirmRegistrationUser {
 
           
             const user = await this.userRepo.getUserById(parseInt(id));
-            console.log("exists user?", user);
-            console.log('JUSTE AVANT LE MODIF DE SATUS ET VERIF DE TOKEN')
             
             
             if (!user) {
               throw new ErrorException(ErrorCode.UnknownError);
             }
         
-            const token_check = await this.tokenService.verify(
+            await this.tokenService.verify(
               token,
               REGISTER_TOKEN as string,
               function (err: any, _: any) {
                 if (err) {
-                  console.log("WRONG REGISTER TOKEN");
                   throw new ErrorException(
                     ErrorCode.Unauthorized,
                     "The register token is not valid."
@@ -43,7 +40,6 @@ export class ConfirmRegistrationUser {
                 }
               }
             );
-            console.log("register_token_check", token_check);
             await this.userRepo.confirmRegistration(id);
             const result = await new Result(
               ResultCode.Created,

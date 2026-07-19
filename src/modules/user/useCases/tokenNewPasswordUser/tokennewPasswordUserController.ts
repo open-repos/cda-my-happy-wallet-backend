@@ -53,9 +53,7 @@ export class TokenNewPasswordUserController {
 
     public async execute(req: Request, res: Response, _:NextFunction) {
 
-            console.log("Dans la fonction execute du TokenNewPasswordController")
             const result = await this.useCase.execute(req.params.token);
-            console.log('result.success final', result.success);
             if (!result) {
                 // return res.status(400).json({ message: result.message })
                 throw new ErrorException(ErrorCode.UnknownError)

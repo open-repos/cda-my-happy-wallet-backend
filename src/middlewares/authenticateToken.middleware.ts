@@ -15,15 +15,11 @@ export const tokenJwtTAuth = (
   //   console.log("MODE development : SKip middleware")
   //   return next()
   // }
-  console.log("INSIDE MIDDLEWARE")
   const authHeader = req.headers.authorization;
-  console.log("authHeader",authHeader)
   if (authHeader!=null) {
     const token = authHeader.split(' ')[1];
-    console.log("token given",token)
     tokenService.verify(token, ACCESS_TOKEN_SECRET as string,function(err:any, _:any) {
         if (err) {
-          console.log("WRONG TOKEN")
           // req.shoulRunMiddleware2=false;
           return next(new ErrorException(ErrorCode.Unauthorized,"The access token is not valid or is expired."))
           // return refreshTokenAuth(req,res,next)
@@ -54,7 +50,6 @@ export const refreshTokenAuth =  (
     next: NextFunction
   ) => {
     if(!req.shoulRunMiddleware2){
-      console.log("skipped middleware 2")
       return;
     };
     const token = req.cookies.refresh_token ;
@@ -65,7 +60,6 @@ export const refreshTokenAuth =  (
       try {
         const user =  tokenService.verify(token, REFRESH_TOKEN_SECRET  as string);
         req.user = user;
-        console.log("req.user", req.user);
         return
       } catch (err) {
         res.clearCookie("refresh_token");

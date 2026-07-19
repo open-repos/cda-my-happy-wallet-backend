@@ -18,9 +18,7 @@ export class ReadAllOperationFixeController {
     public async execute(req: Request, res: Response, typeOperation?:TypeOperationFixeEnum) {
 
 
-            console.log("Dans la fonction execute du operationController")
             const result = await this.useCase.execute(req.cookies.id_user,typeOperation);
-            console.log('result.success final', result.success);
 
             return res.status(200).json(result);
 
@@ -67,4 +65,3 @@ export const swGetAllOperationFixe = {
         },
       ],
   };
-

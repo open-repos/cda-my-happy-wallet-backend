@@ -9,7 +9,6 @@ export class SendGridMailer implements IMailer {
     subject: string,
     text: string
   ): Promise<boolean> {
-    console.log("await sending email confirmation");
     sgMail.setApiKey(SENDGRID_API_KEY as string);
     let trackingFalse: boolean = false;
     if (NODE_ENV === "production") {
@@ -37,19 +36,15 @@ export class SendGridMailer implements IMailer {
     const isEmailSent: Promise<boolean> = sgMail
       .send(msg)
       .then(async (response) => {
-        console.log("RESPONSE MAIL", response[0].statusCode);
-        console.log("RESPONSE HEADER", response[0].headers);
         if (response[0].statusCode == 202) {
           return true;
         } else {
           return false;
         }
       })
-      .catch((error) => {
-        console.log("ERROR EMAIL", error);
+      .catch(() => {
         throw new ErrorException(ErrorCode.SendEmaillError);
       });
-    console.log("OUTSIDE THEN CATCH", isEmailSent);
     return isEmailSent;
   }
 }
