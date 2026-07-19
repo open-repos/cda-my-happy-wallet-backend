@@ -1,6 +1,6 @@
 {
   "name": "projet-00-myhappywallet-backend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Dans ce projet je mettrais toutes les tâches liées au Backend de mon projet \"Chef d'oeuvre\" CDA .",
   "main": "index.js",
   "scripts": {
