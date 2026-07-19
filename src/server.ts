@@ -8,7 +8,7 @@ import cors from 'cors'
 import bodyParser from 'body-parser'
 import cookieParser from "cookie-parser"
 import {mainRouter} from './router'
-import { APP_BASE_URL,NODE_ENV } from './config/config';
+import { APP_BASE_URL,CORS_ORIGINS,NODE_ENV } from './config/config';
 import { notFoundRouter } from './routes/notFound';
 import morgan from 'morgan'
 import swaggerUI from 'swagger-ui-express'
@@ -33,7 +33,9 @@ export const createServer = async () => {
     origin="https://myhappywallet.andriacapai.com"
   }
   if (NODE_ENV=='development'){
-    origin=["http://localhost:3000","https://myhappywallet.andriacapai.com"]
+    origin=CORS_ORIGINS.length > 0
+      ? CORS_ORIGINS
+      : ["http://localhost:3000","http://localhost:5173","https://myhappywallet.andriacapai.com"]
   }
   
   const corsOptions = {

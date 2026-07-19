@@ -1,4 +1,4 @@
-// import { NODE_ENV } from './../../../../config/config';
+import { NODE_ENV } from './../../../../config/config';
 import { Result , ResultCode} from './../../../../utils/results/';
 import { ErrorException,ErrorCode }  from './../../../../utils/errors/';
 import { NextFunction } from 'express';
@@ -62,7 +62,7 @@ export class TokenNewPasswordUserController {
             }
             res.cookie("reset_token_password",req.params.token,{
                 httpOnly:true,
-                secure:true,
+                secure:NODE_ENV === "production",
                 maxAge: 900000, //15min
             })
             return res.status(201).json({succes:result.success, message:result.message});

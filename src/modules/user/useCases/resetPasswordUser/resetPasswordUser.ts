@@ -1,4 +1,4 @@
-import { NODE_ENV } from "./../../../../config/config";
+import { FRONTEND_URL } from "./../../../../config/config";
 import { IUserRepository } from "../../userRepository.interface";
 import { ErrorException, ErrorCode } from "../../../../utils/errors/";
 import { Result, ResultCode } from "./../../../../utils/results/";
@@ -41,15 +41,9 @@ export class ResetPasswordUser {
     if (!result.success) {
       throw new ErrorException(ErrorCode.PrismaError);
     }
-    let verificationLink = "";
-    if (NODE_ENV == "production") {
-      verificationLink = `https://myhappywallet.andriacapai.com/new-password?resetToken=${resetToken}`;
-    } else {
-      // verificationLink = `https://myhappywallet.andriacapai.com/new-password?resetToken=${resetToken}`;
-      verificationLink = `http://localhost:3000/new-password?resetToken=${resetToken}`;
-    }
+    const verificationLink = `${FRONTEND_URL}/new-password?resetToken=${resetToken}`;
 
-    const emailToSend: string = "andria.capai@gmail.com"; // user.email
+    const emailToSend: string = email;
     const subject: string = "Renouvellement de mot de passe sur MyHappyWallet";
     const message: string = `Salut ! 
       <br/>

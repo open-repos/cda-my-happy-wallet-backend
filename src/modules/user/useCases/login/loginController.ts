@@ -1,6 +1,6 @@
 import { Result, ResultCode } from './../../../../utils/results/';
 import { NextFunction } from 'express';
-// import { NODE_ENV } from '../../../../config/config';
+import { NODE_ENV } from '../../../../config/config';
 import { Login } from './login'
 import { Request, Response } from 'express'
 import { ErrorException,ErrorCode } from './../../../../utils/errors/';
@@ -88,13 +88,13 @@ export class LoginController {
             console.log(result.payload?.user.id)
             res.cookie("id_user",result.userId,{
                 httpOnly:true,
-                secure:true,
+                secure:NODE_ENV === "production",
                 maxAge: 900000, //15min,
 
             })
             res.cookie("refresh_token",result.refreshToken,{
                 httpOnly:true,
-                secure:true,
+                secure:NODE_ENV === "production",
                 maxAge: 900000, //15min
 
             })

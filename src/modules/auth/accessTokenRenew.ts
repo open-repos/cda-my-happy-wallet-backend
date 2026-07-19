@@ -3,6 +3,7 @@ import { ErrorException, ErrorCode } from "./../../utils/errors";
 import { prisma } from "../../database/index";
 import {
   ACCESS_TOKEN_SECRET,
+  NODE_ENV,
   REFRESH_TOKEN_SECRET,
 }
  from "../../config/config";
@@ -176,12 +177,12 @@ export const renewAccessToken = async (
 
       res.cookie("id_user", user.id, {
         httpOnly: true,
-        secure: true,
+        secure: NODE_ENV === "production",
         maxAge: 900000, //15min
       });
       res.cookie("refresh_token", refreshToken, {
         httpOnly: true,
-        secure: true,
+        secure: NODE_ENV === "production",
         maxAge: 900000, //15min
       });
       return res.status(200).json({

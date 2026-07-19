@@ -4,7 +4,7 @@ import { toPrismaErrorException } from "../../utils/errors/prismaError.error";
 //script "générale" utilisable par notre service lié aux Users
 import { createUserProps } from "../../utils/validators/register.validator";
 import { IMailer } from "./mail/Mailer.interface";
-import { SendGridMailer } from "./mail/SendGridMailer";
+import { createMailer } from "./mail/MailerFactory";
 import { IUserRepository } from "./userRepository.interface";
 
 export class UserRepo implements IUserRepository {
@@ -14,7 +14,7 @@ export class UserRepo implements IUserRepository {
   private isVerified:boolean;
   private mailer: IMailer;
 
-  constructor(entities: any, mailer: IMailer = new SendGridMailer()) {
+  constructor(entities: any, mailer: IMailer = createMailer()) {
     this.entities = entities;
     this.mailer = mailer;
   }

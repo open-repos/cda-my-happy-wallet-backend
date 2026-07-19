@@ -6,8 +6,8 @@ import { IUserRepository } from '../../userRepository.interface';
 import { ErrorException,ErrorCode }  from '../../../../utils/errors/';
 import {
     APP_BASE_URL,
+    API_PUBLIC_URL,
     REGISTER_TOKEN,
-    NODE_ENV,
   } from "./../../../../config/config";
 import { ITokenService } from "../../../auth/token/TokenService.interface";
 import { JsonWebTokenService } from "../../../auth/token/JsonWebTokenService";
@@ -69,14 +69,8 @@ export class CreateUser {
             { expiresIn: expireIn }
             );
             // console.log("REGITER TOKEN", jwtToken);
-            let verificationLink=``
-            if (NODE_ENV=="production"){
-                verificationLink = `https://api.myhappywallet.andriacapai.com${APP_BASE_URL}/users/verify/${userId}/${jwtToken}`;
-            }else{
-                // verificationLink = `https://api.myhappywallet.andriacapai.com${APP_BASE_URL}/users/verify/${user.id}/${jwtToken}`;
-                verificationLink = `http://localhost:4200${APP_BASE_URL}/users/verify/${userId}/${jwtToken}`;
-            }
-            const emailToSend: string = "andria.capai@gmail.com"; // userProps.email
+            const verificationLink = `${API_PUBLIC_URL}${APP_BASE_URL}/users/verify/${userId}/${jwtToken}`;
+            const emailToSend: string = props.email;
             const subject: string = "Confirmez votre inscription à MyHappyWallet";
             const message: string = `Bonjour ${props.firstname} ${props.lastname} ! 
             <br/>
