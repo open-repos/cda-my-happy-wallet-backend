@@ -7,6 +7,8 @@ services:
       - "127.0.0.1:4201:4201"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - backend
     restart: unless-stopped
     read_only: true
     tmpfs:
@@ -33,3 +35,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+networks:
+  backend:
+    ipam:
+      config:
+        - subnet: 172.22.0.0/28

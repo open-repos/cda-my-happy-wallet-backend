@@ -78,10 +78,15 @@ SENDGRID_API_KEY=<secret>
 EMAIL_SENDER=<verified-sender>
 ```
 
-Ne pas copier le fichier `.env` dans l'image. Si MySQL tourne directement sur
-l'hote, utiliser `host.docker.internal` comme hote dans `DATABASE_URL`. S'il
-tourne dans Docker, preferer son nom DNS sur un reseau Docker partage. Verifier
-ce point avant le premier deploiement sans modifier la base ni ses donnees.
+Ne pas copier le fichier `.env` dans l'image. Sur le VPS actuel, MySQL tourne
+sur l'hote : utiliser `host.docker.internal` dans `DATABASE_URL`. Le reseau
+Compose est fixe a `172.22.0.0/28` afin que le compte MySQL puisse etre limite
+a ce seul sous-reseau. MySQL doit ecouter uniquement sur `127.0.0.1` et
+`172.17.0.1`, l'adresse stable de `docker0`, jamais sur l'adresse publique.
+
+Le compte applicatif recommande est `mhw_backend@172.22.0.0/28`, avec des
+privileges limites a `myhappywallet.*`. Ne supprimer l'ancien compte autorise
+depuis `%` qu'apres une connexion et un deploiement reussis avec le nouveau.
 
 Creer un Deploy Token GitLab limite a `read_registry`, puis authentifier root
 interactivement pour ne pas placer le token dans l'historique du shell :
