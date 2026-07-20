@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+.git
+.gitlab-ci.yml
+.npm
+CHANGELOG.md
+coverage
+docs
+dist
+node_modules
+npm-debug.log
+test

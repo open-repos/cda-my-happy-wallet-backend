@@ -1,36 +1,47 @@
 import { ErrorException, ErrorCode } from "./../../../../utils/errors/";
-import { OperationFixeRepo } from "../../operationFixeRepo";
+import { IOperationFixeRepository } from "../../operationFixeRepository.interface";
 import { TypeOperationFixeEnum } from "@prisma/client";
+import { Result, ResultCode } from "../../../../utils/results";
 //Faire la logique du useCase (ici création utilisateur)import { OperationFixeRepo } from "../../OperationFixeRepo";
 
 export class ReadAllOperationFixe {
-  private operationFixeRepo: OperationFixeRepo;
+  private operationFixeRepo: IOperationFixeRepository;
   private fctnCall: string = "read";
 
-  constructor(operationFixeRepo: OperationFixeRepo) {
+  constructor(operationFixeRepo: IOperationFixeRepository) {
     this.operationFixeRepo = operationFixeRepo;
   }
 
   public async execute(userId: string, typeOperationFixe?:TypeOperationFixeEnum) {
 
     let result:any=undefined
-    console.log("GET typeOperationFixe", typeOperationFixe)
     if(typeOperationFixe==undefined){
-      result = await this.operationFixeRepo.getAllOperationsFixes(userId);
-      console.log("result find many operationsfixes",result)
+      const operationFixes = await this.operationFixeRepo.getAllOperationsFixes(userId);
+      result = await new Result(
+        ResultCode.Read,
+        "All OperationsFixes"
+      ).response_get();
+      result.data = operationFixes;
     }
 
     if(typeOperationFixe=="CHARGE"){
-     result = await this.operationFixeRepo.getAllCharges(userId,typeOperationFixe);
-      console.log("result find many operationsfixes",result)
+      const operationFixes = await this.operationFixeRepo.getAllCharges(userId,typeOperationFixe);
+      result = await new Result(
+        ResultCode.Read,
+        `All ${typeOperationFixe}`
+      ).response_get();
+      result.data = operationFixes;
     }
 
     if(typeOperationFixe=="REVENU"){
-      result = await this.operationFixeRepo.getAllRevenus(userId,typeOperationFixe);
-      console.log("result find many operationsfixes",result)
+      const operationFixes = await this.operationFixeRepo.getAllRevenus(userId,typeOperationFixe);
+      result = await new Result(
+        ResultCode.Read,
+        `All ${typeOperationFixe}`
+      ).response_get();
+      result.data = operationFixes;
     }
     
-    console.log("result",result)
     if (result==null || result==undefined || result.length ===0){
         throw new ErrorException(
             ErrorCode.PrismaError,

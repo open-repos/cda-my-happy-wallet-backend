@@ -22,9 +22,7 @@ export class DeleteAccountController {
     public async execute(req: Request, res: Response) {
 
 
-            console.log("Dans la fonction execute du Delete Account")
             const result = await this.useCase.execute(req.body,req.body.userId);
-            console.log('result.success final', result.success);
             res.clearCookie("refresh_token");
             res.clearCookie("id_user");
             // res.clearCookie("role_user");

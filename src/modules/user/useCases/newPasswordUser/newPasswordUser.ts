@@ -1,10 +1,11 @@
-import { UserRepo } from "../../userRepo";
+import { IUserRepository } from "../../userRepository.interface";
 import argon2 from "argon2"
 import { ErrorException,ErrorCode } from '../../../../utils/errors/';
+import { Result, ResultCode } from "../../../../utils/results";
 export class NewPasswordUser {
-  private userRepo: UserRepo;
+  private userRepo: IUserRepository;
 
-  constructor(userRepo: UserRepo) {
+  constructor(userRepo: IUserRepository) {
     this.userRepo = userRepo;
   }
 
@@ -17,11 +18,10 @@ export class NewPasswordUser {
     }
 
     const hashPassword = await argon2.hash(password);
-    console.log("hashed password", hashPassword);
 
     password = hashPassword;
 
-    const result = await this.userRepo.newPassword(password, token);
-    return result;
+    await this.userRepo.newPassword(password, token);
+    return await new Result(ResultCode.Created,`New password created`).response_post();
   }
 }

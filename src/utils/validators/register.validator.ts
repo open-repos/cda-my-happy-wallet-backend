@@ -18,7 +18,6 @@ export const nestedStrongPassword = Joi.string().pattern(regexGlobal)
           err.message = "Value should not be empty!";
           break;
         case "string.pattern.base":
-          console.log(regexOneLowerCase.test(err.value))
           if(!regexOneLowerCase.test(err.value)){
             list_error.push("1 Lowercase is required")
           }

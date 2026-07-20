@@ -1,8 +1,10 @@
 
 import { ErrorException,ErrorCode } from './../utils/errors/';
 import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET} from "../config/config";
-import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
+import { JsonWebTokenService } from "../modules/auth/token/JsonWebTokenService";
+
+const tokenService = new JsonWebTokenService();
 
 export const tokenJwtTAuth = (
   req: Request,
@@ -13,15 +15,11 @@ export const tokenJwtTAuth = (
   //   console.log("MODE development : SKip middleware")
   //   return next()
   // }
-  console.log("INSIDE MIDDLEWARE")
   const authHeader = req.headers.authorization;
-  console.log("authHeader",authHeader)
   if (authHeader!=null) {
     const token = authHeader.split(' ')[1];
-    console.log("token given",token)
-    jwt.verify(token, ACCESS_TOKEN_SECRET as string,function(err:any, _:any) {
+    tokenService.verify(token, ACCESS_TOKEN_SECRET as string,function(err:any, _:any) {
         if (err) {
-          console.log("WRONG TOKEN")
           // req.shoulRunMiddleware2=false;
           return next(new ErrorException(ErrorCode.Unauthorized,"The access token is not valid or is expired."))
           // return refreshTokenAuth(req,res,next)
@@ -52,7 +50,6 @@ export const refreshTokenAuth =  (
     next: NextFunction
   ) => {
     if(!req.shoulRunMiddleware2){
-      console.log("skipped middleware 2")
       return;
     };
     const token = req.cookies.refresh_token ;
@@ -61,9 +58,8 @@ export const refreshTokenAuth =  (
       return next(new ErrorException(ErrorCode.AccessForbidden,"No refresh-token provided."))
     } else {
       try {
-        const user =  jwt.verify(token, REFRESH_TOKEN_SECRET  as string);
+        const user =  tokenService.verify(token, REFRESH_TOKEN_SECRET  as string);
         req.user = user;
-        console.log("req.user", req.user);
         return
       } catch (err) {
         res.clearCookie("refresh_token");

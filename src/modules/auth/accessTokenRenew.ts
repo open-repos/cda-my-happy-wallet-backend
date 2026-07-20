@@ -3,12 +3,15 @@ import { ErrorException, ErrorCode } from "./../../utils/errors";
 import { prisma } from "../../database/index";
 import {
   ACCESS_TOKEN_SECRET,
+  NODE_ENV,
   REFRESH_TOKEN_SECRET,
 }
  from "../../config/config";
-import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import { UserRepo } from "../user/userRepo";
+import { JsonWebTokenService } from "./token/JsonWebTokenService";
+
+const tokenService = new JsonWebTokenService();
 
 export const swRenewAccessToken = {
   tags: ["Users"],
@@ -95,8 +98,6 @@ export const renewAccessToken = async (
   const cookies = req.cookies;
   const userRepo = new UserRepo(prisma);
 
-  console.log("body", req.body);
-  console.log("cookies", req.cookies);
   if (email == null) {
     return next(
       new ErrorException(
@@ -113,8 +114,6 @@ export const renewAccessToken = async (
   }
   const userEmail = await userRepo.getUserByEmail(email);
   const user = await userRepo.getUserById(parseInt(cookies.id_user));
-  console.log("user", user);
-  console.log("userEmail!", userEmail!);
   if (userEmail == null) {
     return next(
       new ErrorException(ErrorCode.EmailNotFound, "Email user not found")
@@ -130,7 +129,7 @@ export const renewAccessToken = async (
     return next(new ErrorException(ErrorCode.Unauthorized, "Invalid User"));
   }
 
-  jwt.verify(
+  tokenService.verify(
     cookies.refresh_token,
     REFRESH_TOKEN_SECRET as string,
     (err: any, _: any) => {
@@ -150,7 +149,7 @@ export const renewAccessToken = async (
       }
 
       const expireIn = "5min";
-      const accessToken = jwt.sign(
+      const accessToken = tokenService.sign(
         { id: user.id },
         ACCESS_TOKEN_SECRET as string,
         {
@@ -160,13 +159,9 @@ export const renewAccessToken = async (
 
       let data;
       const { id, password, ...userWithoutPasswordAndId } = user;
-      console.log(
-        "user controller without id and password",
-        userWithoutPasswordAndId
-      );
       data = userWithoutPasswordAndId;
 
-      const refreshToken = jwt.sign(
+      const refreshToken = tokenService.sign(
         { id: user.id },
         REFRESH_TOKEN_SECRET as string,
         { expiresIn: "20min" }
@@ -174,12 +169,12 @@ export const renewAccessToken = async (
 
       res.cookie("id_user", user.id, {
         httpOnly: true,
-        secure: true,
+        secure: NODE_ENV === "production",
         maxAge: 900000, //15min
       });
       res.cookie("refresh_token", refreshToken, {
         httpOnly: true,
-        secure: true,
+        secure: NODE_ENV === "production",
         maxAge: 900000, //15min
       });
       return res.status(200).json({

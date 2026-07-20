@@ -8,6 +8,6 @@ import { PrismaClient } from '@prisma/client'
 // dotenv.config({ path: envPath + '.env' })
 
 dotenv.config()
-const prisma = new PrismaClient({ log: ['query'] })
+const prisma = new PrismaClient()
 
 export { prisma }

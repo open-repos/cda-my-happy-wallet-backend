@@ -21,9 +21,7 @@ export class UpdateOperationFixeController {
     public async execute(req: Request, res: Response,typeOperation:TypeOperationFixeEnum) {
 
         // try {
-            console.log("Dans la fonction execute du operationController")
             const result = await this.useCase.execute(req.body,req.cookies.id_user,req.params.id,typeOperation);
-            console.log('result.success final', result.success);
             // if (!result.success) {
             //     return res.status(400).json({ message: result })
             // }

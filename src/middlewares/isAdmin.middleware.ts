@@ -15,15 +15,11 @@ export const isAdmin = async (
   //   return next()
   // }
   const userRepo = new UserRepo(prisma)
-  console.log("INSIDE MIDDLEWARE")
   const userId = req.cookies.id_user;
 //   const userRole = req.cookies.role_user;
   if (userId!=null) {
-    console.log("AFTER userId!=null")
     const user = await userRepo.getUserById(parseInt(userId))
-    console.log("AFTER PRISMA)",user)
     if (user==null) {
-        console.log("INSIDE user==null)",user)
         return next(new ErrorException(ErrorCode.Unauthenticated))
     }
     if (user.role == "ADMIN"){
