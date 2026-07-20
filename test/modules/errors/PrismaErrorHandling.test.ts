@@ -16,9 +16,11 @@ async function runPrismaErrorHandlingTest() {
       next(
         new Prisma.PrismaClientKnownRequestError(
           "Unique constraint failed on the fields: (`email`)",
-          "P2002",
-          "3.10.0",
-          { target: ["email"] }
+          {
+            clientVersion: "6.19.3",
+            code: "P2002",
+            meta: { target: ["email"] },
+          }
         )
       );
     }

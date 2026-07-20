@@ -11,7 +11,6 @@ return async function (
     next: NextFunction
   ){
 
-  console.log(req.params)
   const resetToken = req.params.token;
   const userRepo = new UserRepo(prisma)
   const UserEntity = prisma.utilisateur;
@@ -34,17 +33,11 @@ return async function (
     // const datToCompare = new Date(today.getDay(),today.getHours(),today.getMinutes(),today.getSeconds())
 
     // const diffDate = datToCompare - resetTokenExpiration// 36e5;
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    console.log("timezone",timezone); // Asia/Karachi
-    console.log("date now", today)
-    console.log("date resetTokenExpiration", result[0].resetTokenExpiration)
-    console.log("date time zone diff",today.getTimezoneOffset() )
     if (result[0].resetTokenExpiration === null){
         return
     }
     const Time = result[0].resetTokenExpiration.getTime()  - today.getTime(); 
     const HoursDiff = Time / (1000 * 3600); //Diference in Days
-    console.log("diff date Hours",HoursDiff)
     if (HoursDiff>0){
         return;
     }

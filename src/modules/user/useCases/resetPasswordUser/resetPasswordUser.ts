@@ -15,18 +15,15 @@ export class ResetPasswordUser {
 
   public async execute(email: string) {
     const exist = await this.userRepo.exists(email);
-    console.log("exists user?", exist);
 
     if (!exist) {
       throw new ErrorException(ErrorCode.EmailNotFound);
     }
     const resetToken: string = crypto.randomBytes(64).toString("hex");
-    console.log("resetToken", resetToken);
 
     const now = new Date();
     // const resetTokenExpiration = await this.addHoursToDate(now, 1);
     const resetTokenExpiration = await this.addMinToDate(now, 15);
-    console.log("resetTokenExpiration", resetTokenExpiration);
 
     await this.userRepo.resetPassword(
       email,

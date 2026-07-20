@@ -18,7 +18,6 @@ export class NewPasswordUser {
     }
 
     const hashPassword = await argon2.hash(password);
-    console.log("hashed password", hashPassword);
 
     password = hashPassword;
 

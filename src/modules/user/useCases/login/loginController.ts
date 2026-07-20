@@ -80,12 +80,10 @@ export class LoginController {
             res.clearCookie("id_user");
             // res.clearCookie("role_user");
             const result= await this.useCase.execute(req.body)
-            console.log("avant de check si success",result)
             if (!result) {
                 // return res.status(400).json({ message: result.message })
                 throw new ErrorException(ErrorCode.UnknownError)
             }
-            console.log(result.payload?.user.id)
             res.cookie("id_user",result.userId,{
                 httpOnly:true,
                 secure:NODE_ENV === "production",

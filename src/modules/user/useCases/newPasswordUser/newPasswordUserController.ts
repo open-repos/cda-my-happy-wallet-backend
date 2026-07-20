@@ -59,9 +59,7 @@ export class NewPasswordUserController {
 
     public async execute(req: Request, res: Response, _:NextFunction) {
 
-            console.log("Dans la fonction execute du NewPasswordController")
             const result = await this.useCase.execute(req.body.password, req.cookies.reset_token_password);
-            console.log('result.success final', result.success);
             if (!result) {
                 // return res.status(400).json({ message: result.message })
                 throw new ErrorException(ErrorCode.UnknownError)
