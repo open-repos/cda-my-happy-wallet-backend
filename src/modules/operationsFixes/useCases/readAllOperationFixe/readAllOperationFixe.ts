@@ -15,7 +15,6 @@ export class ReadAllOperationFixe {
   public async execute(userId: string, typeOperationFixe?:TypeOperationFixeEnum) {
 
     let result:any=undefined
-    console.log("GET typeOperationFixe", typeOperationFixe)
     if(typeOperationFixe==undefined){
       const operationFixes = await this.operationFixeRepo.getAllOperationsFixes(userId);
       result = await new Result(
@@ -23,7 +22,6 @@ export class ReadAllOperationFixe {
         "All OperationsFixes"
       ).response_get();
       result.data = operationFixes;
-      console.log("result find many operationsfixes",result)
     }
 
     if(typeOperationFixe=="CHARGE"){
@@ -33,7 +31,6 @@ export class ReadAllOperationFixe {
         `All ${typeOperationFixe}`
       ).response_get();
       result.data = operationFixes;
-      console.log("result find many operationsfixes",result)
     }
 
     if(typeOperationFixe=="REVENU"){
@@ -43,10 +40,8 @@ export class ReadAllOperationFixe {
         `All ${typeOperationFixe}`
       ).response_get();
       result.data = operationFixes;
-      console.log("result find many operationsfixes",result)
     }
     
-    console.log("result",result)
     if (result==null || result==undefined || result.length ===0){
         throw new ErrorException(
             ErrorCode.PrismaError,

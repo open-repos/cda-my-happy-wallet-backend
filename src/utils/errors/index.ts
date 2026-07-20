@@ -27,8 +27,6 @@ const errorSchema = Joi.object<errorProps>({
 });
 
 export const errorSchemaSwg = j2s(errorSchema).swagger;
-console.log(errorSchemaSwg, j2s(errorSchema).components);
-
 export class ErrorSchemaSwg {
   public path: string;
   public errorClass: ErrorException;

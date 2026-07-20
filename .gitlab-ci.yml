@@ -1,4 +1,4 @@
-image: node:16-bullseye
+image: node:22-bookworm
 
 workflow:
   rules:
@@ -20,6 +20,7 @@ stages:
   - validate
   - test
   - build
+  - package
   - deploy
 
 .branch_or_merge_request:
@@ -74,6 +75,7 @@ tests:
     - npm run test:smtp-mailer
     - npm run test:create-user
     - npm run test:token-service
+    - npm run test:health
     - npm run test:delete-revenu-route
     - npm run test:prisma-errors
     - npm run test:result-construction
@@ -94,16 +96,36 @@ build:
     paths:
       - dist/
 
+container_image:
+  stage: package
+  extends: .branch_or_merge_request
+  image:
+    name: moby/buildkit:rootless
+    entrypoint: [""]
+  cache: []
+  needs:
+    - job: build
+      artifacts: false
+  variables:
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+  before_script:
+    - mkdir -p ~/.docker
+    - REGISTRY_AUTH="$(printf '%s:%s' "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" | base64 | tr -d '\n')"
+    - printf '{"auths":{"%s":{"auth":"%s"}}}\n' "$CI_REGISTRY" "$REGISTRY_AUTH" > ~/.docker/config.json
+  script:
+    - buildctl-daemonless.sh build --frontend dockerfile.v0 --local context=. --local dockerfile=. --import-cache type=registry,ref="$CI_REGISTRY_IMAGE:buildcache" --export-cache type=registry,ref="$CI_REGISTRY_IMAGE:buildcache",mode=max --output type=image,name="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA",push=true
+
 deploy_production:
   stage: deploy
-  image: node:16-bullseye
+  image: debian:bookworm-slim
   interruptible: false
   timeout: 15m
   resource_group: backend-production
   tags:
     - server_runner
+  cache: []
   needs:
-    - job: build
+    - job: container_image
       artifacts: false
   rules:
     - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
@@ -117,13 +139,9 @@ deploy_production:
     - test -s "$SSH_KNOWN_HOSTS"
     - test -n "$SERVER_IP"
     - test -n "$SERVER_USER"
-    - test -n "$DEPLOY_PATH"
     - apt-get update && apt-get install --yes --no-install-recommends openssh-client
-    - npm ci --cache .npm --prefer-offline
     - install -d -m 700 ~/.ssh
     - chmod 400 "$SSH_PRIVATE_KEY"
     - install -m 644 "$SSH_KNOWN_HOSTS" ~/.ssh/known_hosts
-    - eval "$(ssh-agent -s)"
-    - ssh-add "$SSH_PRIVATE_KEY"
   script:
-    - DEPLOY_REF="$CI_COMMIT_SHA" ./node_modules/.bin/pm2 deploy ecosystem.config.js production
+    - ssh -i "$SSH_PRIVATE_KEY" -o IdentitiesOnly=yes "$SERVER_USER@$SERVER_IP" "sudo -n /usr/local/sbin/deploy-mhw-backend '$CI_COMMIT_SHA'"

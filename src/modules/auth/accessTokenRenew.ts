@@ -98,8 +98,6 @@ export const renewAccessToken = async (
   const cookies = req.cookies;
   const userRepo = new UserRepo(prisma);
 
-  console.log("body", req.body);
-  console.log("cookies", req.cookies);
   if (email == null) {
     return next(
       new ErrorException(
@@ -116,8 +114,6 @@ export const renewAccessToken = async (
   }
   const userEmail = await userRepo.getUserByEmail(email);
   const user = await userRepo.getUserById(parseInt(cookies.id_user));
-  console.log("user", user);
-  console.log("userEmail!", userEmail!);
   if (userEmail == null) {
     return next(
       new ErrorException(ErrorCode.EmailNotFound, "Email user not found")
@@ -163,10 +159,6 @@ export const renewAccessToken = async (
 
       let data;
       const { id, password, ...userWithoutPasswordAndId } = user;
-      console.log(
-        "user controller without id and password",
-        userWithoutPasswordAndId
-      );
       data = userWithoutPasswordAndId;
 
       const refreshToken = tokenService.sign(

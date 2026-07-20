@@ -21,23 +21,14 @@ export class DeleteOperationFixe {
             ...props,
             id: idOperationFixe,
         };
-        console.log(`${this.fctnCall} - ID operationFixe :`, operationProps.id);
-        console.log(`${this.fctnCall}- typeOperation selon l'appel d'API`, typeOperationFixe);
-        console.log(
-          `${this.fctnCall}- Contenu Props envoyé selon l'appel d'API`,
-          operationProps
-        );
         const exists = await this.operationFixeRepo.exists(idOperationFixe, parseInt(userId));
-        console.log("Operation exists ?", exists);
     
         if (exists) {
-            console.log(`JUSTE AVNAT LE ${this.fctnCall} OPERATION`)
             await this.operationFixeRepo.delete(operationProps,userId,id,typeOperationFixe);
             const result = await new Result(
                 ResultCode.Deleted,
                 `${typeOperationFixe}`
             ).response_update();
-            console.log(`JUSTE APRES LE ${this.fctnCall} et avant le return succes true`)
             return result
         }
         

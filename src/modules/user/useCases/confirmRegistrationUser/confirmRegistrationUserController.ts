@@ -59,7 +59,6 @@ export class ConfirmRegistrationUserController {
 
     public async execute(req: Request, res: Response, _:NextFunction) {
 
-            console.log("Dans la fonction execute du CreateUserController")
             const result = await this.useCase.execute(req.params.id , req.params.token);
             // console.log('result.success final', result.success);
             if (!result) {

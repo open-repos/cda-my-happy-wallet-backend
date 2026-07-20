@@ -24,8 +24,6 @@ export class OperationFixeRepo implements IOperationFixeRepository {
   ) {
     const OperationFixeEntity = this.entities.operationFixe;
     const idUser = parseInt(userId);
-    console.log("typeOperation selon l'appel d'API", typeOperationFixe);
-    console.log("Contenu Props envoyé selon l'appel d'API", operationProps);
 
     const response = await OperationFixeEntity.create({
       data: {
@@ -36,7 +34,6 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         userId: idUser,
       },
     })
-    console.log("reponse create opfixe",response)
     const {idOperationFixe,titre,montant,devise} = response
 
     return {idOperationFixe,titre,montant,devise};
@@ -91,7 +88,6 @@ export class OperationFixeRepo implements IOperationFixeRepository {
           devise: operationProps.devise,
         },
       });
-    console.log(response);
     return response;
   }
 
@@ -112,7 +108,6 @@ export class OperationFixeRepo implements IOperationFixeRepository {
           userId: idUser,
         }
       });
-    console.log(response);
     return response;
   }
 
@@ -184,16 +179,12 @@ export class OperationFixeRepo implements IOperationFixeRepository {
   ): Promise<boolean> {
     const OperationFixeEntity = this.entities.operationFixe;
     // const id = parseInt(idOperationFixe)
-    console.log("EXIST - OperationFixeID:", idOperationFixe);
-    console.log("EXIST - userId:", idUser);
-    console.log("EXIST - typeof(userId):", typeof idUser);
     const resultOperationFixeUser = await OperationFixeEntity.findMany({
       where: {
         userId: idUser,
         idOperationFixe: idOperationFixe,
       },
     });
-    console.log(resultOperationFixeUser);
 
     // const result = resultOperationFixeUser
     if (resultOperationFixeUser.length === 0  || resultOperationFixeUser == null) {
@@ -206,7 +197,6 @@ export class OperationFixeRepo implements IOperationFixeRepository {
 
   public async updateRaV(userId:string, idRaV:number){
 
-    console.log("INSIDE updateRav")
     const RaVEntity = this.entities.resteAVivre
     const allRevenus = await this.getAllRevenus(userId,"REVENU")
     const allCharges= await this.getAllCharges(userId,"CHARGE")
@@ -226,7 +216,6 @@ export class OperationFixeRepo implements IOperationFixeRepository {
           montantTotalEntree: ravCalculation.montantTotalEntree,
         },
       })
-      console.log("reponse updated rav",response)
     
     return response
 
@@ -235,7 +224,6 @@ export class OperationFixeRepo implements IOperationFixeRepository {
 
   public async createRaV(userId:string){
 
-    console.log("INSIDE updateRav")
     const RaVEntity = this.entities.resteAVivre
     const allRevenus = await this.getAllRevenus(userId,"REVENU")
     const allCharges= await this.getAllCharges(userId,"CHARGE")
@@ -252,7 +240,6 @@ export class OperationFixeRepo implements IOperationFixeRepository {
           userId:parseInt(userId)
         },
       })
-      console.log("reponse create rav",response)
     
     return response
 
@@ -277,7 +264,6 @@ export class OperationFixeRepo implements IOperationFixeRepository {
 
   public async updateOrCreateRaV(userId:string){
 
-    console.log("INSIDE updateOrCreate")
     const RaVEntity = this.entities.resteAVivre
 
     const responseGet = await RaVEntity.findMany({
@@ -297,29 +283,17 @@ export class OperationFixeRepo implements IOperationFixeRepository {
       return [isRaVpastMonth, ] as const;
     }
 
-    console.log("Rav Findmany",responseGet)
-    console.log("Rav Findmany last",responseGet[0].updated_at)
-    console.log("Rav Findmany Month",responseGet[0].updated_at.getMonth())
-    console.log("now Month",now.getMonth())
-    console.log("Rav Findmany year",responseGet[0].updated_at.getFullYear())
-    console.log("now year",now.getFullYear())
-    console.log("typeof year and month",`${typeof(now.getFullYear())} and ${typeof(now.getMonth())} ` )
-
     let monthLastRav = responseGet[0].updated_at.getMonth()
     let currentMonth = now.getMonth()
     let yearLastRav = responseGet[0].updated_at.getFullYear()
     let currentYear = now.getFullYear()
     if(currentYear == yearLastRav ){
-      console.log("currentYear == yearLastRav")
       if(currentMonth == monthLastRav){
-        console.log("currentYear == yearLastRav && currentMonth == monthLastRav")
         isRaVpastMonth = false
       } else{
-        console.log("currentYear == yearLastRav && currentMonth != monthLastRav")
         isRaVpastMonth = true
       }
     } else{
-      console.log("currentYear != yearLastRav")
       isRaVpastMonth = true
     }
 
