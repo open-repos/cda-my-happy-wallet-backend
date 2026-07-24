@@ -1,27 +1,31 @@
 // import { NextFunction } from 'express';
 import { Result, ResultCode } from './../../../../utils/results/';
 import { ErrorException,ErrorCode } from './../../../../utils/errors/';
-import { UserRepo } from '../../userRepo'
+import { IUserRepository } from '../../userRepository.interface'
 import argon2 from 'argon2'
-import { sign } from 'jsonwebtoken'
 import { ACCESS_TOKEN_SECRET ,REFRESH_TOKEN_SECRET } from '../../../../config/config'
 import {loginUserProps} from "../../../../utils/validators/login.validator"
+import { ITokenService } from '../../../auth/token/TokenService.interface';
+import { JsonWebTokenService } from '../../../auth/token/JsonWebTokenService';
 
 
 //Equivalent to a specific service in a CRUD API
 export class Login {
-    private userRepo: UserRepo
+    private userRepo: IUserRepository
+    private tokenService: ITokenService
 
-    constructor(userRepo: UserRepo) {
+    constructor(
+        userRepo: IUserRepository,
+        tokenService: ITokenService = new JsonWebTokenService()
+    ) {
         this.userRepo = userRepo
+        this.tokenService = tokenService
     }
 
     //This is what our use case will do
     public async execute(props: loginUserProps) {
         // try {
             const { email, password } = props;
-            console.log('email : ', email);
-            console.log('password : ', password);
 
             const user = await this.userRepo.getUserByEmail(email);
 
@@ -37,7 +41,6 @@ export class Login {
             // console.log('password in body', password);
 
             const passwordMatches = await argon2.verify(user.password,password)
-            console.log('passwordMatches', passwordMatches);
 
             if (!passwordMatches) {
                 throw new ErrorException(ErrorCode.EmailPasswordNotValid);
@@ -45,17 +48,14 @@ export class Login {
 
             //Création de notre JWT token
             const expireIn="60s"
-            const jwtToken = sign({ id: user.id }, ACCESS_TOKEN_SECRET as string, {expiresIn:expireIn})
-            console.log('TOKEN', jwtToken);
+            const jwtToken = this.tokenService.sign({ id: user.id }, ACCESS_TOKEN_SECRET as string, {expiresIn:expireIn})
 
             //Création de notre JWT token
-            const refreshToken = sign({ id: user.id }, REFRESH_TOKEN_SECRET as string, {expiresIn:"15min"})
-            console.log('REFRESH TOKEN', refreshToken);
+            const refreshToken = this.tokenService.sign({ id: user.id }, REFRESH_TOKEN_SECRET as string, {expiresIn:"15min"})
 
             if (jwtToken){
                 // const { id, password, ...userWithoutPasswordAndId } = user
                 const{id,password,resetToken,resetTokenExpiration,created_at,updated_at,...userWithoutSensitiveInfo}=user
-                console.log('user controller without id and password', userWithoutSensitiveInfo);
                 const result_class = await new Result(ResultCode.Post, '',`Successfully authenticated`).response_post()
                 result_class.payload = {
                     user:userWithoutSensitiveInfo,

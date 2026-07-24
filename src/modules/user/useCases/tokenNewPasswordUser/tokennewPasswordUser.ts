@@ -1,10 +1,10 @@
 import { Result, ResultCode }  from './../../../../utils/results/';
-import { UserRepo } from "../../userRepo";
+import { IUserRepository } from "../../userRepository.interface";
 import { ErrorException,ErrorCode } from '../../../../utils/errors/';
 export class TokenNewPasswordUser {
-  private userRepo: UserRepo;
+  private userRepo: IUserRepository;
 
-  constructor(userRepo: UserRepo) {
+  constructor(userRepo: IUserRepository) {
     this.userRepo = userRepo;
   }
 
@@ -12,7 +12,6 @@ export class TokenNewPasswordUser {
 
     // A enlever une fois le middleware executé
     const existUserResetToken =  await this.userRepo.existUserResetToken(token)
-    console.log("existUserResetToken",existUserResetToken)
     if (!existUserResetToken) {
         throw new ErrorException(ErrorCode.Unauthorized,"Link to reset password expired");
     }

@@ -1,30 +1,26 @@
-import { Result, ResultCode }  from './../../utils/results/';
 import { ErrorException,ErrorCode }  from "./../../utils/errors/";
-import {
-  NODE_ENV,
-  SENDGRID_API_KEY,
-  // REGISTER_TOKEN,
-  EMAIL_SENDER,
-} from "./../../config/config";
+import { toPrismaErrorException } from "../../utils/errors/prismaError.error";
 // On va utiliser notre ORM pour modifier notre BDD (couche de persistence)
 //script "générale" utilisable par notre service lié aux Users
 import { createUserProps } from "../../utils/validators/register.validator";
-import sgMail from "@sendgrid/mail";
+import { IMailer } from "./mail/Mailer.interface";
+import { createMailer } from "./mail/MailerFactory";
+import { IUserRepository } from "./userRepository.interface";
 
-export class UserRepo {
+export class UserRepo implements IUserRepository {
   private entities: any;
   private emailExist: boolean;
   private resetTokenExist: boolean;
   private isVerified:boolean;
+  private mailer: IMailer;
 
-  constructor(entities: any) {
+  constructor(entities: any, mailer: IMailer = createMailer()) {
     this.entities = entities;
+    this.mailer = mailer;
   }
 
   public async create(userProps: createUserProps) {
     const UserEntity = this.entities.utilisateur;
-
-    console.log("dans UserRepo create fctn", userProps);
 
     const user = await UserEntity.create({
       data: {
@@ -41,22 +37,20 @@ export class UserRepo {
   public async delete(email: string,userId:number) {
     const UserEntity = this.entities.utilisateur;
 
-    console.log("dans UserRepo delete fctn");
-
-    await UserEntity.deleteMany({
+    const result = await UserEntity.deleteMany({
       where: { email: email,id:userId }
     });
 
-    return await new Result(ResultCode.Deleted,`User with ${email} account`).response_delete()
+    return result
   }
   public async resetPassword(email: string, resetToken:string, resetTokenExpiration:Date) {
     const UserEntity = this.entities.utilisateur;
 
       const user = await UserEntity.findUnique({
         where: { email: email },
-      }).catch((err:any) => {console.log("Inside Prisma",err) ;throw new ErrorException(ErrorCode.PrismaError,"Account email not found , you can register")});
+      }).catch((error:unknown) => {throw toPrismaErrorException(error,"Account email not found , you can register")});
 
-      await UserEntity.update({
+      const result = await UserEntity.update({
         where: {
           id: user.id,
         },
@@ -64,9 +58,9 @@ export class UserRepo {
           resetToken: resetToken,
           resetTokenExpiration:resetTokenExpiration ,
         },
-      }).catch((err:any) => {console.log("Inside Prisma",err);throw new ErrorException(ErrorCode.PrismaError)});
+      }).catch((error:unknown) => {throw toPrismaErrorException(error)});
       
-      return await new Result(ResultCode.Created,`ResetToken successfully added`).response_post()
+      return result
       // return {
       //   success: true,
       //   message: `ResetToken successfully added`,
@@ -93,12 +87,11 @@ export class UserRepo {
     }
 
     const user = result[0]
-    console.log("user found by resetToken", user);
     if (user.length > 1){
       throw new ErrorException(ErrorCode.Unauthorized,"Reset Token is expired")
     }
 
-    await UserEntity.updateMany({
+    const resultUpdate = await UserEntity.updateMany({
       where: {
         id: user.id,
       },
@@ -109,24 +102,20 @@ export class UserRepo {
       },
     });
 
-    return await new Result(ResultCode.Created,`New password created`).response_post()
+    return resultUpdate
     // return { success: true, message: `New password created` };
   }
 
   public async confirmRegistration(id: string) {
     const UserEntity = this.entities.utilisateur;
-    console.log(
-      await UserEntity.update({
+    const result = await UserEntity.update({
         where: {
           id: parseInt(id),
         },
         data: {
           verified: true,
         },
-      })
-    );
-    
-    const result = await new Result(ResultCode.Created, `Registration User is successfull`).response_get()
+      });
     return result
     // return {
     //   success: true,
@@ -169,13 +158,7 @@ export class UserRepo {
     const result = await UserEntity.findMany({
       where: { resetToken: resetToken },
     });
-    console.log("Check resetToken", result);
-    console.log(result === null || result == []);
-    if (result === null || result.length === 0 ) {
-      this.resetTokenExist = false;
-    } else {
-      this.resetTokenExist = true;
-    }
+    this.resetTokenExist = result.length > 0;
     return this.resetTokenExist;
   }
 
@@ -193,48 +176,7 @@ export class UserRepo {
   }
 
   public async sendMail(email: string, subject: string, text: string) {
-    console.log("await sending email confirmation");
-    sgMail.setApiKey(SENDGRID_API_KEY as string);
-    let trackingFalse: boolean = false;
-    if (NODE_ENV === "production") {
-      trackingFalse = true;
-    } else {
-      trackingFalse = false;
-    }
-    const msg = {
-      to: email, // Change to your recipient
-      from: EMAIL_SENDER as string, // Change to your verified sender
-      subject: subject,
-      // text:text,
-      html: text,
-      trackingSettings: {
-        clickTracking: {
-          enable: trackingFalse,
-          enableText: trackingFalse,
-        },
-        openTracking: {
-          enable: trackingFalse,
-        },
-      },
-    };
-
-    const isEmailSent: Promise<boolean> = sgMail
-      .send(msg)
-      .then(async (response) => {
-        console.log("RESPONSE MAIL", response[0].statusCode);
-        console.log("RESPONSE HEADER", response[0].headers);
-        if (response[0].statusCode == 202) {
-          return true;
-        } else {
-          return false;
-        }
-      })
-      .catch((error) => {
-        console.log("ERROR EMAIL", error);
-        throw new ErrorException(ErrorCode.SendEmaillError);
-      });
-    console.log("OUTSIDE THEN CATCH", isEmailSent);
-    return isEmailSent;
+    return this.mailer.sendMail(email, subject, text);
   }
 
 }

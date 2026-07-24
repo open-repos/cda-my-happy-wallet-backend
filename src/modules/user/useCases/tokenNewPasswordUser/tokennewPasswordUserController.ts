@@ -1,4 +1,4 @@
-// import { NODE_ENV } from './../../../../config/config';
+import { NODE_ENV } from './../../../../config/config';
 import { Result , ResultCode} from './../../../../utils/results/';
 import { ErrorException,ErrorCode }  from './../../../../utils/errors/';
 import { NextFunction } from 'express';
@@ -53,16 +53,14 @@ export class TokenNewPasswordUserController {
 
     public async execute(req: Request, res: Response, _:NextFunction) {
 
-            console.log("Dans la fonction execute du TokenNewPasswordController")
             const result = await this.useCase.execute(req.params.token);
-            console.log('result.success final', result.success);
             if (!result) {
                 // return res.status(400).json({ message: result.message })
                 throw new ErrorException(ErrorCode.UnknownError)
             }
             res.cookie("reset_token_password",req.params.token,{
                 httpOnly:true,
-                secure:true,
+                secure:NODE_ENV === "production",
                 maxAge: 900000, //15min
             })
             return res.status(201).json({succes:result.success, message:result.message});

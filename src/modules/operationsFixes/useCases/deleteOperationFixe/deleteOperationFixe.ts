@@ -1,33 +1,34 @@
 import { ErrorException,ErrorCode } from './../../../../utils/errors/';
-import { OperationFixeRepo } from '../../operationFixeRepo';
+import { IOperationFixeRepository } from '../../operationFixeRepository.interface';
+import { Result, ResultCode } from '../../../../utils/results';
 //Faire la logique du useCase (ici création utilisateur)import { OperationFixeRepo } from "../../OperationFixeRepo";
 
 
 export class DeleteOperationFixe {
-    private operationFixeRepo: OperationFixeRepo;
+    private operationFixeRepo: IOperationFixeRepository;
     private fctnCall:string="delete";
 
 
-    constructor(operationFixeRepo: OperationFixeRepo) {
+    constructor(operationFixeRepo: IOperationFixeRepository) {
         this.operationFixeRepo = operationFixeRepo
     }
 
     public async execute(props: any,userId:string,id:string,typeOperationFixe:string) {
 
 
-        console.log(`${this.fctnCall} - ID operationFixe :`, props.id);
-        console.log(`${this.fctnCall}- typeOperation selon l'appel d'API`, typeOperationFixe);
-        console.log(
-          `${this.fctnCall}- Contenu Props envoyé selon l'appel d'API`,
-          props
-        );
-        const exists = await this.operationFixeRepo.exists(props.id, parseInt(userId));
-        console.log("Operation exists ?", exists);
+        const idOperationFixe = parseInt(id);
+        const operationProps = {
+            ...props,
+            id: idOperationFixe,
+        };
+        const exists = await this.operationFixeRepo.exists(idOperationFixe, parseInt(userId));
     
         if (exists) {
-            console.log(`JUSTE AVNAT LE ${this.fctnCall} OPERATION`)
-            const result =await this.operationFixeRepo.delete(props,userId,id,typeOperationFixe);
-            console.log(`JUSTE APRES LE ${this.fctnCall} et avant le return succes true`)
+            await this.operationFixeRepo.delete(operationProps,userId,id,typeOperationFixe);
+            const result = await new Result(
+                ResultCode.Deleted,
+                `${typeOperationFixe}`
+            ).response_update();
             return result
         }
         

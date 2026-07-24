@@ -148,7 +148,7 @@ operationFixeRouter.get(
 );
 
 // Delete revenus / charges by ID
-operationFixeRouter.get(
+operationFixeRouter.delete(
   "/revenus/:id",
   tokenJwtTAuth,
   (req: Request, res: Response, next: NextFunction) =>

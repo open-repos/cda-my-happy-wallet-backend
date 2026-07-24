@@ -1,17 +1,15 @@
 import { TypeOperationFixeEnum } from '@prisma/client';
-import { Result, ResultCode } from "./../../utils/results/";
 import { OperationFixeProps } from "./../../utils/validators/operationFixe.validator";
+import {
+  IOperationFixeRepository,
+  OperationFixeWithIdProps,
+  ReadOperationFixeProps,
+} from "./operationFixeRepository.interface";
+import { ResteAVivreCalculator } from "./services/ResteAVivreCalculator";
 // On va utiliser notre ORM pour modifier notre BDD (couche de persistence)
 //script "générale" utilisable par notre service createOperationFixe.ts
 
-interface updateOperationFixeProps extends OperationFixeProps {
-  id: number;
-}
-type readOperationFixeProps = {
-  id: number;
-};
-
-export class OperationFixeRepo {
+export class OperationFixeRepo implements IOperationFixeRepository {
   private entities: any;
   private operationFixeExist: boolean;
 
@@ -26,8 +24,6 @@ export class OperationFixeRepo {
   ) {
     const OperationFixeEntity = this.entities.operationFixe;
     const idUser = parseInt(userId);
-    console.log("typeOperation selon l'appel d'API", typeOperationFixe);
-    console.log("Contenu Props envoyé selon l'appel d'API", operationProps);
 
     const response = await OperationFixeEntity.create({
       data: {
@@ -38,22 +34,16 @@ export class OperationFixeRepo {
         userId: idUser,
       },
     })
-    console.log("reponse create opfixe",response)
-    const result = await new Result(
-      ResultCode.Created,
-      `${typeOperationFixe}`
-    ).response_get();
     const {idOperationFixe,titre,montant,devise} = response
-    result.data= {idOperationFixe,titre,montant,devise}
 
-    return result;
+    return {idOperationFixe,titre,montant,devise};
   }
 
   public async read(
-    operationProps: readOperationFixeProps,
+    operationProps: ReadOperationFixeProps,
     userId: string,
     idOperation: string,
-    typeOperationFixe: string
+    _typeOperationFixe: string
   ) {
     const OperationFixeEntity = this.entities.operationFixe;
     const idUser = parseInt(userId);
@@ -71,12 +61,7 @@ export class OperationFixeRepo {
         devise: true,
       },
     });
-    const result = await new Result(
-      ResultCode.Read,
-      `${typeOperationFixe}`
-    ).response_get();
-    result.data = resultOperationFixeById;
-    return result;
+    return resultOperationFixeById;
 
     // }
 
@@ -84,16 +69,15 @@ export class OperationFixeRepo {
   }
 
   public async update(
-    operationProps: updateOperationFixeProps,
+    operationProps: OperationFixeWithIdProps,
     userId: string,
     idOperationFixe: string,
-    typeOperationFixe: string
+    _typeOperationFixe: string
   ) {
     const OperationFixeEntity = this.entities.operationFixe;
     const idUser = parseInt(userId);
     operationProps.id = +idOperationFixe;
-    console.log(
-      await OperationFixeEntity.updateMany({
+    const response = await OperationFixeEntity.updateMany({
         where: {
           idOperationFixe: operationProps.id,
           userId: idUser,
@@ -103,37 +87,28 @@ export class OperationFixeRepo {
           montant: operationProps.montant,
           devise: operationProps.devise,
         },
-      })
-    );
-    return await new Result(
-      ResultCode.Updated,
-      `${typeOperationFixe}`
-    ).response_update();
+      });
+    return response;
   }
 
 
 
   public async delete(
-    operationProps: updateOperationFixeProps,
+    operationProps: OperationFixeWithIdProps,
     userId: string,
     idOperationFixe: string,
-    typeOperationFixe: string
+    _typeOperationFixe: string
   ) {
     const OperationFixeEntity = this.entities.operationFixe;
     const idUser = parseInt(userId);
     operationProps.id = +idOperationFixe;
-    console.log(
-      await OperationFixeEntity.deleteMany({
+    const response = await OperationFixeEntity.deleteMany({
         where: {
           idOperationFixe: operationProps.id,
           userId: idUser,
         }
-      })
-    );
-    return await new Result(
-      ResultCode.Deleted,
-      `${typeOperationFixe}`
-    ).response_update();
+      });
+    return response;
   }
 
 
@@ -152,12 +127,7 @@ export class OperationFixeRepo {
         typeOperation: true,
       },
     });
-    const result = await new Result(
-      ResultCode.Read,
-      "All OperationsFixes"
-    ).response_get();
-    result.data = resultOperationFixeById;
-    return result;
+    return resultOperationFixeById;
 
   }
 
@@ -178,12 +148,7 @@ export class OperationFixeRepo {
         typeOperation: true,
       },
     });
-    const result = await new Result(
-      ResultCode.Read,
-      `All ${typeOperationFixe}`
-    ).response_get();
-    result.data = resultOperationFixeById;
-    return result;
+    return resultOperationFixeById;
 
   }
 
@@ -203,12 +168,7 @@ export class OperationFixeRepo {
         typeOperation: true,
       },
     });
-    const result = await new Result(
-      ResultCode.Read,
-      `All ${typeOperationFixe}`
-    ).response_get();
-    result.data = resultOperationFixeById;
-    return result;
+    return resultOperationFixeById;
 
   }
 
@@ -219,16 +179,12 @@ export class OperationFixeRepo {
   ): Promise<boolean> {
     const OperationFixeEntity = this.entities.operationFixe;
     // const id = parseInt(idOperationFixe)
-    console.log("EXIST - OperationFixeID:", idOperationFixe);
-    console.log("EXIST - userId:", idUser);
-    console.log("EXIST - typeof(userId):", typeof idUser);
     const resultOperationFixeUser = await OperationFixeEntity.findMany({
       where: {
         userId: idUser,
         idOperationFixe: idOperationFixe,
       },
     });
-    console.log(resultOperationFixeUser);
 
     // const result = resultOperationFixeUser
     if (resultOperationFixeUser.length === 0  || resultOperationFixeUser == null) {
@@ -241,20 +197,13 @@ export class OperationFixeRepo {
 
   public async updateRaV(userId:string, idRaV:number){
 
-    console.log("INSIDE updateRav")
     const RaVEntity = this.entities.resteAVivre
     const allRevenus = await this.getAllRevenus(userId,"REVENU")
     const allCharges= await this.getAllCharges(userId,"CHARGE")
-    const totalCharges = allCharges.data.reduce(
-      (accumulator:any, current:any) => accumulator + parseFloat(current.montant),
-      0
+    const ravCalculation = ResteAVivreCalculator.calculate(
+      allRevenus,
+      allCharges
     );
-    const totalRevenus = allRevenus.data.reduce(
-      (accumulator:any, current:any) => accumulator + parseFloat(current.montant),
-      0
-    );
-
-    const rav = totalRevenus - totalCharges;
 
     const response = await RaVEntity.updateMany({
         where: {
@@ -262,58 +211,37 @@ export class OperationFixeRepo {
           userId: parseInt(userId),
         },
         data: {
-          montantRaV: rav,
-          montantTotalDepense:totalCharges,
-          montantTotalEntree: totalRevenus,
+          montantRaV: ravCalculation.montantRaV,
+          montantTotalDepense:ravCalculation.montantTotalDepense,
+          montantTotalEntree: ravCalculation.montantTotalEntree,
         },
       })
-      console.log("reponse updated rav",response)
     
-    const result = await new Result(
-      ResultCode.Created,
-      "Rest à Vivre Mis à jour"
-    ).response_get();
-
-    console.log("result",result)
-    return result
+    return response
 
   }
 
 
   public async createRaV(userId:string){
 
-    console.log("INSIDE updateRav")
     const RaVEntity = this.entities.resteAVivre
     const allRevenus = await this.getAllRevenus(userId,"REVENU")
     const allCharges= await this.getAllCharges(userId,"CHARGE")
-    const totalCharges = allCharges.data.reduce(
-      (accumulator:any, current:any) => accumulator + parseFloat(current.montant),
-      0
+    const ravCalculation = ResteAVivreCalculator.calculate(
+      allRevenus,
+      allCharges
     );
-    const totalRevenus = allRevenus.data.reduce(
-      (accumulator:any, current:any) => accumulator + parseFloat(current.montant),
-      0
-    );
-
-    const rav = totalRevenus - totalCharges;
 
     const response = await RaVEntity.create({
         data: {
-          montantRaV: rav,
-          montantTotalDepense:totalCharges,
-          montantTotalEntree: totalRevenus,
+          montantRaV: ravCalculation.montantRaV,
+          montantTotalDepense:ravCalculation.montantTotalDepense,
+          montantTotalEntree: ravCalculation.montantTotalEntree,
           userId:parseInt(userId)
         },
       })
-      console.log("reponse create rav",response)
     
-    const result = await new Result(
-      ResultCode.Created,
-      "Rest à Vivre Mis à jour"
-    ).response_get();
-
-    console.log("result",result)
-    return result
+    return response
 
   }
   // public async getRaV(userId:string){
@@ -336,7 +264,6 @@ export class OperationFixeRepo {
 
   public async updateOrCreateRaV(userId:string){
 
-    console.log("INSIDE updateOrCreate")
     const RaVEntity = this.entities.resteAVivre
 
     const responseGet = await RaVEntity.findMany({
@@ -356,29 +283,17 @@ export class OperationFixeRepo {
       return [isRaVpastMonth, ] as const;
     }
 
-    console.log("Rav Findmany",responseGet)
-    console.log("Rav Findmany last",responseGet[0].updated_at)
-    console.log("Rav Findmany Month",responseGet[0].updated_at.getMonth())
-    console.log("now Month",now.getMonth())
-    console.log("Rav Findmany year",responseGet[0].updated_at.getFullYear())
-    console.log("now year",now.getFullYear())
-    console.log("typeof year and month",`${typeof(now.getFullYear())} and ${typeof(now.getMonth())} ` )
-
     let monthLastRav = responseGet[0].updated_at.getMonth()
     let currentMonth = now.getMonth()
     let yearLastRav = responseGet[0].updated_at.getFullYear()
     let currentYear = now.getFullYear()
     if(currentYear == yearLastRav ){
-      console.log("currentYear == yearLastRav")
       if(currentMonth == monthLastRav){
-        console.log("currentYear == yearLastRav && currentMonth == monthLastRav")
         isRaVpastMonth = false
       } else{
-        console.log("currentYear == yearLastRav && currentMonth != monthLastRav")
         isRaVpastMonth = true
       }
     } else{
-      console.log("currentYear != yearLastRav")
       isRaVpastMonth = true
     }
 
