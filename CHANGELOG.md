@@ -25,8 +25,12 @@ All notable changes to this project are documented in this file.
 ### Fixed
 
 - Corrected the income deletion route.
+- Rejected malformed or invalid Bearer tokens before protected controllers execute.
+- Protected fixed-income and fixed-charge update routes with JWT authentication.
+- Used route identifiers for ownership checks when updating fixed operations.
 - Corrected registry authentication for the rootless BuildKit image job.
 - Aligned the production runner tag and isolated the backend database network.
+- Updated the transitive development dependency `js-yaml` to its patched release.
 
 ### Security
 
