@@ -14,6 +14,7 @@ process.env.DATABASE_URL =
 type LoginModule = typeof import("../../../src/modules/user/useCases/login");
 type CreateOperationFixeModule = typeof import("../../../src/modules/operationsFixes/useCases/createOperationFixe");
 type ReadAllOperationFixeModule = typeof import("../../../src/modules/operationsFixes/useCases/readAllOperationFixe");
+type UpdateOperationFixeModule = typeof import("../../../src/modules/operationsFixes/useCases/updateOperationFixe");
 type UserRepoModule = typeof import("../../../src/modules/user/userRepo");
 type RoutesUserModule = typeof import("../../../src/routes/user");
 type RoutesOperationsFixesModule = typeof import("../../../src/routes/operationsFixes");
@@ -30,6 +31,9 @@ const {
 const {
   readAllOperationFixeController,
 } = require("../../../src/modules/operationsFixes/useCases/readAllOperationFixe") as ReadAllOperationFixeModule;
+const {
+  updateOperationFixeController,
+} = require("../../../src/modules/operationsFixes/useCases/updateOperationFixe") as UpdateOperationFixeModule;
 const { UserRepo } = require("../../../src/modules/user/userRepo") as UserRepoModule;
 const { userRouter } = require("../../../src/routes/user") as RoutesUserModule;
 const { operationFixeRouter } = require("../../../src/routes/operationsFixes") as RoutesOperationsFixesModule;
@@ -79,6 +83,11 @@ async function runApiCharacterizationTests() {
   const operationCalls: Array<{
     route: string;
     typeOperation?: string;
+    userId?: string;
+  }> = [];
+  const updateCalls: Array<{
+    route: string;
+    typeOperation: string;
     userId?: string;
   }> = [];
 
@@ -145,6 +154,23 @@ async function runApiCharacterizationTests() {
       success: true,
       message: `All ${typeOperation || "OperationFixe"} Successfully Read`,
       data: [],
+    });
+  };
+
+  updateOperationFixeController.execute = async (
+    req: Request,
+    res: Response,
+    typeOperation: string
+  ) => {
+    updateCalls.push({
+      route: req.path,
+      typeOperation,
+      userId: req.cookies.id_user,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `${typeOperation} Successfully Updated`,
     });
   };
 
@@ -245,6 +271,47 @@ async function runApiCharacterizationTests() {
     unauthenticatedOperationsResponse.body.error.type,
     "AccessForbidden"
   );
+
+  const invalidTokenOperationsResponse = await supertest(app)
+    .get("/operations-fixes/charges")
+    .set("Authorization", "Bearer invalid-token");
+
+  assert.strictEqual(invalidTokenOperationsResponse.status, 401);
+  assert.strictEqual(
+    invalidTokenOperationsResponse.body.error.type,
+    "Unauthorized"
+  );
+
+  const unauthenticatedUpdateResponse = await supertest(app)
+    .put("/operations-fixes/charges/7")
+    .send({ titre: "Loyer", montant: 650, devise: "EUR" });
+
+  assert.strictEqual(unauthenticatedUpdateResponse.status, 403);
+  assert.strictEqual(
+    unauthenticatedUpdateResponse.body.error.type,
+    "AccessForbidden"
+  );
+  assert.deepStrictEqual(updateCalls, []);
+
+  const updateChargeResponse = await supertest(app)
+    .put("/operations-fixes/charges/7")
+    .set("Authorization", `Bearer ${accessToken}`)
+    .set("Cookie", `id_user=${authenticatedUser.id}`)
+    .send({ titre: "Loyer", montant: 650, devise: "EUR" });
+
+  assert.strictEqual(updateChargeResponse.status, 200);
+
+  const updateRevenuResponse = await supertest(app)
+    .put("/operations-fixes/revenus/8")
+    .set("Authorization", `Bearer ${accessToken}`)
+    .set("Cookie", `id_user=${authenticatedUser.id}`)
+    .send({ titre: "Salaire", montant: 2100, devise: "EUR" });
+
+  assert.strictEqual(updateRevenuResponse.status, 200);
+  assert.deepStrictEqual(updateCalls, [
+    { route: "/charges/7", typeOperation: "CHARGE", userId: "42" },
+    { route: "/revenus/8", typeOperation: "REVENU", userId: "42" },
+  ]);
 }
 
 runApiCharacterizationTests()
