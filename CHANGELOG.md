@@ -45,5 +45,6 @@ All notable changes to this project are documented in this file.
 - Rate-limited public authentication, registration, password reset and token refresh routes.
 - Added centralized HTTP security headers with a scoped Swagger content security policy.
 - Bounded JSON and form request bodies and normalized malformed or oversized payload errors.
+- Enforced a server-side CORS allowlist with explicit methods and preflight caching.
 - Hardened the production container with a non-root user, read-only filesystem and dropped Linux capabilities.
 - Restricted production database access to the dedicated backend Docker network.

@@ -43,6 +43,10 @@ export const errorCatalog: Record<string, ErrorDefinition> = {
     status: 413,
     message: "Request payload is too large.",
   },
+  [ErrorCode.CorsOriginDenied]: {
+    status: 403,
+    message: "Request origin is not allowed.",
+  },
   [ErrorCode.SendEmaillError]: { status: 500, message: "Email was not sent" },
   [ErrorCode.NotFound]: {
     status: 404,

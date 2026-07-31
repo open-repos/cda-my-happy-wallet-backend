@@ -16,4 +16,5 @@ export class ErrorCode {
     public static readonly InvalidInput = 'InvalidInput';
     public static readonly TooManyRequests = 'TooManyRequests';
     public static readonly PayloadTooLarge = 'PayloadTooLarge';
+    public static readonly CorsOriginDenied = 'CorsOriginDenied';
   }
