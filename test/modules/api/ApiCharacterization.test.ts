@@ -4,9 +4,9 @@ import assert from "assert";
 import type { Request, Response } from "express";
 import supertest from "supertest";
 
-process.env.ACCESS_TOKEN = "test-access-token-secret";
-process.env.REFRESH_TOKEN = "test-refresh-token-secret";
-process.env.REGISTER_TOKEN = "test-register-token-secret";
+process.env.ACCESS_TOKEN = "test-access-token-secret-at-least-32-characters";
+process.env.REFRESH_TOKEN = "test-refresh-token-secret-at-least-32-characters";
+process.env.REGISTER_TOKEN = "test-register-token-secret-at-least-32-characters";
 process.env.APP_BASE_URL = "/api/v1";
 process.env.DATABASE_URL =
   "mysql://test-user:test-password@127.0.0.1:3306/my_happy_wallet_test";

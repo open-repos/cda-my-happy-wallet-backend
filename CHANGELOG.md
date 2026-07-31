@@ -41,5 +41,6 @@ All notable changes to this project are documented in this file.
 - Validated reset tokens before database access and consumed them atomically with their expiration constraint.
 - Rotated persisted refresh tokens atomically and revoked the session family when an old token is replayed.
 - Added an idempotent server-side logout endpoint that revokes the current refresh session.
+- Validated distinct JWT secrets of at least 32 characters when configuration loads.
 - Hardened the production container with a non-root user, read-only filesystem and dropped Linux capabilities.
 - Restricted production database access to the dedicated backend Docker network.

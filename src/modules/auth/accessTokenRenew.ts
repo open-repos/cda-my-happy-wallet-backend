@@ -151,7 +151,7 @@ export const renewAccessToken = async (
   const expireIn = "5min";
   const accessToken = tokenService.sign(
     { id: user.id },
-    ACCESS_TOKEN_SECRET as string,
+    ACCESS_TOKEN_SECRET,
     {
       expiresIn: expireIn,
     }

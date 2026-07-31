@@ -17,7 +17,7 @@ export class RefreshSessionService implements IRefreshSessionService {
   constructor(
     private readonly repository: IRefreshSessionRepository,
     private readonly tokenService: ITokenService = new JsonWebTokenService(),
-    private readonly secret: string = REFRESH_TOKEN_SECRET as string,
+    private readonly secret: string = REFRESH_TOKEN_SECRET,
     private readonly now: () => Date = () => new Date(),
     private readonly generateId: () => string = randomUUID
   ) {}

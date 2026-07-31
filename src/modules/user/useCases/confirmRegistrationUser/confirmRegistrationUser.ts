@@ -29,7 +29,7 @@ export class ConfirmRegistrationUser {
         
             await this.tokenService.verify(
               token,
-              REGISTER_TOKEN as string,
+              REGISTER_TOKEN,
               function (err: any, _: any) {
                 if (err) {
                   throw new ErrorException(

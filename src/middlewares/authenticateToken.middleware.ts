@@ -29,7 +29,7 @@ export const tokenJwtTAuth = (
   }
 
   try {
-    const decodedToken = tokenService.verify(token, ACCESS_TOKEN_SECRET as string);
+    const decodedToken = tokenService.verify(token, ACCESS_TOKEN_SECRET);
     const user = getAuthTokenPayload(decodedToken);
     if (user == null) {
       throw new Error("Invalid access token payload");

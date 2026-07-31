@@ -52,7 +52,7 @@ export class CreateUser {
             const expireIn = "5min";
             const jwtToken = this.tokenService.sign(
             { email: props.email },
-            REGISTER_TOKEN as string,
+            REGISTER_TOKEN,
             { expiresIn: expireIn }
             );
             // console.log("REGITER TOKEN", jwtToken);

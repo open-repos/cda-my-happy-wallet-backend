@@ -50,7 +50,7 @@ export class Login {
 
             //Création de notre JWT token
             const expireIn="60s"
-            const jwtToken = this.tokenService.sign({ id: user.id }, ACCESS_TOKEN_SECRET as string, {expiresIn:expireIn})
+            const jwtToken = this.tokenService.sign({ id: user.id }, ACCESS_TOKEN_SECRET, {expiresIn:expireIn})
 
             //Création de notre JWT token
             const refreshToken = await this.refreshSessionService.issue(user.id)
