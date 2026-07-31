@@ -11,36 +11,32 @@ export const tokenJwtTAuth = (
   _: Response,
   next: NextFunction
 ) => {
-  // if (NODE_ENV==="development"){
-  //   console.log("MODE development : SKip middleware")
-  //   return next()
-  // }
   const authHeader = req.headers.authorization;
-  if (authHeader!=null) {
-    const token = authHeader.split(' ')[1];
-    tokenService.verify(token, ACCESS_TOKEN_SECRET as string,function(err:any, _:any) {
-        if (err) {
-          // req.shoulRunMiddleware2=false;
-          return next(new ErrorException(ErrorCode.Unauthorized,"The access token is not valid or is expired."))
-          // return refreshTokenAuth(req,res,next)
-        } 
-        // req.shoulRunMiddleware2=false;
-       return;
-      });
+  if (authHeader == null) {
+    return next(new ErrorException(
+      ErrorCode.AccessForbidden,
+      "Access Forbidden . Error about headers"
+    ));
+  }
 
-      return next()
-    } else {
-      return next(new ErrorException(ErrorCode.AccessForbidden,"Access Forbidden . Error about headers"))
-    }
+  const [scheme, token, extra] = authHeader.trim().split(/\s+/);
+  if (scheme !== "Bearer" || !token || extra) {
+    return next(new ErrorException(
+      ErrorCode.Unauthorized,
+      "The access token is not valid or is expired."
+    ));
+  }
 
-      // req.shoulRunMiddleware2=false;
-      // return;
-    // } else {
-    //     next(new ErrorException(ErrorCode.AccessForbidden,"Access Forbidden . Header is Missing"))
-    // } 
-   
-
-    }
+  try {
+    tokenService.verify(token, ACCESS_TOKEN_SECRET as string);
+    return next();
+  } catch {
+    return next(new ErrorException(
+      ErrorCode.Unauthorized,
+      "The access token is not valid or is expired."
+    ));
+  }
+};
 
 
 

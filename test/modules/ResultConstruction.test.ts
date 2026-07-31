@@ -236,7 +236,7 @@ async function runOperationFixeResultTests() {
   });
 
   const updateResult = await new UpdateOperationFixe(repository).execute(
-    operationFixeFixtures.charge.updatedInput,
+    operationFixeFixtures.charge.input,
     operationFixeFixtures.userId,
     operationFixeFixtures.charge.routeId,
     operationFixeFixtures.charge.type
@@ -245,6 +245,10 @@ async function runOperationFixeResultTests() {
     success: true,
     message: "CHARGE Successfully Updated",
   });
+  assert.strictEqual(
+    repository.lastExistsId,
+    operationFixeFixtures.charge.id
+  );
 
   const deleteResult = await new DeleteOperationFixe(repository).execute(
     operationFixeFixtures.charge.updatedInput,
