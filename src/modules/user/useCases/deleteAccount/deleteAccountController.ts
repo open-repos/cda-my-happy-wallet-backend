@@ -9,6 +9,7 @@ import { RespUpdateDelete } from '../../../../utils/models';
 import {DeleteAccount } from './deleteAccount'
 import { Request, Response } from 'express'
 import { getAuthenticatedUserId } from '../../../auth/authenticatedRequest';
+import { clearAuthCookie } from '../../../auth/authCookieOptions';
 
 
 //Controller
@@ -24,8 +25,8 @@ export class DeleteAccountController {
 
 
             const result = await this.useCase.execute(req.body,getAuthenticatedUserId(req));
-            res.clearCookie("refresh_token");
-            res.clearCookie("id_user");
+            clearAuthCookie(res, "refresh_token");
+            clearAuthCookie(res, "id_user");
             // res.clearCookie("role_user");
             return res.status(200).json(result);
 

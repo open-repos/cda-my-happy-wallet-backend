@@ -98,24 +98,18 @@ async function runApiCharacterizationTests() {
     userId?: string;
   }> = [];
 
-  loginController.execute = async (req: Request, res: Response) => {
-    assert.deepStrictEqual(req.body, {
+  const loginControllerWithFakeUseCase = loginController as unknown as {
+    useCase: {
+      execute: (body: unknown) => Promise<unknown>;
+    };
+  };
+  loginControllerWithFakeUseCase.useCase.execute = async (body) => {
+    assert.deepStrictEqual(body, {
       email: "user@example.com",
       password: "Password!1",
     });
 
-    res.cookie("id_user", authenticatedUser.id, {
-      httpOnly: true,
-      secure: true,
-      maxAge: 900000,
-    });
-    res.cookie("refresh_token", "fake.refresh.token", {
-      httpOnly: true,
-      secure: true,
-      maxAge: 900000,
-    });
-
-    return res.status(200).json({
+    return {
       success: true,
       payload: {
         user: {
@@ -126,7 +120,9 @@ async function runApiCharacterizationTests() {
         accessToken: "fake.access.token",
         expires: "60s",
       },
-    });
+      refreshToken: "fake.refresh.token",
+      userId: authenticatedUser.id,
+    };
   };
 
   createOperationFixeController.execute = async (
@@ -209,6 +205,16 @@ async function runApiCharacterizationTests() {
       cookie.startsWith("refresh_token=")
     )
   );
+  assert.ok(
+    getSetCookies(loginResponse)
+      .filter((cookie) => !cookie.includes("Expires=Thu, 01 Jan 1970"))
+      .every(
+        (cookie) =>
+          cookie.includes("HttpOnly") &&
+          cookie.includes("Path=/") &&
+          cookie.includes("SameSite=Strict")
+      )
+  );
 
   const invalidLoginResponse = await supertest(app)
     .post("/users/authenticate")
@@ -241,6 +247,14 @@ async function runApiCharacterizationTests() {
   assert.strictEqual(refreshResponse.body.payload.user.email, authenticatedUser.email);
   assert.ok(refreshResponse.body.payload.accessToken);
   assert.deepStrictEqual(requestedUserIds, [authenticatedUser.id]);
+  assert.ok(
+    getSetCookies(refreshResponse).every(
+      (cookie) =>
+        cookie.includes("HttpOnly") &&
+        cookie.includes("Path=/") &&
+        cookie.includes("SameSite=Strict")
+    )
+  );
 
   const refusedRefreshResponse = await supertest(app)
     .post("/token")

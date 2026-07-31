@@ -4,6 +4,7 @@ import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET} from "../config/config";
 import { Request, Response, NextFunction } from "express";
 import { JsonWebTokenService } from "../modules/auth/token/JsonWebTokenService";
 import { getAuthTokenPayload } from "../modules/auth/token/AuthTokenPayload";
+import { clearAuthCookie } from "../modules/auth/authCookieOptions";
 
 const tokenService = new JsonWebTokenService();
 
@@ -70,7 +71,7 @@ export const refreshTokenAuth =  (
         req.user = user;
         return
       } catch (err) {
-        res.clearCookie("refresh_token");
+        clearAuthCookie(res, "refresh_token");
         next(new ErrorException(ErrorCode.Unauthenticated,"Invalid credentials refreshtoken . Unauthorized access."))
       }
     }

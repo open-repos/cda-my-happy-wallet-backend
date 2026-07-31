@@ -3,7 +3,6 @@ import { ErrorException, ErrorCode } from "./../../utils/errors";
 import { prisma } from "../../database/index";
 import {
   ACCESS_TOKEN_SECRET,
-  NODE_ENV,
   REFRESH_TOKEN_SECRET,
 }
  from "../../config/config";
@@ -11,6 +10,7 @@ import { Request, Response, NextFunction } from "express";
 import { UserRepo } from "../user/userRepo";
 import { JsonWebTokenService } from "./token/JsonWebTokenService";
 import { getAuthTokenPayload } from "./token/AuthTokenPayload";
+import { authCookieOptions, clearAuthCookie } from "./authCookieOptions";
 
 const tokenService = new JsonWebTokenService();
 
@@ -125,8 +125,8 @@ export const renewAccessToken = async (
   }
 
   if (tokenUser == null) {
-    res.clearCookie("refresh_token");
-    res.clearCookie("id_user");
+    clearAuthCookie(res, "refresh_token");
+    clearAuthCookie(res, "id_user");
     return next(
       new ErrorException(
         ErrorCode.Unauthorized,
@@ -171,16 +171,8 @@ export const renewAccessToken = async (
     { expiresIn: "20min" }
   );
 
-  res.cookie("id_user", user.id, {
-    httpOnly: true,
-    secure: NODE_ENV === "production",
-    maxAge: 900000, //15min
-  });
-  res.cookie("refresh_token", renewedRefreshToken, {
-    httpOnly: true,
-    secure: NODE_ENV === "production",
-    maxAge: 900000, //15min
-  });
+  res.cookie("id_user", user.id, authCookieOptions(900000));
+  res.cookie("refresh_token", renewedRefreshToken, authCookieOptions(900000));
   return res.status(200).json({
     success: true,
     payload: {user:data,
