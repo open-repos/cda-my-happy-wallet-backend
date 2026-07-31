@@ -1,4 +1,3 @@
-import { errorLogging } from './middlewares/errorLogging.middleware';
 import { errorHandler } from './middlewares/errorHandler.middleware';
 
 import express, { Request, Response } from 'express'
@@ -92,11 +91,6 @@ export const createServer = async (
     server.use(notFoundRouter)
     
     server.use(errorHandler)
-
-    if (NODE_ENV === 'development') {
-        server.use(errorLogging);
-      }
-
 
     return server
 }

@@ -59,11 +59,18 @@ async function runPrismaErrorHandlingTest() {
     fields: ["email"],
   });
 
+  const originalConsoleError = console.error;
+  const errorLogs: string[] = [];
+  console.error = (...values: unknown[]) => {
+    errorLogs.push(JSON.stringify(values));
+  };
   const unknownResponse = await supertest(app).get("/unknown-error");
+  console.error = originalConsoleError;
 
   assert.strictEqual(unknownResponse.status, 500);
   assert.strictEqual(unknownResponse.body.error.type, ErrorCode.UnknownError);
   assert.strictEqual(unknownResponse.body.error.message, "Unknown Error");
+  assert.ok(!errorLogs.join(" ").includes("Internal database detail"));
   assert.ok(!JSON.stringify(unknownResponse.body).includes("database detail"));
 }
 

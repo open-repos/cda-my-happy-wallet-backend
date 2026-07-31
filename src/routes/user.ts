@@ -80,7 +80,18 @@ const userRouter: Router = Router();
 // const asyncHandler = (fn: any) => (req: Request, res: Response, next: NextFunction) => Promise.resolve(fn(req, res, next)).catch(next);
 // Get list of users
 userRouter.get("/",tokenJwtTAuth,isAdmin, async (_: Request, res: Response) => {
-  const users = await prisma.utilisateur.findMany();
+  const users = await prisma.utilisateur.findMany({
+    select: {
+      id: true,
+      firstname: true,
+      lastname: true,
+      email: true,
+      role: true,
+      verified: true,
+      created_at: true,
+      updated_at: true,
+    },
+  });
   const result = await new Result(ResultCode.Read,"List of all users","",users).response_get()
   res.status(200).json(result);
 });

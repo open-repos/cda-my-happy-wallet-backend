@@ -47,5 +47,6 @@ All notable changes to this project are documented in this file.
 - Bounded JSON and form request bodies and normalized malformed or oversized payload errors.
 - Enforced a server-side CORS allowlist with explicit methods and preflight caching.
 - Disabled Swagger routes by default in production with an explicit opt-in.
+- Removed sensitive user fields from admin responses and sanitized non-development error logs.
 - Hardened the production container with a non-root user, read-only filesystem and dropped Linux capabilities.
 - Restricted production database access to the dedicated backend Docker network.
