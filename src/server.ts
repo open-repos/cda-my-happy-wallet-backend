@@ -29,6 +29,10 @@ export const createServer = async (
 ) => {
     //Initialization de notre server Express
     const server: express.Application = express();
+
+    if (NODE_ENV === 'production') {
+      server.set('trust proxy', 1);
+    }
     
     server.use(express.urlencoded({ extended: true }))
     server.use(express.json())

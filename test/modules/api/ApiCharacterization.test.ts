@@ -415,6 +415,23 @@ async function runApiCharacterizationTests() {
 
   assert.strictEqual(deleteAccountResponse.status, 200);
   assert.deepStrictEqual(deleteAccountUserIds, [authenticatedUser.id.toString()]);
+
+  for (let attempt = 0; attempt < 9; attempt += 1) {
+    const invalidAttempt = await supertest(app)
+      .post("/users/authenticate")
+      .send({ password: "Password!1" });
+    assert.strictEqual(invalidAttempt.status, 400);
+  }
+
+  const limitedLoginResponse = await supertest(app)
+    .post("/users/authenticate")
+    .send({ password: "Password!1" });
+
+  assert.strictEqual(limitedLoginResponse.status, 429);
+  assert.strictEqual(
+    limitedLoginResponse.body.error.type,
+    "TooManyRequests"
+  );
 }
 
 runApiCharacterizationTests()

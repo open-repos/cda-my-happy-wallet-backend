@@ -21,6 +21,13 @@ import { tokennewPasswordUserController } from './../modules/user/useCases/token
 import { swDeleteAccount } from '../modules/user/useCases/deleteAccount/deleteAccountController';
 import { deleteAccountController } from '../modules/user/useCases/deleteAccount';
 import { logout, swLogout } from '../modules/auth/logout';
+import {
+  loginRateLimiter,
+  passwordChangeRateLimiter,
+  passwordResetRateLimiter,
+  registrationRateLimiter,
+  tokenValidationRateLimiter,
+} from '../middlewares/authRateLimit.middleware';
 // import {SchemasJoi} from "../utils/validators/index"
 // const ApiUserEndpoints: string="/users"
 
@@ -80,6 +87,7 @@ userRouter.get("/",tokenJwtTAuth,isAdmin, async (_: Request, res: Response) => {
 //Register User
 userRouter.post(
   "/register",
+  registrationRateLimiter,
   Validator("register"),
   (req: Request, res: Response, next: NextFunction) =>
     Promise.resolve(createUserController.execute(req, res, next)).catch(next)
@@ -88,6 +96,7 @@ userRouter.post(
 //Authenticate
 userRouter.get(
   "/verify/:id/:token",
+  tokenValidationRateLimiter,
   (req: Request, res: Response, next: NextFunction) =>
     Promise.resolve(
       confirmRegistrationUserController.execute(req, res, next)
@@ -95,6 +104,7 @@ userRouter.get(
 );
 userRouter.post(
   "/authenticate",
+  loginRateLimiter,
   Validator("login"),
   (req: Request, res: Response, next: NextFunction) =>
     Promise.resolve(loginController.execute(req, res, next)).catch(next)
@@ -106,6 +116,7 @@ userRouter.post(
 );
 userRouter.post(
   "/reset-password",
+  passwordResetRateLimiter,
   Validator("emailUser"),
   (req: Request, res: Response, next: NextFunction) =>
     Promise.resolve(
@@ -114,11 +125,13 @@ userRouter.post(
 );
 userRouter.get(
   "/reset-password/:token",
+  tokenValidationRateLimiter,
   (req: Request, res: Response, next: NextFunction) =>
     Promise.resolve(tokennewPasswordUserController.execute(req, res, next)).catch(next)
 );
 userRouter.post(
   "/new-password",
+  passwordChangeRateLimiter,
   Validator("newPassword"),
   (req: Request, res: Response, next: NextFunction) =>
     Promise.resolve(
