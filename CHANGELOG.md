@@ -11,6 +11,7 @@ All notable changes to this project are documented in this file.
 - Liveness and readiness endpoints, including database availability checks.
 - Characterization tests for authentication, token refresh, fixed operations and API errors.
 - Unit and integration tests for domain services, adapters, repositories and error handling.
+- Persistent refresh-session storage with atomic rotation and revocation primitives.
 
 ### Changed
 
