@@ -2,9 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import { ErrorException,ErrorCode } from '../utils/errors';
 import { normalizePrismaError } from '../utils/errors/prismaError.error';
 import { createErrorResponse } from '../utils/errors/errorResponse.error';
+import { normalizeRequestParsingError } from '../utils/errors/requestParsingError.error';
 
 export const errorHandler = (err: Error, req: Request, res: Response, _: NextFunction) => {
-  const normalizedError = normalizePrismaError(err);
+  const normalizedError = normalizePrismaError(
+    normalizeRequestParsingError(err)
+  );
 
   if (!(normalizedError instanceof ErrorException)) {
     console.error("Unhandled application error", normalizedError);

@@ -44,5 +44,6 @@ All notable changes to this project are documented in this file.
 - Validated distinct JWT secrets of at least 32 characters when configuration loads.
 - Rate-limited public authentication, registration, password reset and token refresh routes.
 - Added centralized HTTP security headers with a scoped Swagger content security policy.
+- Bounded JSON and form request bodies and normalized malformed or oversized payload errors.
 - Hardened the production container with a non-root user, read-only filesystem and dropped Linux capabilities.
 - Restricted production database access to the dedicated backend Docker network.

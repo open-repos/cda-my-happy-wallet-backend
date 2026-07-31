@@ -24,6 +24,7 @@
     "test:token-service": "ts-node test/modules/auth/TokenService.test.ts",
     "test:security-config": "ts-node test/modules/auth/SecurityConfig.test.ts",
     "test:auth-rate-limit": "ts-node test/modules/auth/AuthRateLimit.test.ts",
+    "test:http-limits": "ts-node test/modules/security/HttpRequestLimits.test.ts",
     "test:password-reset": "ts-node test/modules/auth/PasswordResetSecurity.test.ts",
     "test:refresh-sessions": "ts-node test/modules/auth/RefreshSessionRepository.test.ts",
     "test:refresh-session-service": "ts-node test/modules/auth/RefreshSessionService.test.ts",

@@ -39,6 +39,10 @@ export const errorCatalog: Record<string, ErrorDefinition> = {
     status: 429,
     message: "Too many requests. Please try again later.",
   },
+  [ErrorCode.PayloadTooLarge]: {
+    status: 413,
+    message: "Request payload is too large.",
+  },
   [ErrorCode.SendEmaillError]: { status: 500, message: "Email was not sent" },
   [ErrorCode.NotFound]: {
     status: 404,

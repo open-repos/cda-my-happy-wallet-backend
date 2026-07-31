@@ -14,6 +14,10 @@ import swaggerUI from 'swagger-ui-express'
 import swDocument from './utils/swagger.def'
 import { prisma } from './database'
 import { securityHeaders } from './middlewares/securityHeaders.middleware';
+import {
+  jsonBodyParser,
+  urlEncodedBodyParser,
+} from './middlewares/requestBody.middleware';
 
 type ServerDependencies = {
   checkDatabase: () => Promise<void>;
@@ -37,8 +41,8 @@ export const createServer = async (
 
     server.use(securityHeaders);
     
-    server.use(express.urlencoded({ extended: true }))
-    server.use(express.json())
+    server.use(urlEncodedBodyParser)
+    server.use(jsonBodyParser)
     server.get('/health/live', (_: Request, res: Response) => {
       res.set('Cache-Control', 'no-store').status(200).json({ status: 'ok' });
     });
