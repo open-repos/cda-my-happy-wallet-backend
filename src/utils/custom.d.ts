@@ -3,7 +3,6 @@ declare namespace Express {
       user?: {
         id: number
       }
-      shoulRunMiddleware2?:boolean
     }
     // export interface ErrorRequestHandler{
     //   message?: any,

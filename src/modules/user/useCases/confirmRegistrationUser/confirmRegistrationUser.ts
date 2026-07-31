@@ -36,7 +36,6 @@ export class ConfirmRegistrationUser {
                     ErrorCode.Unauthorized,
                     "The register token is not valid."
                   );
-                  // return refreshTokenAuth(req,res,next)
                 }
               }
             );
