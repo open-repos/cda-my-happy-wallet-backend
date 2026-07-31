@@ -5,6 +5,7 @@ import { ResponseOperationFixeGet } from '../../../../utils/models/responseGetOp
 import {ReadAllOperationFixe } from './readAllOperationFixe'
 import { Request, Response } from 'express'
 import { TypeOperationFixeEnum } from '@prisma/client';
+import { getAuthenticatedUserId } from '../../../auth/authenticatedRequest';
 
 //Controller
 export class ReadAllOperationFixeController {
@@ -18,7 +19,7 @@ export class ReadAllOperationFixeController {
     public async execute(req: Request, res: Response, typeOperation?:TypeOperationFixeEnum) {
 
 
-            const result = await this.useCase.execute(req.cookies.id_user,typeOperation);
+            const result = await this.useCase.execute(getAuthenticatedUserId(req),typeOperation);
 
             return res.status(200).json(result);
 

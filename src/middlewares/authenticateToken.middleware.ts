@@ -3,6 +3,7 @@ import { ErrorException,ErrorCode } from './../utils/errors/';
 import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET} from "../config/config";
 import { Request, Response, NextFunction } from "express";
 import { JsonWebTokenService } from "../modules/auth/token/JsonWebTokenService";
+import { getAuthTokenPayload } from "../modules/auth/token/AuthTokenPayload";
 
 const tokenService = new JsonWebTokenService();
 
@@ -28,7 +29,13 @@ export const tokenJwtTAuth = (
   }
 
   try {
-    tokenService.verify(token, ACCESS_TOKEN_SECRET as string);
+    const decodedToken = tokenService.verify(token, ACCESS_TOKEN_SECRET as string);
+    const user = getAuthTokenPayload(decodedToken);
+    if (user == null) {
+      throw new Error("Invalid access token payload");
+    }
+
+    req.user = user;
     return next();
   } catch {
     return next(new ErrorException(
@@ -54,7 +61,12 @@ export const refreshTokenAuth =  (
       return next(new ErrorException(ErrorCode.AccessForbidden,"No refresh-token provided."))
     } else {
       try {
-        const user =  tokenService.verify(token, REFRESH_TOKEN_SECRET  as string);
+        const decodedToken = tokenService.verify(token, REFRESH_TOKEN_SECRET as string);
+        const user = getAuthTokenPayload(decodedToken);
+        if (user == null) {
+          throw new Error("Invalid refresh token payload");
+        }
+
         req.user = user;
         return
       } catch (err) {

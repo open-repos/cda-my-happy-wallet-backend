@@ -15,6 +15,7 @@ type LoginModule = typeof import("../../../src/modules/user/useCases/login");
 type CreateOperationFixeModule = typeof import("../../../src/modules/operationsFixes/useCases/createOperationFixe");
 type ReadAllOperationFixeModule = typeof import("../../../src/modules/operationsFixes/useCases/readAllOperationFixe");
 type UpdateOperationFixeModule = typeof import("../../../src/modules/operationsFixes/useCases/updateOperationFixe");
+type DeleteAccountModule = typeof import("../../../src/modules/user/useCases/deleteAccount");
 type UserRepoModule = typeof import("../../../src/modules/user/userRepo");
 type RoutesUserModule = typeof import("../../../src/routes/user");
 type RoutesOperationsFixesModule = typeof import("../../../src/routes/operationsFixes");
@@ -34,6 +35,9 @@ const {
 const {
   updateOperationFixeController,
 } = require("../../../src/modules/operationsFixes/useCases/updateOperationFixe") as UpdateOperationFixeModule;
+const {
+  deleteAccountController,
+} = require("../../../src/modules/user/useCases/deleteAccount") as DeleteAccountModule;
 const { UserRepo } = require("../../../src/modules/user/userRepo") as UserRepoModule;
 const { userRouter } = require("../../../src/routes/user") as RoutesUserModule;
 const { operationFixeRouter } = require("../../../src/routes/operationsFixes") as RoutesOperationsFixesModule;
@@ -80,6 +84,9 @@ function getSetCookies(response: supertest.Response): string[] {
 
 async function runApiCharacterizationTests() {
   const app = createApp();
+  const forgedCookieUserId = 999;
+  const requestedUserIds: number[] = [];
+  const deleteAccountUserIds: string[] = [];
   const operationCalls: Array<{
     route: string;
     typeOperation?: string;
@@ -130,7 +137,7 @@ async function runApiCharacterizationTests() {
     operationCalls.push({
       route: req.path,
       typeOperation,
-      userId: req.cookies.id_user,
+      userId: req.user?.id.toString(),
     });
 
     return res.status(201).json({
@@ -147,7 +154,7 @@ async function runApiCharacterizationTests() {
     operationCalls.push({
       route: req.path,
       typeOperation,
-      userId: req.cookies.id_user,
+      userId: req.user?.id.toString(),
     });
 
     return res.status(200).json({
@@ -165,7 +172,7 @@ async function runApiCharacterizationTests() {
     updateCalls.push({
       route: req.path,
       typeOperation,
-      userId: req.cookies.id_user,
+      userId: req.user?.id.toString(),
     });
 
     return res.status(200).json({
@@ -174,8 +181,21 @@ async function runApiCharacterizationTests() {
     });
   };
 
+  const deleteAccountControllerWithFakeUseCase = deleteAccountController as unknown as {
+    useCase: {
+      execute: (body: unknown, userId: string) => Promise<unknown>;
+    };
+  };
+  deleteAccountControllerWithFakeUseCase.useCase.execute = async (_, userId) => {
+    deleteAccountUserIds.push(userId);
+    return { success: true };
+  };
+
   UserRepo.prototype.getUserByEmail = async () => authenticatedUser;
-  UserRepo.prototype.getUserById = async () => authenticatedUser;
+  UserRepo.prototype.getUserById = async (userId: number) => {
+    requestedUserIds.push(userId);
+    return authenticatedUser;
+  };
 
   const loginResponse = await supertest(app)
     .post("/users/authenticate")
@@ -212,7 +232,7 @@ async function runApiCharacterizationTests() {
     .post("/token")
     .set(
       "Cookie",
-      [`id_user=${authenticatedUser.id}`, `refresh_token=${refreshToken}`]
+      [`id_user=${forgedCookieUserId}`, `refresh_token=${refreshToken}`]
     )
     .send({ grant_type: "refresh_token", email: authenticatedUser.email });
 
@@ -220,6 +240,7 @@ async function runApiCharacterizationTests() {
   assert.strictEqual(refreshResponse.body.success, true);
   assert.strictEqual(refreshResponse.body.payload.user.email, authenticatedUser.email);
   assert.ok(refreshResponse.body.payload.accessToken);
+  assert.deepStrictEqual(requestedUserIds, [authenticatedUser.id]);
 
   const refusedRefreshResponse = await supertest(app)
     .post("/token")
@@ -233,7 +254,7 @@ async function runApiCharacterizationTests() {
   const createChargeResponse = await supertest(app)
     .post("/operations-fixes/charges")
     .set("Authorization", `Bearer ${accessToken}`)
-    .set("Cookie", `id_user=${authenticatedUser.id}`)
+    .set("Cookie", `id_user=${forgedCookieUserId}`)
     .send({ titre: "Loyer", montant: 600, devise: "EUR" });
 
   assert.strictEqual(createChargeResponse.status, 201);
@@ -242,7 +263,7 @@ async function runApiCharacterizationTests() {
   const createRevenuResponse = await supertest(app)
     .post("/operations-fixes/revenus")
     .set("Authorization", `Bearer ${accessToken}`)
-    .set("Cookie", `id_user=${authenticatedUser.id}`)
+    .set("Cookie", `id_user=${forgedCookieUserId}`)
     .send({ titre: "Salaire", montant: 2000, devise: "EUR" });
 
   assert.strictEqual(createRevenuResponse.status, 201);
@@ -251,7 +272,7 @@ async function runApiCharacterizationTests() {
   const readChargesResponse = await supertest(app)
     .get("/operations-fixes/charges")
     .set("Authorization", `Bearer ${accessToken}`)
-    .set("Cookie", `id_user=${authenticatedUser.id}`);
+    .set("Cookie", `id_user=${forgedCookieUserId}`);
 
   assert.strictEqual(readChargesResponse.status, 200);
   assert.deepStrictEqual(readChargesResponse.body.data, []);
@@ -282,6 +303,17 @@ async function runApiCharacterizationTests() {
     "Unauthorized"
   );
 
+  const missingUserIdToken = jwt.sign(
+    { email: authenticatedUser.email },
+    process.env.ACCESS_TOKEN as string
+  );
+  const invalidPayloadResponse = await supertest(app)
+    .get("/operations-fixes/charges")
+    .set("Authorization", `Bearer ${missingUserIdToken}`);
+
+  assert.strictEqual(invalidPayloadResponse.status, 401);
+  assert.strictEqual(invalidPayloadResponse.body.error.type, "Unauthorized");
+
   const unauthenticatedUpdateResponse = await supertest(app)
     .put("/operations-fixes/charges/7")
     .send({ titre: "Loyer", montant: 650, devise: "EUR" });
@@ -296,7 +328,7 @@ async function runApiCharacterizationTests() {
   const updateChargeResponse = await supertest(app)
     .put("/operations-fixes/charges/7")
     .set("Authorization", `Bearer ${accessToken}`)
-    .set("Cookie", `id_user=${authenticatedUser.id}`)
+    .set("Cookie", `id_user=${forgedCookieUserId}`)
     .send({ titre: "Loyer", montant: 650, devise: "EUR" });
 
   assert.strictEqual(updateChargeResponse.status, 200);
@@ -304,7 +336,7 @@ async function runApiCharacterizationTests() {
   const updateRevenuResponse = await supertest(app)
     .put("/operations-fixes/revenus/8")
     .set("Authorization", `Bearer ${accessToken}`)
-    .set("Cookie", `id_user=${authenticatedUser.id}`)
+    .set("Cookie", `id_user=${forgedCookieUserId}`)
     .send({ titre: "Salaire", montant: 2100, devise: "EUR" });
 
   assert.strictEqual(updateRevenuResponse.status, 200);
@@ -312,6 +344,15 @@ async function runApiCharacterizationTests() {
     { route: "/charges/7", typeOperation: "CHARGE", userId: "42" },
     { route: "/revenus/8", typeOperation: "REVENU", userId: "42" },
   ]);
+
+  const deleteAccountResponse = await supertest(app)
+    .delete("/users/delete")
+    .set("Authorization", `Bearer ${accessToken}`)
+    .set("Cookie", `id_user=${forgedCookieUserId}`)
+    .send({ email: authenticatedUser.email, userId: forgedCookieUserId });
+
+  assert.strictEqual(deleteAccountResponse.status, 200);
+  assert.deepStrictEqual(deleteAccountUserIds, [authenticatedUser.id.toString()]);
 }
 
 runApiCharacterizationTests()

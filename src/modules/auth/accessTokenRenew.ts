@@ -10,6 +10,7 @@ import {
 import { Request, Response, NextFunction } from "express";
 import { UserRepo } from "../user/userRepo";
 import { JsonWebTokenService } from "./token/JsonWebTokenService";
+import { getAuthTokenPayload } from "./token/AuthTokenPayload";
 
 const tokenService = new JsonWebTokenService();
 
@@ -107,13 +108,35 @@ export const renewAccessToken = async (
     );
   }
 
-  if (cookies.id_user == null) {
+  const refreshToken = cookies.refresh_token;
+  if (refreshToken == null) {
+    return next(new ErrorException(ErrorCode.Unauthorized, "Cookie is empty"));
+  }
+
+  let tokenUser;
+  try {
+    const decodedToken = tokenService.verify(
+      refreshToken,
+      REFRESH_TOKEN_SECRET as string
+    );
+    tokenUser = getAuthTokenPayload(decodedToken);
+  } catch {
+    tokenUser = null;
+  }
+
+  if (tokenUser == null) {
+    res.clearCookie("refresh_token");
+    res.clearCookie("id_user");
     return next(
-      new ErrorException(ErrorCode.Unauthorized, "Cookie is empty")
+      new ErrorException(
+        ErrorCode.Unauthorized,
+        "Invalid credentials refreshtoken .  RefreshToken no more valid."
+      )
     );
   }
+
   const userEmail = await userRepo.getUserByEmail(email);
-  const user = await userRepo.getUserById(parseInt(cookies.id_user));
+  const user = await userRepo.getUserById(tokenUser.id);
   if (userEmail == null) {
     return next(
       new ErrorException(ErrorCode.EmailNotFound, "Email user not found")
@@ -124,68 +147,44 @@ export const renewAccessToken = async (
   }
   if (
     userEmail.email !== user.email ||
-    userEmail.id !== parseInt(cookies.id_user)
+    userEmail.id !== tokenUser.id
   ) {
     return next(new ErrorException(ErrorCode.Unauthorized, "Invalid User"));
   }
 
-  tokenService.verify(
-    cookies.refresh_token,
-    REFRESH_TOKEN_SECRET as string,
-    (err: any, _: any) => {
-      if (err) {
-        res.clearCookie("refresh_token");
-        res.clearCookie("id_user");
-        return next(
-          new ErrorException(
-            ErrorCode.Unauthorized,
-            "Invalid credentials refreshtoken .  RefreshToken no more valid."
-          )
-        );
-        // return res.status(403).send({
-        //   error: true,
-        //   message: "Invalid Credentials - RefreshToken no more valid",
-        // });
-      }
-
-      const expireIn = "5min";
-      const accessToken = tokenService.sign(
-        { id: user.id },
-        ACCESS_TOKEN_SECRET as string,
-        {
-          expiresIn: expireIn,
-        }
-      );
-
-      let data;
-      const { id, password, ...userWithoutPasswordAndId } = user;
-      data = userWithoutPasswordAndId;
-
-      const refreshToken = tokenService.sign(
-        { id: user.id },
-        REFRESH_TOKEN_SECRET as string,
-        { expiresIn: "20min" }
-      );
-
-      res.cookie("id_user", user.id, {
-        httpOnly: true,
-        secure: NODE_ENV === "production",
-        maxAge: 900000, //15min
-      });
-      res.cookie("refresh_token", refreshToken, {
-        httpOnly: true,
-        secure: NODE_ENV === "production",
-        maxAge: 900000, //15min
-      });
-      return res.status(200).json({
-        success: true,
-        payload: {user:data,
-        accessToken: accessToken,
-        expires: expireIn}
-      });
+  const expireIn = "5min";
+  const accessToken = tokenService.sign(
+    { id: user.id },
+    ACCESS_TOKEN_SECRET as string,
+    {
+      expiresIn: expireIn,
     }
   );
-  return;
-  // }
-  //     return
+
+  let data;
+  const { id, password, ...userWithoutPasswordAndId } = user;
+  data = userWithoutPasswordAndId;
+
+  const renewedRefreshToken = tokenService.sign(
+    { id: user.id },
+    REFRESH_TOKEN_SECRET as string,
+    { expiresIn: "20min" }
+  );
+
+  res.cookie("id_user", user.id, {
+    httpOnly: true,
+    secure: NODE_ENV === "production",
+    maxAge: 900000, //15min
+  });
+  res.cookie("refresh_token", renewedRefreshToken, {
+    httpOnly: true,
+    secure: NODE_ENV === "production",
+    maxAge: 900000, //15min
+  });
+  return res.status(200).json({
+    success: true,
+    payload: {user:data,
+    accessToken: accessToken,
+    expires: expireIn}
+  });
 };
