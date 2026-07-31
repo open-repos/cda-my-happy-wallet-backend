@@ -178,8 +178,8 @@ class FakeUserRepository implements IUserRepository {
     return { id: userFixtures.id };
   }
 
-  public async existUserResetToken(_resetToken: string): Promise<boolean> {
-    this.calls.push("existUserResetToken");
+  public async hasValidResetToken(_resetToken: string): Promise<boolean> {
+    this.calls.push("hasValidResetToken");
     return true;
   }
 

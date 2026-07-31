@@ -37,5 +37,6 @@ All notable changes to this project are documented in this file.
 - Removed logs containing passwords, tokens, cookies and financial data.
 - Made validated JWT payloads the authoritative identity for protected actions.
 - Applied consistent `HttpOnly`, `SameSite=Strict` and production-only `Secure` attributes to authentication cookies.
+- Validated reset tokens before database access and consumed them atomically with their expiration constraint.
 - Hardened the production container with a non-root user, read-only filesystem and dropped Linux capabilities.
 - Restricted production database access to the dedicated backend Docker network.

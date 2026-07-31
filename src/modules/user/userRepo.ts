@@ -69,31 +69,28 @@ export class UserRepo implements IUserRepository {
 
   public async newPassword(newpassword: string, resetToken: string) {
     const UserEntity = this.entities.utilisateur;
-    // const result = await UserEntity.findMany({
-    //   where: { resetToken: resetToken },
-    //   select:{resetTokenExpiration:true}
-    // });
-
-    const result = await UserEntity.findMany({
+    const users = await UserEntity.findMany({
       where: {
         resetToken: resetToken,
         resetTokenExpiration: {
           gte: new Date() /* Includes time offset for UTC */,
         },
       },
+      select: { id: true },
+      take: 2,
     })
-    if (result.length === 0 || result[0]==undefined ){
-      throw new ErrorException(ErrorCode.Unauthorized)
-    }
 
-    const user = result[0]
-    if (user.length > 1){
-      throw new ErrorException(ErrorCode.Unauthorized,"Reset Token is expired")
+    if (users.length !== 1) {
+      throw new ErrorException(ErrorCode.Unauthorized)
     }
 
     const resultUpdate = await UserEntity.updateMany({
       where: {
-        id: user.id,
+        id: users[0].id,
+        resetToken: resetToken,
+        resetTokenExpiration: {
+          gte: new Date(),
+        },
       },
       data: {
         password: newpassword,
@@ -101,6 +98,10 @@ export class UserRepo implements IUserRepository {
         resetTokenExpiration: null,
       },
     });
+
+    if (resultUpdate.count !== 1) {
+      throw new ErrorException(ErrorCode.Unauthorized)
+    }
 
     return resultUpdate
     // return { success: true, message: `New password created` };
@@ -152,13 +153,18 @@ export class UserRepo implements IUserRepository {
     return result;
   }
 
-  public async existUserResetToken(resetToken: string) {
+  public async hasValidResetToken(resetToken: string) {
     const UserEntity = this.entities.utilisateur;
 
-    const result = await UserEntity.findMany({
-      where: { resetToken: resetToken },
+    const count = await UserEntity.count({
+      where: {
+        resetToken: resetToken,
+        resetTokenExpiration: {
+          gte: new Date(),
+        },
+      },
     });
-    this.resetTokenExist = result.length > 0;
+    this.resetTokenExist = count === 1;
     return this.resetTokenExist;
   }
 

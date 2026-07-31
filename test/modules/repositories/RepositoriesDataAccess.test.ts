@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { OperationFixeRepo } from "../../../src/modules/operationsFixes/operationFixeRepo";
 import { UserRepo } from "../../../src/modules/user/userRepo";
 import { FakeMailer } from "../../fakes/FakeMailer";
+import { ErrorCode, ErrorException } from "../../../src/utils/errors";
 
 const databaseUrl = process.env.DATABASE_URL || "";
 
@@ -68,6 +69,42 @@ async function runRepositoryDataAccessTests() {
   assert.strictEqual(userOperations.length, 1);
   assert.strictEqual(userOperations[0].titre, "Loyer");
   assert.strictEqual(userOperations[0].typeOperation, "CHARGE");
+
+  const resetToken = "c".repeat(128);
+  await prisma.utilisateur.update({
+    where: { id: user.id },
+    data: {
+      resetToken,
+      resetTokenExpiration: new Date(Date.now() + 60_000),
+    },
+  });
+
+  assert.strictEqual(await userRepo.hasValidResetToken(resetToken), true);
+  const passwordUpdate = await userRepo.newPassword(
+    "new-hashed-password",
+    resetToken
+  );
+  assert.strictEqual(passwordUpdate.count, 1);
+  assert.strictEqual(await userRepo.hasValidResetToken(resetToken), false);
+  await assert.rejects(
+    () => userRepo.newPassword("second-password", resetToken),
+    (error: ErrorException) => error.name === ErrorCode.Unauthorized
+  );
+
+  const expiredResetToken = "d".repeat(128);
+  await prisma.utilisateur.update({
+    where: { id: user.id },
+    data: {
+      resetToken: expiredResetToken,
+      resetTokenExpiration: new Date(Date.now() - 60_000),
+    },
+  });
+
+  assert.strictEqual(await userRepo.hasValidResetToken(expiredResetToken), false);
+  await assert.rejects(
+    () => userRepo.newPassword("expired-password", expiredResetToken),
+    (error: ErrorException) => error.name === ErrorCode.Unauthorized
+  );
 }
 
 runRepositoryDataAccessTests()

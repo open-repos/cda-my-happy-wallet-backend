@@ -15,7 +15,7 @@ class RegistrationRepository implements IUserRepository {
   public async exists(): Promise<boolean> { return false; }
   public async getUserByEmail(): Promise<any> { throw new Error("Not used"); }
   public async getUserById(): Promise<any> { throw new Error("Not used"); }
-  public async existUserResetToken(): Promise<boolean> { return false; }
+  public async hasValidResetToken(): Promise<boolean> { return false; }
   public async isUserAccountVerified(): Promise<boolean> { return false; }
 
   public async sendMail(email: string, subject: string, text: string): Promise<boolean> {

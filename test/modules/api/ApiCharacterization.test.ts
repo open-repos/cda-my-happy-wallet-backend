@@ -263,6 +263,24 @@ async function runApiCharacterizationTests() {
   assert.strictEqual(refusedRefreshResponse.status, 401);
   assert.strictEqual(refusedRefreshResponse.body.error.type, "Unauthorized");
 
+  const malformedResetTokenResponse = await supertest(app).get(
+    "/users/reset-password/not-a-reset-token"
+  );
+  assert.strictEqual(malformedResetTokenResponse.status, 401);
+  assert.strictEqual(
+    malformedResetTokenResponse.body.error.type,
+    "Unauthorized"
+  );
+
+  const missingResetCookieResponse = await supertest(app)
+    .post("/users/new-password")
+    .send({
+      password: "NewPassword!1",
+      confirmPassword: "NewPassword!1",
+    });
+  assert.strictEqual(missingResetCookieResponse.status, 401);
+  assert.strictEqual(missingResetCookieResponse.body.error.type, "Unauthorized");
+
   const accessToken = createAccessToken(authenticatedUser.id);
 
   const createChargeResponse = await supertest(app)
