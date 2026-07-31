@@ -3,16 +3,20 @@ import { ErrorException, ErrorCode } from "./../../utils/errors";
 import { prisma } from "../../database/index";
 import {
   ACCESS_TOKEN_SECRET,
-  REFRESH_TOKEN_SECRET,
 }
  from "../../config/config";
 import { Request, Response, NextFunction } from "express";
 import { UserRepo } from "../user/userRepo";
 import { JsonWebTokenService } from "./token/JsonWebTokenService";
-import { getAuthTokenPayload } from "./token/AuthTokenPayload";
 import { authCookieOptions, clearAuthCookie } from "./authCookieOptions";
+import { PrismaRefreshSessionRepository } from "./refreshSession/PrismaRefreshSessionRepository";
+import { RefreshSessionService } from "./refreshSession/RefreshSessionService";
 
 const tokenService = new JsonWebTokenService();
+const refreshSessionRepository = new PrismaRefreshSessionRepository(prisma);
+export const refreshSessionService = new RefreshSessionService(
+  refreshSessionRepository
+);
 
 export const swRenewAccessToken = {
   tags: ["Users"],
@@ -115,11 +119,7 @@ export const renewAccessToken = async (
 
   let tokenUser;
   try {
-    const decodedToken = tokenService.verify(
-      refreshToken,
-      REFRESH_TOKEN_SECRET as string
-    );
-    tokenUser = getAuthTokenPayload(decodedToken);
+    tokenUser = refreshSessionService.verify(refreshToken);
   } catch {
     tokenUser = null;
   }
@@ -165,11 +165,15 @@ export const renewAccessToken = async (
   const { id, password, ...userWithoutPasswordAndId } = user;
   data = userWithoutPasswordAndId;
 
-  const renewedRefreshToken = tokenService.sign(
-    { id: user.id },
-    REFRESH_TOKEN_SECRET as string,
-    { expiresIn: "20min" }
-  );
+  let renewedRefreshToken;
+  try {
+    const rotation = await refreshSessionService.rotate(refreshToken);
+    renewedRefreshToken = rotation.refreshToken;
+  } catch {
+    clearAuthCookie(res, "refresh_token");
+    clearAuthCookie(res, "id_user");
+    return next(new ErrorException(ErrorCode.Unauthorized));
+  }
 
   res.cookie("id_user", user.id, authCookieOptions(900000));
   res.cookie("refresh_token", renewedRefreshToken, authCookieOptions(900000));

@@ -21,6 +21,7 @@ type RoutesUserModule = typeof import("../../../src/routes/user");
 type RoutesOperationsFixesModule = typeof import("../../../src/routes/operationsFixes");
 type RouterModule = typeof import("../../../src/router");
 type ErrorHandlerModule = typeof import("../../../src/middlewares/errorHandler.middleware");
+type AccessTokenRenewModule = typeof import("../../../src/modules/auth/accessTokenRenew");
 
 const express = require("express") as typeof import("express");
 const cookieParser = require("cookie-parser") as typeof import("cookie-parser");
@@ -43,6 +44,9 @@ const { userRouter } = require("../../../src/routes/user") as RoutesUserModule;
 const { operationFixeRouter } = require("../../../src/routes/operationsFixes") as RoutesOperationsFixesModule;
 const { mainRouter } = require("../../../src/router") as RouterModule;
 const { errorHandler } = require("../../../src/middlewares/errorHandler.middleware") as ErrorHandlerModule;
+const {
+  refreshSessionService,
+} = require("../../../src/modules/auth/accessTokenRenew") as AccessTokenRenewModule;
 
 const authenticatedUser = {
   id: 42,
@@ -71,10 +75,6 @@ function createApp() {
 
 function createAccessToken(userId: number) {
   return jwt.sign({ id: userId }, process.env.ACCESS_TOKEN as string);
-}
-
-function createRefreshToken(userId: number) {
-  return jwt.sign({ id: userId }, process.env.REFRESH_TOKEN as string);
 }
 
 function getSetCookies(response: supertest.Response): string[] {
@@ -192,6 +192,15 @@ async function runApiCharacterizationTests() {
     requestedUserIds.push(userId);
     return authenticatedUser;
   };
+  refreshSessionService.verify = () => ({
+    id: authenticatedUser.id,
+    sessionId: "11111111-1111-4111-8111-111111111111",
+    jti: "22222222-2222-4222-8222-222222222222",
+  });
+  refreshSessionService.rotate = async () => ({
+    userId: authenticatedUser.id,
+    refreshToken: "rotated.refresh.token",
+  });
 
   const loginResponse = await supertest(app)
     .post("/users/authenticate")
@@ -233,7 +242,7 @@ async function runApiCharacterizationTests() {
     },
   ]);
 
-  const refreshToken = createRefreshToken(authenticatedUser.id);
+  const refreshToken = "persisted.refresh.token";
   const refreshResponse = await supertest(app)
     .post("/token")
     .set(
