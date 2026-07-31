@@ -10,6 +10,9 @@ dotenv.config();
 const securitySecrets = validateSecuritySecrets(process.env);
 export const PORT=process.env.PORT 
 export const NODE_ENV=process.env.NODE_ENV
+export const API_DOCS_ENABLED=process.env.API_DOCS_ENABLED == null
+  ? NODE_ENV !== "production"
+  : process.env.API_DOCS_ENABLED === "true"
 export const APP_BASE_URL=process.env.APP_BASE_URL || "/v1"
 export const ACCESS_TOKEN_SECRET=securitySecrets.accessTokenSecret
 export const REFRESH_TOKEN_SECRET=securitySecrets.refreshTokenSecret

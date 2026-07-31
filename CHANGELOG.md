@@ -46,5 +46,6 @@ All notable changes to this project are documented in this file.
 - Added centralized HTTP security headers with a scoped Swagger content security policy.
 - Bounded JSON and form request bodies and normalized malformed or oversized payload errors.
 - Enforced a server-side CORS allowlist with explicit methods and preflight caching.
+- Disabled Swagger routes by default in production with an explicit opt-in.
 - Hardened the production container with a non-root user, read-only filesystem and dropped Linux capabilities.
 - Restricted production database access to the dedicated backend Docker network.

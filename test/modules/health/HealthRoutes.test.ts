@@ -32,6 +32,16 @@ async function runHealthRoutesTests() {
     /script-src 'self' 'unsafe-inline'/
   );
 
+  const docsDisabledServer = await createServer({
+    checkDatabase: async () => undefined,
+    apiDocsEnabled: false,
+  });
+  assert.strictEqual(
+    (await supertest(docsDisabledServer).get("/api-docs/")).status,
+    404
+  );
+  assert.strictEqual((await supertest(docsDisabledServer).get("/")).status, 404);
+
   const readyResponse = await supertest(readyServer).get("/health/ready");
   assert.strictEqual(readyResponse.status, 200);
   assert.deepStrictEqual(readyResponse.body, { status: "ok" });
