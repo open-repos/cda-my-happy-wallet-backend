@@ -13,6 +13,7 @@ import morgan from 'morgan'
 import swaggerUI from 'swagger-ui-express'
 import swDocument from './utils/swagger.def'
 import { prisma } from './database'
+import { securityHeaders } from './middlewares/securityHeaders.middleware';
 
 type ServerDependencies = {
   checkDatabase: () => Promise<void>;
@@ -33,6 +34,8 @@ export const createServer = async (
     if (NODE_ENV === 'production') {
       server.set('trust proxy', 1);
     }
+
+    server.use(securityHeaders);
     
     server.use(express.urlencoded({ extended: true }))
     server.use(express.json())

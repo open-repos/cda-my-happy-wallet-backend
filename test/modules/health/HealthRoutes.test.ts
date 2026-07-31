@@ -13,6 +13,24 @@ async function runHealthRoutesTests() {
   assert.strictEqual(liveResponse.status, 200);
   assert.deepStrictEqual(liveResponse.body, { status: "ok" });
   assert.strictEqual(liveResponse.headers["cache-control"], "no-store");
+  assert.strictEqual(liveResponse.headers["x-powered-by"], undefined);
+  assert.strictEqual(
+    liveResponse.headers["x-content-type-options"],
+    "nosniff"
+  );
+  assert.strictEqual(liveResponse.headers["x-frame-options"], "SAMEORIGIN");
+  assert.match(
+    liveResponse.headers["strict-transport-security"],
+    /max-age=31536000/
+  );
+  assert.ok(liveResponse.headers["content-security-policy"]);
+
+  const swaggerResponse = await supertest(readyServer).get("/api-docs/");
+  assert.strictEqual(swaggerResponse.status, 200);
+  assert.match(
+    swaggerResponse.headers["content-security-policy"],
+    /script-src 'self' 'unsafe-inline'/
+  );
 
   const readyResponse = await supertest(readyServer).get("/health/ready");
   assert.strictEqual(readyResponse.status, 200);
