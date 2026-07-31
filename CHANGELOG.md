@@ -50,5 +50,6 @@ All notable changes to this project are documented in this file.
 - Removed sensitive user fields from admin responses and sanitized non-development error logs.
 - Unified registration, password reset and refresh failures to reduce account enumeration.
 - Restricted JWT signing and verification to HS256.
+- Added a production configuration preflight before database migrations.
 - Hardened the production container with a non-root user, read-only filesystem and dropped Linux capabilities.
 - Restricted production database access to the dedicated backend Docker network.
