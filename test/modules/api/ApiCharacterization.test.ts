@@ -201,6 +201,10 @@ async function runApiCharacterizationTests() {
     userId: authenticatedUser.id,
     refreshToken: "rotated.refresh.token",
   });
+  const revokedRefreshTokens: string[] = [];
+  refreshSessionService.revoke = async (token: string) => {
+    revokedRefreshTokens.push(token);
+  };
 
   const loginResponse = await supertest(app)
     .post("/users/authenticate")
@@ -289,6 +293,23 @@ async function runApiCharacterizationTests() {
     });
   assert.strictEqual(missingResetCookieResponse.status, 401);
   assert.strictEqual(missingResetCookieResponse.body.error.type, "Unauthorized");
+
+  const logoutResponse = await supertest(app)
+    .post("/users/logout")
+    .set("Cookie", "refresh_token=persisted.refresh.token");
+  assert.strictEqual(logoutResponse.status, 204);
+  assert.deepStrictEqual(revokedRefreshTokens, ["persisted.refresh.token"]);
+  assert.ok(
+    getSetCookies(logoutResponse).every(
+      (cookie) =>
+        cookie.includes("HttpOnly") &&
+        cookie.includes("Path=/") &&
+        cookie.includes("SameSite=Strict")
+    )
+  );
+
+  const idempotentLogoutResponse = await supertest(app).post("/users/logout");
+  assert.strictEqual(idempotentLogoutResponse.status, 204);
 
   const accessToken = createAccessToken(authenticatedUser.id);
 

@@ -20,6 +20,7 @@ import { swRegisterUser } from './../modules/user/useCases/createUser/createUser
 import { tokennewPasswordUserController } from './../modules/user/useCases/tokenNewPasswordUser';
 import { swDeleteAccount } from '../modules/user/useCases/deleteAccount/deleteAccountController';
 import { deleteAccountController } from '../modules/user/useCases/deleteAccount';
+import { logout, swLogout } from '../modules/auth/logout';
 // import {SchemasJoi} from "../utils/validators/index"
 // const ApiUserEndpoints: string="/users"
 
@@ -58,6 +59,11 @@ export const swUserRouter = {
     "delete": {
     ...swDeleteAccount
     }
+  },
+  "/users/logout": {
+    "post": {
+      ...swLogout
+    }
   }
 }
 
@@ -92,6 +98,11 @@ userRouter.post(
   Validator("login"),
   (req: Request, res: Response, next: NextFunction) =>
     Promise.resolve(loginController.execute(req, res, next)).catch(next)
+);
+userRouter.post(
+  "/logout",
+  (req: Request, res: Response, next: NextFunction) =>
+    Promise.resolve(logout(req, res, next)).catch(next)
 );
 userRouter.post(
   "/reset-password",

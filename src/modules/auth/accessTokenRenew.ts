@@ -9,14 +9,10 @@ import { Request, Response, NextFunction } from "express";
 import { UserRepo } from "../user/userRepo";
 import { JsonWebTokenService } from "./token/JsonWebTokenService";
 import { authCookieOptions, clearAuthCookie } from "./authCookieOptions";
-import { PrismaRefreshSessionRepository } from "./refreshSession/PrismaRefreshSessionRepository";
-import { RefreshSessionService } from "./refreshSession/RefreshSessionService";
+import { refreshSessionService } from "./refreshSession";
 
 const tokenService = new JsonWebTokenService();
-const refreshSessionRepository = new PrismaRefreshSessionRepository(prisma);
-export const refreshSessionService = new RefreshSessionService(
-  refreshSessionRepository
-);
+export { refreshSessionService };
 
 export const swRenewAccessToken = {
   tags: ["Users"],

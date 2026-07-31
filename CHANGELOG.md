@@ -40,5 +40,6 @@ All notable changes to this project are documented in this file.
 - Applied consistent `HttpOnly`, `SameSite=Strict` and production-only `Secure` attributes to authentication cookies.
 - Validated reset tokens before database access and consumed them atomically with their expiration constraint.
 - Rotated persisted refresh tokens atomically and revoked the session family when an old token is replayed.
+- Added an idempotent server-side logout endpoint that revokes the current refresh session.
 - Hardened the production container with a non-root user, read-only filesystem and dropped Linux capabilities.
 - Restricted production database access to the dedicated backend Docker network.
