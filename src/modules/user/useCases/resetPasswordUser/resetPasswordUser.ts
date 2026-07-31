@@ -16,8 +16,14 @@ export class ResetPasswordUser {
   public async execute(email: string) {
     const exist = await this.userRepo.exists(email);
 
+    const acceptedResult = () => new Result(
+      ResultCode.Read,
+      "",
+      "If the account exists, a password reset email will be sent."
+    ).response_post();
+
     if (!exist) {
-      throw new ErrorException(ErrorCode.EmailNotFound);
+      return acceptedResult();
     }
     const resetToken: string = crypto.randomBytes(64).toString("hex");
 
@@ -60,12 +66,7 @@ export class ResetPasswordUser {
     if (!isEmailSent) {
       throw new ErrorException(ErrorCode.SendEmaillError);
     }
-    const resp = await new Result(
-      ResultCode.Read,
-      "",
-      `Email to reset password was sent to ${emailToSend}`
-    ).response_post();
-    return resp;
+    return acceptedResult();
     // return {
     //   success: true,
     //   message: `Email to reset password was sent to ${emailToSend}`,

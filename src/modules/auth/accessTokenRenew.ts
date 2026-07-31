@@ -134,9 +134,7 @@ export const renewAccessToken = async (
   const userEmail = await userRepo.getUserByEmail(email);
   const user = await userRepo.getUserById(tokenUser.id);
   if (userEmail == null) {
-    return next(
-      new ErrorException(ErrorCode.EmailNotFound, "Email user not found")
-    );
+    return next(new ErrorException(ErrorCode.Unauthorized));
   }
   if (user == null) {
     return next(new ErrorException(ErrorCode.Unauthorized));

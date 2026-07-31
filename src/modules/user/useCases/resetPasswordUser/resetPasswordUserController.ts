@@ -31,9 +31,6 @@ export const swResetUser = {
       "400": {
         description: new ErrorException(ErrorCode.IncompleteRequestBody).message,
       },
-      "401": {
-        description: new ErrorException(ErrorCode.EmailNotFound).message,
-      },
       "403": {
         description: new ErrorException(ErrorCode.Unauthorized).message,
       },

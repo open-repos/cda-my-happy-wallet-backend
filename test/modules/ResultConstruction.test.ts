@@ -326,8 +326,7 @@ async function runUserResultTests() {
   );
   assert.deepStrictEqual(resetPasswordResult, {
     success: true,
-    message:
-      "Email to reset password was sent to user@example.com",
+    message: "If the account exists, a password reset email will be sent.",
     payload: null,
   });
   assert.strictEqual(repository.lastResetToken?.length, 128);

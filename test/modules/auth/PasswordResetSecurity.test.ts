@@ -3,6 +3,7 @@ import { NewPasswordUser } from "../../../src/modules/user/useCases/newPasswordU
 import { TokenNewPasswordUser } from "../../../src/modules/user/useCases/tokenNewPasswordUser/tokennewPasswordUser";
 import { IUserRepository } from "../../../src/modules/user/userRepository.interface";
 import { ErrorCode, ErrorException } from "../../../src/utils/errors";
+import { ResetPasswordUser } from "../../../src/modules/user/useCases/resetPasswordUser/resetPasswordUser";
 
 const validToken = "b".repeat(128);
 
@@ -32,6 +33,27 @@ const isUnauthorized = (error: unknown): boolean =>
   error instanceof ErrorException && error.name === ErrorCode.Unauthorized;
 
 async function runPasswordResetSecurityTests() {
+  const resetRequestRepository = {
+    accountExists: true,
+    resetCalls: 0,
+    mailCalls: 0,
+    async exists() { return this.accountExists; },
+    async resetPassword() { this.resetCalls += 1; },
+    async sendMail() { this.mailCalls += 1; return true; },
+  };
+  const existingResult = await new ResetPasswordUser(
+    resetRequestRepository as unknown as IUserRepository
+  ).execute("user@example.com");
+
+  resetRequestRepository.accountExists = false;
+  const missingResult = await new ResetPasswordUser(
+    resetRequestRepository as unknown as IUserRepository
+  ).execute("missing@example.com");
+
+  assert.strictEqual(missingResult.message, existingResult.message);
+  assert.strictEqual(resetRequestRepository.resetCalls, 1);
+  assert.strictEqual(resetRequestRepository.mailCalls, 1);
+
   const malformedRepository = new ResetTokenRepository();
   const malformedTokenUseCase = new TokenNewPasswordUser(
     asUserRepository(malformedRepository)
