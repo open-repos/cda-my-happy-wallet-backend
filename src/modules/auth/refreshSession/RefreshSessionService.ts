@@ -10,7 +10,8 @@ import {
   RefreshTokenPayload,
 } from "./RefreshTokenPayload";
 
-const REFRESH_TOKEN_TTL_MS = 15 * 60 * 1000;
+export const REFRESH_TOKEN_TTL_SECONDS = 15 * 60;
+const REFRESH_TOKEN_TTL_MS = REFRESH_TOKEN_TTL_SECONDS * 1000;
 const REFRESH_TOKEN_EXPIRES_IN = "15min";
 
 export class RefreshSessionService implements IRefreshSessionService {

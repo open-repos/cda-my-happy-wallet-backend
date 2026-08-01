@@ -4,6 +4,7 @@ import {renewAccessToken, swRenewAccessToken} from './modules/auth/accessTokenRe
 import { Validator } from './middlewares/validator.middleware';
 import { userRouter, swGetListUser } from './routes/user';
 import { refreshRateLimiter } from './middlewares/authRateLimit.middleware';
+import { nativeSessionRouter } from './routes/nativeSession';
 
 
 
@@ -33,6 +34,8 @@ mainRouter.get("/", (_: Request,res: Response) => {
 
 mainRouter.post("/token",refreshRateLimiter,Validator("renewRefreshToken"),renewAccessToken)
 
+mainRouter.use('/auth/native', nativeSessionRouter)
+
 mainRouter.use('/users',userRouter)
 
 mainRouter.use('/operations-fixes',operationFixeRouter)
@@ -41,6 +44,5 @@ mainRouter.use('/operations-fixes',operationFixeRouter)
 // mainRouter.use(notFoundRouter)
 
 export  {mainRouter}
-
 
 

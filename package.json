@@ -29,6 +29,8 @@
     "test:password-reset": "ts-node test/modules/auth/PasswordResetSecurity.test.ts",
     "test:refresh-sessions": "ts-node test/modules/auth/RefreshSessionRepository.test.ts",
     "test:refresh-session-service": "ts-node test/modules/auth/RefreshSessionService.test.ts",
+    "test:native-session": "ts-node test/modules/auth/NativeSessionApi.test.ts",
+    "test:renew-session": "ts-node test/modules/auth/RenewSession.test.ts",
     "test:health": "ts-node test/modules/health/HealthRoutes.test.ts",
     "test:delete-revenu-route": "ts-node test/modules/operationsFixes/DeleteRevenuRoute.test.ts",
     "test:prisma-errors": "ts-node test/modules/errors/PrismaErrorHandling.test.ts",
