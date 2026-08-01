@@ -2,6 +2,7 @@ import { ErrorException,ErrorCode } from './../utils/errors/';
 import { Request, Response, NextFunction } from "express";
 import { UserRepo } from '../modules/user/userRepo';
 import { prisma } from '../database/';
+import { getAuthenticatedUserId } from '../modules/auth/authenticatedRequest';
 
 
 
@@ -15,19 +16,15 @@ export const isAdmin = async (
   //   return next()
   // }
   const userRepo = new UserRepo(prisma)
-  const userId = req.cookies.id_user;
+  const userId = getAuthenticatedUserId(req);
 //   const userRole = req.cookies.role_user;
-  if (userId!=null) {
-    const user = await userRepo.getUserById(parseInt(userId))
-    if (user==null) {
-        return next(new ErrorException(ErrorCode.Unauthenticated))
-    }
-    if (user.role == "ADMIN"){
-        return next()
-    }
-    return next(new ErrorException(ErrorCode.AccessForbidden,"Access Forbidden . User without authorization"))
-    } else {
-      return next(new ErrorException(ErrorCode.AccessForbidden,"Access Forbidden . User without authorization"))
-    }
+  const user = await userRepo.getUserById(parseInt(userId))
+  if (user==null) {
+      return next(new ErrorException(ErrorCode.Unauthenticated))
+  }
+  if (user.role == "ADMIN"){
+      return next()
+  }
+  return next(new ErrorException(ErrorCode.AccessForbidden,"Access Forbidden . User without authorization"))
 
     }

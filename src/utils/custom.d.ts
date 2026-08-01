@@ -1,7 +1,8 @@
 declare namespace Express {
     export interface Request {
-      user? : any
-      shoulRunMiddleware2?:boolean
+      user?: {
+        id: number
+      }
     }
     // export interface ErrorRequestHandler{
     //   message?: any,

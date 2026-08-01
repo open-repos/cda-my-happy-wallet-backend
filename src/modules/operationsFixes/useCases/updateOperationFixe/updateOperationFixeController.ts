@@ -8,6 +8,7 @@ import { RespUpdateDelete,RequestOperationFixe } from './../../../../utils/model
 import { UpdateOperationFixe } from './updateOperationFixe'
 import {Request, Response } from 'express'
 import { TypeOperationFixeEnum } from '@prisma/client';
+import { getAuthenticatedUserId } from '../../../auth/authenticatedRequest';
 
 //Controller
 export class UpdateOperationFixeController {
@@ -21,7 +22,7 @@ export class UpdateOperationFixeController {
     public async execute(req: Request, res: Response,typeOperation:TypeOperationFixeEnum) {
 
         // try {
-            const result = await this.useCase.execute(req.body,req.cookies.id_user,req.params.id,typeOperation);
+            const result = await this.useCase.execute(req.body,getAuthenticatedUserId(req),req.params.id,typeOperation);
             // if (!result.success) {
             //     return res.status(400).json({ message: result })
             // }

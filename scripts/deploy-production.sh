@@ -56,6 +56,9 @@ rollback() {
 install -d -m 700 "${STATE_DIR}"
 
 compose "${NEXT_IMAGE}" pull backend
+compose "${NEXT_IMAGE}" run --rm --no-deps backend \
+  node -e "require('./dist/config/config')"
+echo "Production configuration validation passed."
 compose "${NEXT_IMAGE}" run --rm --no-deps backend npm run db:deploy
 
 if ! compose "${NEXT_IMAGE}" up --detach --no-deps --wait --wait-timeout 90 backend; then

@@ -70,13 +70,18 @@ API_PUBLIC_URL=https://api.myhappywallet.andriacapai.com
 FRONTEND_URL=https://myhappywallet.andriacapai.com
 CORS_ORIGINS=https://myhappywallet.andriacapai.com
 DATABASE_URL=<production-database-url>
-ACCESS_TOKEN=<secret>
-REFRESH_TOKEN=<secret>
-REGISTER_TOKEN=<secret>
+ACCESS_TOKEN=<random-secret-at-least-32-characters>
+REFRESH_TOKEN=<different-random-secret-at-least-32-characters>
+REGISTER_TOKEN=<third-random-secret-at-least-32-characters>
 MAILER_DRIVER=sendgrid
 SENDGRID_API_KEY=<secret>
 EMAIL_SENDER=<verified-sender>
 ```
+
+Les trois secrets JWT doivent etre distincts. Le wrapper de deploiement charge
+la configuration depuis l'image candidate avant les migrations et interrompt
+le deploiement si une valeur est absente, trop courte ou dupliquee. Il
+n'affiche jamais les valeurs.
 
 Ne pas copier le fichier `.env` dans l'image. Sur le VPS actuel, MySQL tourne
 sur l'hote : utiliser `host.docker.internal` dans `DATABASE_URL`. Le reseau

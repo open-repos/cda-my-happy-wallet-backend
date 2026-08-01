@@ -1,6 +1,7 @@
 import assert from "assert";
 import { JsonWebTokenService } from "../../../src/modules/auth/token/JsonWebTokenService";
 import { FakeTokenService } from "../../fakes/FakeTokenService";
+import jwt from "jsonwebtoken";
 
 const tokenService = new JsonWebTokenService();
 const secret = "unit-test-secret-not-real";
@@ -8,6 +9,15 @@ const token = tokenService.sign({ id: 42 }, secret, { expiresIn: "1h" });
 const decodedToken = tokenService.verify(token, secret) as { id: number };
 
 assert.strictEqual(decodedToken.id, 42);
+assert.strictEqual(jwt.decode(token, { complete: true })?.header.alg, "HS256");
+
+const unsupportedAlgorithmToken = jwt.sign({ id: 42 }, secret, {
+  algorithm: "HS512",
+});
+assert.throws(
+  () => tokenService.verify(unsupportedAlgorithmToken, secret),
+  /invalid algorithm/
+);
 
 const fakeTokenService = new FakeTokenService({ email: "user@example.com" });
 const fakeToken = fakeTokenService.sign(

@@ -17,7 +17,7 @@ export class UpdateOperationFixe {
     public async execute(props: any,userId:string,id:string,typeOperationFixe:string) {
 
         const idUser = parseInt(userId)
-        const exists = await this.operationFixeRepo.exists(props.id, idUser);
+        const exists = await this.operationFixeRepo.exists(+id, idUser);
     
         if (exists) {
             await this.operationFixeRepo.update(props,userId,id,typeOperationFixe);

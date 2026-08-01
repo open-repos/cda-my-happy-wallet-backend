@@ -12,5 +12,5 @@ export const userFixtures = {
     confirmpassword: "MypassworD!0",
   } as createUserProps,
   newPassword: "NewPassword!1",
-  resetToken: "reset-token",
+  resetToken: "a".repeat(128),
 };

@@ -29,14 +29,13 @@ export class ConfirmRegistrationUser {
         
             await this.tokenService.verify(
               token,
-              REGISTER_TOKEN as string,
+              REGISTER_TOKEN,
               function (err: any, _: any) {
                 if (err) {
                   throw new ErrorException(
                     ErrorCode.Unauthorized,
                     "The register token is not valid."
                   );
-                  // return refreshTokenAuth(req,res,next)
                 }
               }
             );

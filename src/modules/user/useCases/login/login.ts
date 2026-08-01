@@ -3,10 +3,11 @@ import { Result, ResultCode } from './../../../../utils/results/';
 import { ErrorException,ErrorCode } from './../../../../utils/errors/';
 import { IUserRepository } from '../../userRepository.interface'
 import argon2 from 'argon2'
-import { ACCESS_TOKEN_SECRET ,REFRESH_TOKEN_SECRET } from '../../../../config/config'
+import { ACCESS_TOKEN_SECRET } from '../../../../config/config'
 import {loginUserProps} from "../../../../utils/validators/login.validator"
 import { ITokenService } from '../../../auth/token/TokenService.interface';
 import { JsonWebTokenService } from '../../../auth/token/JsonWebTokenService';
+import { IRefreshSessionService } from '../../../auth/refreshSession/RefreshSessionService.interface';
 
 
 //Equivalent to a specific service in a CRUD API
@@ -16,6 +17,7 @@ export class Login {
 
     constructor(
         userRepo: IUserRepository,
+        private readonly refreshSessionService: IRefreshSessionService,
         tokenService: ITokenService = new JsonWebTokenService()
     ) {
         this.userRepo = userRepo
@@ -48,10 +50,10 @@ export class Login {
 
             //Création de notre JWT token
             const expireIn="60s"
-            const jwtToken = this.tokenService.sign({ id: user.id }, ACCESS_TOKEN_SECRET as string, {expiresIn:expireIn})
+            const jwtToken = this.tokenService.sign({ id: user.id }, ACCESS_TOKEN_SECRET, {expiresIn:expireIn})
 
             //Création de notre JWT token
-            const refreshToken = this.tokenService.sign({ id: user.id }, REFRESH_TOKEN_SECRET as string, {expiresIn:"15min"})
+            const refreshToken = await this.refreshSessionService.issue(user.id)
 
             if (jwtToken){
                 // const { id, password, ...userWithoutPasswordAndId } = user

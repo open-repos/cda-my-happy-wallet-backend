@@ -3,6 +3,7 @@ import { operationFixeRouter } from './routes/operationsFixes';
 import {renewAccessToken, swRenewAccessToken} from './modules/auth/accessTokenRenew'
 import { Validator } from './middlewares/validator.middleware';
 import { userRouter, swGetListUser } from './routes/user';
+import { refreshRateLimiter } from './middlewares/authRateLimit.middleware';
 
 
 
@@ -30,7 +31,7 @@ mainRouter.get("/", (_: Request,res: Response) => {
     // res.redirect('/api-docs');
 })
 
-mainRouter.post("/token",Validator("renewRefreshToken"),renewAccessToken)
+mainRouter.post("/token",refreshRateLimiter,Validator("renewRefreshToken"),renewAccessToken)
 
 mainRouter.use('/users',userRouter)
 
@@ -40,7 +41,6 @@ mainRouter.use('/operations-fixes',operationFixeRouter)
 // mainRouter.use(notFoundRouter)
 
 export  {mainRouter}
-
 
 
 

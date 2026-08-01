@@ -7,7 +7,7 @@ export class JsonWebTokenService implements ITokenService {
     secret: Secret,
     options?: SignOptions
   ): string {
-    return jwt.sign(payload, secret, options);
+    return jwt.sign(payload, secret, { ...options, algorithm: "HS256" });
   }
 
   public verify(token: string, secret: Secret): string | object;
@@ -18,9 +18,9 @@ export class JsonWebTokenService implements ITokenService {
     callback?: VerifyCallback
   ): string | object | void {
     if (callback) {
-      return jwt.verify(token, secret, callback);
+      return jwt.verify(token, secret, { algorithms: ["HS256"] }, callback);
     }
 
-    return jwt.verify(token, secret);
+    return jwt.verify(token, secret, { algorithms: ["HS256"] });
   }
 }

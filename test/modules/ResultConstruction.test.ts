@@ -178,8 +178,8 @@ class FakeUserRepository implements IUserRepository {
     return { id: userFixtures.id };
   }
 
-  public async existUserResetToken(_resetToken: string): Promise<boolean> {
-    this.calls.push("existUserResetToken");
+  public async hasValidResetToken(_resetToken: string): Promise<boolean> {
+    this.calls.push("hasValidResetToken");
     return true;
   }
 
@@ -236,7 +236,7 @@ async function runOperationFixeResultTests() {
   });
 
   const updateResult = await new UpdateOperationFixe(repository).execute(
-    operationFixeFixtures.charge.updatedInput,
+    operationFixeFixtures.charge.input,
     operationFixeFixtures.userId,
     operationFixeFixtures.charge.routeId,
     operationFixeFixtures.charge.type
@@ -245,6 +245,10 @@ async function runOperationFixeResultTests() {
     success: true,
     message: "CHARGE Successfully Updated",
   });
+  assert.strictEqual(
+    repository.lastExistsId,
+    operationFixeFixtures.charge.id
+  );
 
   const deleteResult = await new DeleteOperationFixe(repository).execute(
     operationFixeFixtures.charge.updatedInput,
@@ -322,8 +326,7 @@ async function runUserResultTests() {
   );
   assert.deepStrictEqual(resetPasswordResult, {
     success: true,
-    message:
-      "Email to reset password was sent to user@example.com",
+    message: "If the account exists, a password reset email will be sent.",
     payload: null,
   });
   assert.strictEqual(repository.lastResetToken?.length, 128);

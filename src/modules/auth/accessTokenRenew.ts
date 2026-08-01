@@ -3,15 +3,16 @@ import { ErrorException, ErrorCode } from "./../../utils/errors";
 import { prisma } from "../../database/index";
 import {
   ACCESS_TOKEN_SECRET,
-  NODE_ENV,
-  REFRESH_TOKEN_SECRET,
 }
  from "../../config/config";
 import { Request, Response, NextFunction } from "express";
 import { UserRepo } from "../user/userRepo";
 import { JsonWebTokenService } from "./token/JsonWebTokenService";
+import { authCookieOptions, clearAuthCookie } from "./authCookieOptions";
+import { refreshSessionService } from "./refreshSession";
 
 const tokenService = new JsonWebTokenService();
+export { refreshSessionService };
 
 export const swRenewAccessToken = {
   tags: ["Users"],
@@ -107,85 +108,73 @@ export const renewAccessToken = async (
     );
   }
 
-  if (cookies.id_user == null) {
+  const refreshToken = cookies.refresh_token;
+  if (refreshToken == null) {
+    return next(new ErrorException(ErrorCode.Unauthorized, "Cookie is empty"));
+  }
+
+  let tokenUser;
+  try {
+    tokenUser = refreshSessionService.verify(refreshToken);
+  } catch {
+    tokenUser = null;
+  }
+
+  if (tokenUser == null) {
+    clearAuthCookie(res, "refresh_token");
+    clearAuthCookie(res, "id_user");
     return next(
-      new ErrorException(ErrorCode.Unauthorized, "Cookie is empty")
+      new ErrorException(
+        ErrorCode.Unauthorized,
+        "Invalid credentials refreshtoken .  RefreshToken no more valid."
+      )
     );
   }
+
   const userEmail = await userRepo.getUserByEmail(email);
-  const user = await userRepo.getUserById(parseInt(cookies.id_user));
+  const user = await userRepo.getUserById(tokenUser.id);
   if (userEmail == null) {
-    return next(
-      new ErrorException(ErrorCode.EmailNotFound, "Email user not found")
-    );
+    return next(new ErrorException(ErrorCode.Unauthorized));
   }
   if (user == null) {
     return next(new ErrorException(ErrorCode.Unauthorized));
   }
   if (
     userEmail.email !== user.email ||
-    userEmail.id !== parseInt(cookies.id_user)
+    userEmail.id !== tokenUser.id
   ) {
     return next(new ErrorException(ErrorCode.Unauthorized, "Invalid User"));
   }
 
-  tokenService.verify(
-    cookies.refresh_token,
-    REFRESH_TOKEN_SECRET as string,
-    (err: any, _: any) => {
-      if (err) {
-        res.clearCookie("refresh_token");
-        res.clearCookie("id_user");
-        return next(
-          new ErrorException(
-            ErrorCode.Unauthorized,
-            "Invalid credentials refreshtoken .  RefreshToken no more valid."
-          )
-        );
-        // return res.status(403).send({
-        //   error: true,
-        //   message: "Invalid Credentials - RefreshToken no more valid",
-        // });
-      }
-
-      const expireIn = "5min";
-      const accessToken = tokenService.sign(
-        { id: user.id },
-        ACCESS_TOKEN_SECRET as string,
-        {
-          expiresIn: expireIn,
-        }
-      );
-
-      let data;
-      const { id, password, ...userWithoutPasswordAndId } = user;
-      data = userWithoutPasswordAndId;
-
-      const refreshToken = tokenService.sign(
-        { id: user.id },
-        REFRESH_TOKEN_SECRET as string,
-        { expiresIn: "20min" }
-      );
-
-      res.cookie("id_user", user.id, {
-        httpOnly: true,
-        secure: NODE_ENV === "production",
-        maxAge: 900000, //15min
-      });
-      res.cookie("refresh_token", refreshToken, {
-        httpOnly: true,
-        secure: NODE_ENV === "production",
-        maxAge: 900000, //15min
-      });
-      return res.status(200).json({
-        success: true,
-        payload: {user:data,
-        accessToken: accessToken,
-        expires: expireIn}
-      });
+  const expireIn = "5min";
+  const accessToken = tokenService.sign(
+    { id: user.id },
+    ACCESS_TOKEN_SECRET,
+    {
+      expiresIn: expireIn,
     }
   );
-  return;
-  // }
-  //     return
+
+  let data;
+  const { id, password, ...userWithoutPasswordAndId } = user;
+  data = userWithoutPasswordAndId;
+
+  let renewedRefreshToken;
+  try {
+    const rotation = await refreshSessionService.rotate(refreshToken);
+    renewedRefreshToken = rotation.refreshToken;
+  } catch {
+    clearAuthCookie(res, "refresh_token");
+    clearAuthCookie(res, "id_user");
+    return next(new ErrorException(ErrorCode.Unauthorized));
+  }
+
+  res.cookie("id_user", user.id, authCookieOptions(900000));
+  res.cookie("refresh_token", renewedRefreshToken, authCookieOptions(900000));
+  return res.status(200).json({
+    success: true,
+    payload: {user:data,
+    accessToken: accessToken,
+    expires: expireIn}
+  });
 };

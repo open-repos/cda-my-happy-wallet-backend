@@ -13,7 +13,7 @@ export interface IUserRepository {
   exists(email: string): Promise<boolean>;
   getUserByEmail(email: string): Promise<any>;
   getUserById(id: number): Promise<any>;
-  existUserResetToken(resetToken: string): Promise<boolean>;
+  hasValidResetToken(resetToken: string): Promise<boolean>;
   isUserAccountVerified(email: string): Promise<boolean>;
   sendMail(email: string, subject: string, text: string): Promise<boolean>;
 }

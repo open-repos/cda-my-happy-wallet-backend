@@ -35,6 +35,18 @@ export const errorCatalog: Record<string, ErrorDefinition> = {
   },
   [ErrorCode.AccessForbidden]: { status: 403, message: "Access Forbidden" },
   [ErrorCode.InvalidInput]: { status: 405, message: "Invalid Input" },
+  [ErrorCode.TooManyRequests]: {
+    status: 429,
+    message: "Too many requests. Please try again later.",
+  },
+  [ErrorCode.PayloadTooLarge]: {
+    status: 413,
+    message: "Request payload is too large.",
+  },
+  [ErrorCode.CorsOriginDenied]: {
+    status: 403,
+    message: "Request origin is not allowed.",
+  },
   [ErrorCode.SendEmaillError]: { status: 500, message: "Email was not sent" },
   [ErrorCode.NotFound]: {
     status: 404,

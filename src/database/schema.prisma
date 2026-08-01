@@ -65,8 +65,22 @@ model Utilisateur {
   operationsFixes OperationFixe[]
   objectifFinancier ObjectifFinancier[]
   evenementsMensuel EvenementMensuel[]
+  refreshSessions RefreshSession[]
   created_at  DateTime @default(now()) @db.Timestamp(0)
   updated_at  DateTime @default(now()) @db.DateTime(0)
+}
+
+model RefreshSession {
+  id        String    @id @db.VarChar(36)
+  tokenHash String    @unique @db.Char(64)
+  expiresAt DateTime  @db.DateTime(3)
+  revokedAt DateTime? @db.DateTime(3)
+  createdAt DateTime  @default(now()) @db.DateTime(3)
+  updatedAt DateTime  @updatedAt @db.DateTime(3)
+  userId    Int
+  user      Utilisateur @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 

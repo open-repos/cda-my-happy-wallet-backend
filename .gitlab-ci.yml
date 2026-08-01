@@ -54,9 +54,9 @@ tests:
     MYSQL_ROOT_PASSWORD: test-root-password
     DATABASE_URL: mysql://myhappywallet_test:test-password@my-happy-wallet-mysql-test:3306/myhappywallet_test
     SHADOW_DATABASE_URL: mysql://myhappywallet_test:test-password@my-happy-wallet-mysql-test:3306/myhappywallet_test_shadow
-    ACCESS_TOKEN: test-access-token-secret
-    REFRESH_TOKEN: test-refresh-token-secret
-    REGISTER_TOKEN: test-register-token-secret
+    ACCESS_TOKEN: test-access-token-secret-at-least-32-characters
+    REFRESH_TOKEN: test-refresh-token-secret-at-least-32-characters
+    REGISTER_TOKEN: test-register-token-secret-at-least-32-characters
     MAILER_DRIVER: smtp
     SMTP_HOST: localhost
     SMTP_PORT: "1025"

@@ -27,13 +27,19 @@ export class CreateUser {
 
             const userAlreadyExists = await this.userRepo.exists(props.email)
             const isAccountVerified = await this.userRepo.isUserAccountVerified(props.email)
-            if (userAlreadyExists && isAccountVerified) {
-                    throw new ErrorException(ErrorCode.EmailAlreadyTaken);
-            }
-
             const hashPassword = await argon2.hash(props.password);
 
             props.password = hashPassword;
+
+            const acceptedResult = () => new Result(
+                ResultCode.Created,
+                "",
+                "If registration is available, a confirmation email will be sent."
+            ).response_post();
+
+            if (userAlreadyExists && isAccountVerified) {
+                return acceptedResult();
+            }
 
             let userId:number
             if (!userAlreadyExists) {
@@ -52,7 +58,7 @@ export class CreateUser {
             const expireIn = "5min";
             const jwtToken = this.tokenService.sign(
             { email: props.email },
-            REGISTER_TOKEN as string,
+            REGISTER_TOKEN,
             { expiresIn: expireIn }
             );
             // console.log("REGITER TOKEN", jwtToken);
@@ -73,7 +79,7 @@ export class CreateUser {
             if (!isEmailSent) {
             throw new ErrorException(ErrorCode.SendEmaillError);
             }
-            return await new Result(ResultCode.Created,`Email was sent to ${emailToSend}`).response_post()
+            return acceptedResult()
 
     }
 }
