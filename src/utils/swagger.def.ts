@@ -7,6 +7,7 @@ import { SchemaSwg } from "./validators/index";
 import { APP_BASE_URL } from "../config/config";
 import { swUserRouter } from "../routes/user";
 import { swOperationFixeRouter } from '../routes/operationsFixes';
+import { swNativeSessionRouter } from '../routes/nativeSession';
 
 const swagger = {
   openapi: "3.0.0",
@@ -65,6 +66,7 @@ const swagger = {
     ...swAdminRouter,
     ...swUserRouter,
     ...swRenewTokenRouter,
+    ...swNativeSessionRouter,
     ...swOperationFixeRouter
   },
   components: {
@@ -83,7 +85,8 @@ const swagger = {
       ListeRevenuResponse:ResSchemaSwg.arrayRevenu,
       Charge:SchemaSwg.charge,
       Revenu:SchemaSwg.revenu,
-      DeleteEmailAccount:SchemaSwg.deleteEmail
+      DeleteEmailAccount:SchemaSwg.deleteEmail,
+      NativeRefreshSession:SchemaSwg.nativeRefreshSession
     },
     responses: {
       UnauthorizedError401: {
@@ -118,6 +121,5 @@ const swagger = {
   },
 };
 export default swagger;
-
 
 

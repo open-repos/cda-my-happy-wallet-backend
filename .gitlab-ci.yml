@@ -75,6 +75,8 @@ tests:
     - npm run test:smtp-mailer
     - npm run test:create-user
     - npm run test:token-service
+    - npm run test:native-session
+    - npm run test:renew-session
     - npm run test:health
     - npm run test:delete-revenu-route
     - npm run test:prisma-errors
