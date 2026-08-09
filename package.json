@@ -34,6 +34,8 @@
     "test:health": "ts-node test/modules/health/HealthRoutes.test.ts",
     "test:delete-revenu-route": "ts-node test/modules/operationsFixes/DeleteRevenuRoute.test.ts",
     "test:operations-domain": "ts-node test/modules/operations/OneOffOperation.test.ts",
+    "test:operations-migration": "ts-node test/modules/operations/OneOffOperationMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/operations/OneOffOperationMigration.test.ts verify",
+    "test:operations-schema": "ts-node test/modules/operations/OneOffOperationSchema.test.ts",
     "test:prisma-errors": "ts-node test/modules/errors/PrismaErrorHandling.test.ts",
     "test:result-construction": "ts-node test/modules/ResultConstruction.test.ts",
     "test:repositories": "ts-node test/modules/repositories/RepositoriesDataAccess.test.ts",

@@ -103,13 +103,14 @@ déployée n'est pas réécrite : toute correction utilise une nouvelle migratio
 avant. Aucun backfill destructif n'est autorisé sans sauvegarde et comptages
 avant/après.
 
-## Inconnues et prochain contrôle
+## Arbitrages résolus pour M03-02
 
-Avant M03-02, le propriétaire du produit doit préciser si les catégories sont
-libres, prédéfinies par utilisateur ou initialisées depuis un catalogue commun.
-Il faut également décider du comportement lors de la suppression d'une
-catégorie encore référencée. Ces choix ne changent pas les invariants de M03-01,
-mais conditionnent le schéma et le rollback de la migration.
+Les catégories sont personnelles, initialisées depuis les quatre valeurs par
+défaut déjà versionnées et personnalisables. Une catégorie encore référencée ne
+peut pas être supprimée : la persistance impose une clé étrangère restrictive et
+la future API traduira ce conflit en HTTP `409`. Le schéma, le backfill et le
+rollback sont détaillés dans
+[`one-off-operation-persistence.md`](one-off-operation-persistence.md).
 
 ## Vérification
 

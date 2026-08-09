@@ -66,6 +66,8 @@ model Utilisateur {
   objectifFinancier ObjectifFinancier[]
   evenementsMensuel EvenementMensuel[]
   refreshSessions RefreshSession[]
+  operationCategories OperationCategory[]
+  oneOffOperations OneOffOperationRecord[] @relation("OneOffOperationOwner")
   created_at  DateTime @default(now()) @db.Timestamp(0)
   updated_at  DateTime @default(now()) @db.DateTime(0)
 }
@@ -102,6 +104,54 @@ model ObjectifFinancier {
   updated_at          DateTime @default(now()) @db.DateTime(0)
   Utilisateur Utilisateur @relation(fields:[userId], references:[id])
   userId Int
+}
+
+model OperationCategoryTemplate {
+  id        Int                 @id @default(autoincrement())
+  code      String              @unique @db.VarChar(32)
+  name      String              @db.VarChar(50)
+  color     String?             @db.Char(7)
+  sortOrder Int                 @default(0)
+  active    Boolean             @default(true)
+  categories OperationCategory[]
+  createdAt DateTime            @default(now()) @db.Timestamp(0)
+  updatedAt DateTime            @updatedAt @db.DateTime(0)
+}
+
+model OperationCategory {
+  id         Int                        @id @default(autoincrement())
+  name       String                     @db.VarChar(50)
+  color      String?                    @db.Char(7)
+  userId     Int
+  templateId Int?
+  user       Utilisateur                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template   OperationCategoryTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  operations OneOffOperationRecord[]
+  createdAt  DateTime                   @default(now()) @db.Timestamp(0)
+  updatedAt  DateTime                   @updatedAt @db.DateTime(0)
+
+  @@unique([userId, name])
+  @@unique([id, userId])
+  @@index([templateId])
+}
+
+model OneOffOperationRecord {
+  id                Int               @id @default(autoincrement())
+  legacyOperationId Int?              @unique
+  title             String            @db.VarChar(50)
+  amount            Decimal           @db.Decimal(10, 2)
+  currency          String            @db.Char(3)
+  type              TypeOperationEnum @default(DEPENSE)
+  operationDate     DateTime          @db.Date
+  userId            Int
+  categoryId        Int
+  owner             Utilisateur       @relation("OneOffOperationOwner", fields: [userId], references: [id], onDelete: Cascade)
+  category          OperationCategory @relation(fields: [categoryId, userId], references: [id, userId], onDelete: Restrict)
+  createdAt         DateTime          @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime          @updatedAt @db.DateTime(0)
+
+  @@index([userId, operationDate])
+  @@index([categoryId, userId])
 }
 
 model Operation {

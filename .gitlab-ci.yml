@@ -79,6 +79,9 @@ tests:
     - npm run test:renew-session
     - npm run test:health
     - npm run test:delete-revenu-route
+    - npm run test:operations-domain
+    - npm run test:operations-migration
+    - npm run test:operations-schema
     - npm run test:prisma-errors
     - npm run test:result-construction
     - npm run test:repositories

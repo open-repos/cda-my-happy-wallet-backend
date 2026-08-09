@@ -20,18 +20,38 @@ export class UserRepo implements IUserRepository {
   }
 
   public async create(userProps: createUserProps) {
-    const UserEntity = this.entities.utilisateur;
+    return this.entities.$transaction(async (transaction: any) => {
+      const templates = await transaction.operationCategoryTemplate.findMany({
+        where: { active: true },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+      });
 
-    const user = await UserEntity.create({
-      data: {
-        email: userProps.email,
-        password: userProps.password,
-        firstname: userProps.firstname,
-        lastname: userProps.lastname,
-      },
+      if (templates.length === 0) {
+        throw new Error("Operation category templates are not initialized");
+      }
+
+      return transaction.utilisateur.create({
+        data: {
+          email: userProps.email,
+          password: userProps.password,
+          firstname: userProps.firstname,
+          lastname: userProps.lastname,
+          operationCategories: {
+            create: templates.map(
+              (template: {
+                id: number;
+                name: string;
+                color: string | null;
+              }) => ({
+                name: template.name,
+                color: template.color,
+                template: { connect: { id: template.id } },
+              })
+            ),
+          },
+        },
+      });
     });
-
-    return user
   }
 
   public async delete(email: string,userId:number) {
