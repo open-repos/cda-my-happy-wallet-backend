@@ -38,6 +38,7 @@
     "test:operations-schema": "ts-node test/modules/operations/OneOffOperationSchema.test.ts",
     "test:operations-use-cases": "ts-node test/modules/operations/OneOffOperationUseCases.test.ts",
     "test:operations-repositories": "ts-node test/modules/operations/OneOffOperationRepositories.test.ts",
+    "test:operations-api": "ts-node test/modules/operations/OneOffOperationApi.test.ts",
     "test:prisma-errors": "ts-node test/modules/errors/PrismaErrorHandling.test.ts",
     "test:result-construction": "ts-node test/modules/ResultConstruction.test.ts",
     "test:repositories": "ts-node test/modules/repositories/RepositoriesDataAccess.test.ts",

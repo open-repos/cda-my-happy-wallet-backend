@@ -35,6 +35,14 @@ export const errorCatalog: Record<string, ErrorDefinition> = {
   },
   [ErrorCode.AccessForbidden]: { status: 403, message: "Access Forbidden" },
   [ErrorCode.InvalidInput]: { status: 405, message: "Invalid Input" },
+  [ErrorCode.ValidationFailed]: {
+    status: 422,
+    message: "Request validation failed",
+  },
+  [ErrorCode.Conflict]: {
+    status: 409,
+    message: "The request conflicts with the current resource state",
+  },
   [ErrorCode.TooManyRequests]: {
     status: 429,
     message: "Too many requests. Please try again later.",

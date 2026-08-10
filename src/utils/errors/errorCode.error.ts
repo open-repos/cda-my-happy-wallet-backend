@@ -14,6 +14,8 @@ export class ErrorCode {
     public static readonly PrismaError = 'PrismaError';
     public static readonly SendEmaillError = 'SendEmaillError';
     public static readonly InvalidInput = 'InvalidInput';
+    public static readonly ValidationFailed = 'ValidationFailed';
+    public static readonly Conflict = 'Conflict';
     public static readonly TooManyRequests = 'TooManyRequests';
     public static readonly PayloadTooLarge = 'PayloadTooLarge';
     public static readonly CorsOriginDenied = 'CorsOriginDenied';

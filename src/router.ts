@@ -5,6 +5,7 @@ import { Validator } from './middlewares/validator.middleware';
 import { userRouter, swGetListUser } from './routes/user';
 import { refreshRateLimiter } from './middlewares/authRateLimit.middleware';
 import { nativeSessionRouter } from './routes/nativeSession';
+import { oneOffOperationRouter } from './routes/oneOffOperations';
 
 
 
@@ -40,9 +41,10 @@ mainRouter.use('/users',userRouter)
 
 mainRouter.use('/operations-fixes',operationFixeRouter)
 
+mainRouter.use('/', oneOffOperationRouter)
+
 
 // mainRouter.use(notFoundRouter)
 
 export  {mainRouter}
-
 

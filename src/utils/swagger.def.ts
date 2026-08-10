@@ -8,6 +8,7 @@ import { APP_BASE_URL } from "../config/config";
 import { swUserRouter } from "../routes/user";
 import { swOperationFixeRouter } from '../routes/operationsFixes';
 import { swNativeSessionRouter } from '../routes/nativeSession';
+import { swOneOffOperationRouter } from '../routes/oneOffOperations';
 
 const swagger = {
   openapi: "3.0.0",
@@ -67,7 +68,8 @@ const swagger = {
     ...swUserRouter,
     ...swRenewTokenRouter,
     ...swNativeSessionRouter,
-    ...swOperationFixeRouter
+    ...swOperationFixeRouter,
+    ...swOneOffOperationRouter
   },
   components: {
     schemas: {
@@ -86,7 +88,45 @@ const swagger = {
       Charge:SchemaSwg.charge,
       Revenu:SchemaSwg.revenu,
       DeleteEmailAccount:SchemaSwg.deleteEmail,
-      NativeRefreshSession:SchemaSwg.nativeRefreshSession
+      NativeRefreshSession:SchemaSwg.nativeRefreshSession,
+      OperationCategoryInput: {
+        type: "object",
+        required: ["name"],
+        additionalProperties: false,
+        properties: {
+          name: { type: "string", minLength: 2, maxLength: 50 },
+          color: {
+            type: "string",
+            nullable: true,
+            pattern: "^#[0-9A-Fa-f]{6}$",
+          },
+        },
+      },
+      OneOffOperationInput: {
+        type: "object",
+        required: [
+          "title",
+          "amount",
+          "currency",
+          "kind",
+          "operationDate",
+          "categoryId",
+        ],
+        additionalProperties: false,
+        properties: {
+          title: { type: "string", minLength: 2, maxLength: 50 },
+          amount: {
+            oneOf: [
+              { type: "number", minimum: 0.01, maximum: 99999999.99 },
+              { type: "string", pattern: "^(0|[1-9]\\d{0,7})(?:\\.\\d{1,2})?$" },
+            ],
+          },
+          currency: { type: "string", minLength: 3, maxLength: 3 },
+          kind: { type: "string", enum: ["DEPENSE", "ENTREE"] },
+          operationDate: { type: "string", format: "date" },
+          categoryId: { type: "integer", minimum: 1 },
+        },
+      }
     },
     responses: {
       UnauthorizedError401: {
@@ -121,5 +161,4 @@ const swagger = {
   },
 };
 export default swagger;
-
 
