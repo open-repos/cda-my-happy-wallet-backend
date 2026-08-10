@@ -98,3 +98,26 @@ comptages et exports, puis appliquer une nouvelle migration en avant qui les
 supprime dans cet ordre : `OneOffOperationRecord`, `OperationCategory`,
 `OperationCategoryTemplate`. Ne jamais modifier les deux migrations déjà
 déployées et ne jamais supprimer les tables historiques dans ce rollback.
+
+## Frontière applicative M03-03
+
+Les ports `OneOffOperationRepository` et `OperationCategoryRepository` ne
+dépendent pas de Prisma. Les services applicatifs correspondants portent les
+cas d'usage de liste, lecture, création, modification et suppression. Ils
+reçoivent toujours l'identifiant du propriétaire authentifié et ne permettent
+jamais de le remplacer par une valeur fournie dans un objet métier.
+
+Les adapters Prisma appliquent `userId` dans chaque lecture, modification et
+suppression. Ils convertissent explicitement `Decimal` vers les centimes du
+domaine et `DATE` vers une chaîne civile `YYYY-MM-DD`. Une catégorie inconnue
+d'un utilisateur reste indistinguable d'une catégorie appartenant à un autre.
+
+Les erreurs applicatives stables préparent le contrat HTTP sans le coupler :
+
+- `OPERATION_NOT_FOUND` et `CATEGORY_NOT_FOUND` ;
+- `CATEGORY_NAME_CONFLICT` ;
+- `CATEGORY_IN_USE` ;
+- `INVALID_CATEGORY_NAME` et `INVALID_CATEGORY_COLOR`.
+
+La future couche HTTP de `M03-04` traduira ces codes et les erreurs du domaine
+en statuts publics. Les repositories ne connaissent ni Express ni les DTO HTTP.
