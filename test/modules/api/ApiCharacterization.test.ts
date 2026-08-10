@@ -349,10 +349,10 @@ async function runApiCharacterizationTests() {
     "/operations-fixes/charges"
   );
 
-  assert.strictEqual(unauthenticatedOperationsResponse.status, 403);
+  assert.strictEqual(unauthenticatedOperationsResponse.status, 401);
   assert.strictEqual(
     unauthenticatedOperationsResponse.body.error.type,
-    "AccessForbidden"
+    "Unauthorized"
   );
 
   const invalidTokenOperationsResponse = await supertest(app)
@@ -380,10 +380,10 @@ async function runApiCharacterizationTests() {
     .put("/operations-fixes/charges/7")
     .send({ titre: "Loyer", montant: 650, devise: "EUR" });
 
-  assert.strictEqual(unauthenticatedUpdateResponse.status, 403);
+  assert.strictEqual(unauthenticatedUpdateResponse.status, 401);
   assert.strictEqual(
     unauthenticatedUpdateResponse.body.error.type,
-    "AccessForbidden"
+    "Unauthorized"
   );
   assert.deepStrictEqual(updateCalls, []);
 

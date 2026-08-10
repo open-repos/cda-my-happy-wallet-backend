@@ -42,3 +42,20 @@ Le type vaut `DEPENSE` ou `ENTREE`; la date reste une date civile
 La documentation OpenAPI décrit les neuf opérations, leurs schémas fermés,
 leurs exigences Bearer et les statuts possibles. La suppression restrictive
 d'une catégorie référencée est traduite de `CATEGORY_IN_USE` vers HTTP `409`.
+
+## Matrice de tests M03-07
+
+La couverture est répartie selon la frontière testée :
+
+- `OneOffOperation.test.ts` protège les invariants financiers et calendaires ;
+- `OneOffOperationUseCases.test.ts` protège les cas d'usage sans infrastructure ;
+- `OneOffOperationRepositories.test.ts` protège les conversions et contraintes
+  Prisma dans MySQL ;
+- `OneOffOperationApi.test.ts` protège rapidement validation, DTO et statuts
+  avec des repositories en mémoire ;
+- `BudgetApiIntegration.test.ts` traverse le vrai serveur, le middleware JWT,
+  les services, Prisma et MySQL, et vérifie aussi le document OpenAPI.
+
+Le dernier test utilise exclusivement la base Docker jetable dont l'hôte est
+`my-happy-wallet-mysql-test` et le nom contient `myhappywallet_test`. Il refuse
+de démarrer contre toute autre base et nettoie ses fixtures après exécution.

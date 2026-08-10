@@ -15,8 +15,8 @@ export const tokenJwtTAuth = (
   const authHeader = req.headers.authorization;
   if (authHeader == null) {
     return next(new ErrorException(
-      ErrorCode.AccessForbidden,
-      "Access Forbidden . Error about headers"
+      ErrorCode.Unauthorized,
+      "The access token is not valid or is expired."
     ));
   }
 

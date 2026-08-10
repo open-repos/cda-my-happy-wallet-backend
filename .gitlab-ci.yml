@@ -85,6 +85,7 @@ tests:
     - npm run test:operations-use-cases
     - npm run test:operations-repositories
     - npm run test:operations-api
+    - npm run test:budget-api-integration
     - npm run test:prisma-errors
     - npm run test:result-construction
     - npm run test:repositories
