@@ -5,18 +5,68 @@ import {
   OperationCategoryRepository,
   SaveOperationCategory,
 } from "../application";
+import {
+  createCursorPage,
+  CursorContext,
+  CursorPage,
+  invalidPagination,
+  paginationCursorCodec,
+  PaginationCursorCodec,
+  PaginationRequest,
+} from "../../pagination";
 
 export class PrismaOperationCategoryRepository
   implements OperationCategoryRepository
 {
-  public constructor(private readonly prisma: PrismaClient) {}
+  public constructor(
+    private readonly prisma: PrismaClient,
+    private readonly cursors: PaginationCursorCodec = paginationCursorCodec
+  ) {}
 
-  public async listByOwner(ownerId: number): Promise<OperationCategory[]> {
+  public async listByOwner(
+    ownerId: number,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<OperationCategory>> {
+    const context = this.cursorContext(ownerId);
+    const position =
+      pagination.cursor == null
+        ? null
+        : this.cursors.decode(context, pagination.cursor);
+    if (
+      position !== null &&
+      (position.length !== 2 ||
+        typeof position[0] !== "string" ||
+        typeof position[1] !== "number" ||
+        !Number.isSafeInteger(position[1]) ||
+        position[1] <= 0)
+    ) {
+      throw invalidPagination();
+    }
+
+    const afterName = position?.[0] as string | undefined;
+    const afterId = position?.[1] as number | undefined;
+    const where: Prisma.OperationCategoryWhereInput =
+      afterName === undefined || afterId === undefined
+        ? { userId: ownerId }
+        : {
+            userId: ownerId,
+            OR: [
+              { name: { gt: afterName } },
+              { name: afterName, id: { gt: afterId } },
+            ],
+          };
     const rows = await this.prisma.operationCategory.findMany({
-      where: { userId: ownerId },
+      where,
       orderBy: [{ name: "asc" }, { id: "asc" }],
+      take: pagination.limit + 1,
     });
-    return rows.map(this.toCategory);
+    return createCursorPage(
+      rows.map(this.toCategory),
+      pagination,
+      context,
+      (row) => [row.name, row.id],
+      this.cursors
+    );
   }
 
   public async findById(
@@ -87,6 +137,13 @@ export class PrismaOperationCategoryRepository
     name: row.name,
     color: row.color,
   });
+
+  private cursorContext(ownerId: number): CursorContext {
+    return {
+      resource: "operation-categories",
+      scope: `owner:${ownerId}`,
+    };
+  }
 
   private rethrowConflict(error: unknown): never {
     if (this.hasPrismaCode(error, "P2002")) {

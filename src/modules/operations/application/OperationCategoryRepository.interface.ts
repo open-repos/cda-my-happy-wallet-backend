@@ -12,7 +12,10 @@ export type SaveOperationCategory = Readonly<{
 }>;
 
 export interface OperationCategoryRepository {
-  listByOwner(ownerId: number): Promise<readonly OperationCategory[]>;
+  listByOwner(
+    ownerId: number,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<OperationCategory>>;
   findById(id: number, ownerId: number): Promise<OperationCategory | null>;
   create(category: SaveOperationCategory): Promise<OperationCategory>;
   update(
@@ -21,3 +24,4 @@ export interface OperationCategoryRepository {
   ): Promise<OperationCategory | null>;
   delete(id: number, ownerId: number): Promise<boolean>;
 }
+import { CursorPage, PaginationRequest } from "../../pagination";

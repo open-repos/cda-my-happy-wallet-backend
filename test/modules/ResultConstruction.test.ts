@@ -19,6 +19,11 @@ import { IUserRepository } from "../../src/modules/user/userRepository.interface
 import { createUserProps } from "../../src/utils/validators/register.validator";
 import { OperationFixeProps } from "../../src/utils/validators/operationFixe.validator";
 import {
+  CursorPage,
+  PaginationRequest,
+} from "../../src/modules/pagination";
+import { OperationFixeListItem } from "../../src/modules/operationsFixes/operationFixeRepository.interface";
+import {
   operationFixeFixtures,
   operationFixeListFixtures,
 } from "../fixtures/operationsFixes.fixture";
@@ -76,25 +81,30 @@ class FakeOperationFixeRepository implements IOperationFixeRepository {
     return { count: 1 };
   }
 
-  public async getAllOperationsFixes(_userId: string): Promise<any> {
+  public async getAllOperationsFixes(
+    _userId: string,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<OperationFixeListItem>> {
     this.calls.push("getAllOperationsFixes");
-    return [operationFixeListFixtures.charge];
+    return this.page([operationFixeListFixtures.charge], pagination);
   }
 
   public async getAllCharges(
     _userId: string,
-    _typeOperationFixe: TypeOperationFixeEnum
-  ): Promise<any> {
+    _typeOperationFixe: TypeOperationFixeEnum,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<OperationFixeListItem>> {
     this.calls.push("getAllCharges");
-    return [];
+    return this.page([], pagination);
   }
 
   public async getAllRevenus(
     _userId: string,
-    _typeOperationFixe: TypeOperationFixeEnum
-  ): Promise<any> {
+    _typeOperationFixe: TypeOperationFixeEnum,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<OperationFixeListItem>> {
     this.calls.push("getAllRevenus");
-    return [operationFixeListFixtures.revenu];
+    return this.page([operationFixeListFixtures.revenu], pagination);
   }
 
   public async exists(
@@ -121,6 +131,16 @@ class FakeOperationFixeRepository implements IOperationFixeRepository {
     return this.updateExistingRaV
       ? resteAVivreFixtures.updateExistingResponse
       : resteAVivreFixtures.createRequiredResponse;
+  }
+
+  private page(
+    data: OperationFixeListItem[],
+    pagination: PaginationRequest
+  ): CursorPage<OperationFixeListItem> {
+    return {
+      data,
+      meta: { limit: pagination.limit, hasNext: false, nextCursor: null },
+    };
   }
 }
 
@@ -290,12 +310,12 @@ async function runOperationFixeResultTests() {
 
   const emptyChargesResult = await new ReadAllOperationFixe(repository).execute(
     operationFixeFixtures.userId,
+    { limit: 50, cursor: null },
     operationFixeFixtures.charge.type
   );
   assert.deepStrictEqual(emptyChargesResult, {
-    success: true,
-    message: "All CHARGE Successfully Read",
     data: [],
+    meta: { limit: 50, hasNext: false, nextCursor: null },
   });
 }
 

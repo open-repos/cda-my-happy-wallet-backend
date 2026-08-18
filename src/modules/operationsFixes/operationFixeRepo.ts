@@ -2,10 +2,20 @@ import { TypeOperationFixeEnum } from '@prisma/client';
 import { OperationFixeProps } from "./../../utils/validators/operationFixe.validator";
 import {
   IOperationFixeRepository,
+  OperationFixeListItem,
   OperationFixeWithIdProps,
   ReadOperationFixeProps,
 } from "./operationFixeRepository.interface";
 import { ResteAVivreCalculator } from "./services/ResteAVivreCalculator";
+import {
+  createCursorPage,
+  CursorContext,
+  CursorPage,
+  decodePositiveIntegerCursor,
+  paginationCursorCodec,
+  PaginationCursorCodec,
+  PaginationRequest,
+} from "../pagination";
 // On va utiliser notre ORM pour modifier notre BDD (couche de persistence)
 //script "générale" utilisable par notre service createOperationFixe.ts
 
@@ -13,7 +23,10 @@ export class OperationFixeRepo implements IOperationFixeRepository {
   private entities: any;
   private operationFixeExist: boolean;
 
-  constructor(entities: any) {
+  constructor(
+    entities: any,
+    private readonly cursors: PaginationCursorCodec = paginationCursorCodec
+  ) {
     this.entities = entities;
   }
 
@@ -60,6 +73,7 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         montant: true,
         devise: true,
       },
+      take: 1,
     });
     return resultOperationFixeById;
 
@@ -112,64 +126,27 @@ export class OperationFixeRepo implements IOperationFixeRepository {
   }
 
 
-  public async getAllOperationsFixes(userId: string) {
-    const OperationFixeEntity = this.entities.operationFixe;
-    const idUser = parseInt(userId);
-    const resultOperationFixeById = await OperationFixeEntity.findMany({
-      where: {
-        userId: idUser,
-      },
-      select: {
-        idOperationFixe:true,
-        titre: true,
-        montant: true,
-        devise: true,
-        typeOperation: true,
-      },
-    });
-    return resultOperationFixeById;
-
+  public getAllOperationsFixes(
+    userId: string,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<OperationFixeListItem>> {
+    return this.listOperations(userId, pagination);
   }
 
-
-  public async getAllCharges(userId: string, typeOperationFixe:TypeOperationFixeEnum) {
-    const OperationFixeEntity = this.entities.operationFixe;
-    const idUser = parseInt(userId);
-    const resultOperationFixeById = await OperationFixeEntity.findMany({
-      where: {
-        userId: idUser,
-        typeOperation:typeOperationFixe
-      },
-      select: {
-        idOperationFixe:true,
-        titre: true,
-        montant: true,
-        devise: true,
-        typeOperation: true,
-      },
-    });
-    return resultOperationFixeById;
-
+  public getAllCharges(
+    userId: string,
+    typeOperationFixe: TypeOperationFixeEnum,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<OperationFixeListItem>> {
+    return this.listOperations(userId, pagination, typeOperationFixe);
   }
 
-  public async getAllRevenus(userId: string, typeOperationFixe:TypeOperationFixeEnum) {
-    const OperationFixeEntity = this.entities.operationFixe;
-    const idUser = parseInt(userId);
-    const resultOperationFixeById = await OperationFixeEntity.findMany({
-      where: {
-        userId: idUser,
-        typeOperation:typeOperationFixe
-      },
-      select: {
-        idOperationFixe:true,
-        titre: true,
-        montant: true,
-        devise: true,
-        typeOperation: true,
-      },
-    });
-    return resultOperationFixeById;
-
+  public getAllRevenus(
+    userId: string,
+    typeOperationFixe: TypeOperationFixeEnum,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<OperationFixeListItem>> {
+    return this.listOperations(userId, pagination, typeOperationFixe);
   }
 
 
@@ -184,6 +161,7 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         userId: idUser,
         idOperationFixe: idOperationFixe,
       },
+      take: 1,
     });
 
     // const result = resultOperationFixeUser
@@ -198,12 +176,7 @@ export class OperationFixeRepo implements IOperationFixeRepository {
   public async updateRaV(userId:string, idRaV:number){
 
     const RaVEntity = this.entities.resteAVivre
-    const allRevenus = await this.getAllRevenus(userId,"REVENU")
-    const allCharges= await this.getAllCharges(userId,"CHARGE")
-    const ravCalculation = ResteAVivreCalculator.calculate(
-      allRevenus,
-      allCharges
-    );
+    const ravCalculation = await this.calculateRav(userId);
 
     const response = await RaVEntity.updateMany({
         where: {
@@ -225,12 +198,7 @@ export class OperationFixeRepo implements IOperationFixeRepository {
   public async createRaV(userId:string){
 
     const RaVEntity = this.entities.resteAVivre
-    const allRevenus = await this.getAllRevenus(userId,"REVENU")
-    const allCharges= await this.getAllCharges(userId,"CHARGE")
-    const ravCalculation = ResteAVivreCalculator.calculate(
-      allRevenus,
-      allCharges
-    );
+    const ravCalculation = await this.calculateRav(userId);
 
     const response = await RaVEntity.create({
         data: {
@@ -299,5 +267,69 @@ export class OperationFixeRepo implements IOperationFixeRepository {
 
     const idRav = responseGet[0].idRaV
      return [isRaVpastMonth, idRav] as const;
+  }
+
+  private async listOperations(
+    userId: string,
+    pagination: PaginationRequest,
+    typeOperation?: TypeOperationFixeEnum
+  ): Promise<CursorPage<OperationFixeListItem>> {
+    const idUser = parseInt(userId);
+    const context = this.cursorContext(idUser, typeOperation);
+    const afterId = decodePositiveIntegerCursor(
+      pagination,
+      context,
+      this.cursors
+    );
+    const rows = await this.entities.operationFixe.findMany({
+      where: {
+        userId: idUser,
+        ...(typeOperation === undefined ? {} : { typeOperation }),
+        ...(afterId === null ? {} : { idOperationFixe: { lt: afterId } }),
+      },
+      select: {
+        idOperationFixe: true,
+        titre: true,
+        montant: true,
+        devise: true,
+        typeOperation: true,
+      },
+      orderBy: { idOperationFixe: "desc" },
+      take: pagination.limit + 1,
+    });
+    return createCursorPage(
+      rows,
+      pagination,
+      context,
+      (row: OperationFixeListItem) => [row.idOperationFixe],
+      this.cursors
+    );
+  }
+
+  private cursorContext(
+    userId: number,
+    typeOperation?: TypeOperationFixeEnum
+  ): CursorContext {
+    return {
+      resource: `fixed-operations:${typeOperation ?? "all"}`,
+      scope: `owner:${userId}`,
+    };
+  }
+
+  private async calculateRav(userId: string) {
+    const totals = await this.entities.operationFixe.groupBy({
+      by: ["typeOperation"],
+      where: { userId: parseInt(userId) },
+      _sum: { montant: true },
+    });
+    const amount = (type: TypeOperationFixeEnum): unknown =>
+      totals.find(
+        (entry: { typeOperation: TypeOperationFixeEnum }) =>
+          entry.typeOperation === type
+      )?._sum.montant ?? 0;
+    return ResteAVivreCalculator.calculate(
+      [{ montant: amount("REVENU") }],
+      [{ montant: amount("CHARGE") }]
+    );
   }
 }

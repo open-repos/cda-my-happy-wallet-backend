@@ -1,54 +1,35 @@
-import { ErrorException, ErrorCode } from "./../../../../utils/errors/";
-import { IOperationFixeRepository } from "../../operationFixeRepository.interface";
+import {
+  IOperationFixeRepository,
+  OperationFixeListItem,
+} from "../../operationFixeRepository.interface";
 import { TypeOperationFixeEnum } from "@prisma/client";
-import { Result, ResultCode } from "../../../../utils/results";
-//Faire la logique du useCase (ici création utilisateur)import { OperationFixeRepo } from "../../OperationFixeRepo";
+import { CursorPage, PaginationRequest } from "../../../pagination";
 
 export class ReadAllOperationFixe {
   private operationFixeRepo: IOperationFixeRepository;
-  private fctnCall: string = "read";
-
   constructor(operationFixeRepo: IOperationFixeRepository) {
     this.operationFixeRepo = operationFixeRepo;
   }
 
-  public async execute(userId: string, typeOperationFixe?:TypeOperationFixeEnum) {
-
-    let result:any=undefined
-    if(typeOperationFixe==undefined){
-      const operationFixes = await this.operationFixeRepo.getAllOperationsFixes(userId);
-      result = await new Result(
-        ResultCode.Read,
-        "All OperationsFixes"
-      ).response_get();
-      result.data = operationFixes;
+  public execute(
+    userId: string,
+    pagination: PaginationRequest,
+    typeOperationFixe?: TypeOperationFixeEnum
+  ): Promise<CursorPage<OperationFixeListItem>> {
+    if (typeOperationFixe === "CHARGE") {
+      return this.operationFixeRepo.getAllCharges(
+        userId,
+        typeOperationFixe,
+        pagination
+      );
     }
-
-    if(typeOperationFixe=="CHARGE"){
-      const operationFixes = await this.operationFixeRepo.getAllCharges(userId,typeOperationFixe);
-      result = await new Result(
-        ResultCode.Read,
-        `All ${typeOperationFixe}`
-      ).response_get();
-      result.data = operationFixes;
+    if (typeOperationFixe === "REVENU") {
+      return this.operationFixeRepo.getAllRevenus(
+        userId,
+        typeOperationFixe,
+        pagination
+      );
     }
-
-    if(typeOperationFixe=="REVENU"){
-      const operationFixes = await this.operationFixeRepo.getAllRevenus(userId,typeOperationFixe);
-      result = await new Result(
-        ResultCode.Read,
-        `All ${typeOperationFixe}`
-      ).response_get();
-      result.data = operationFixes;
-    }
-    
-    if (result==null || result==undefined || result.length ===0){
-        throw new ErrorException(
-            ErrorCode.PrismaError,
-            `${this.fctnCall} OperationsFixes doesn't exist`
-          );
-    }
-    return result;
-  
+    return this.operationFixeRepo.getAllOperationsFixes(userId, pagination);
   }
 }

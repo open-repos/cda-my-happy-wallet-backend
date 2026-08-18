@@ -72,7 +72,33 @@ const swagger = {
     ...swOneOffOperationRouter
   },
   components: {
+    parameters: {
+      PaginationLimit: {
+        name: "limit",
+        in: "query",
+        required: false,
+        description: "Number of collection items to return (default 50, maximum 100)",
+        schema: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+      },
+      PaginationCursor: {
+        name: "cursor",
+        in: "query",
+        required: false,
+        description: "Opaque cursor returned by the previous page",
+        schema: { type: "string", maxLength: 2048 },
+      },
+    },
     schemas: {
+      PaginationMeta: {
+        type: "object",
+        required: ["limit", "hasNext", "nextCursor"],
+        additionalProperties: false,
+        properties: {
+          limit: { type: "integer", minimum: 1, maximum: 100 },
+          hasNext: { type: "boolean" },
+          nextCursor: { type: "string", nullable: true },
+        },
+      },
       Register: SchemaSwg.register,
       Login: SchemaSwg.login,
       Email: SchemaSwg.email,
@@ -161,4 +187,3 @@ const swagger = {
   },
 };
 export default swagger;
-

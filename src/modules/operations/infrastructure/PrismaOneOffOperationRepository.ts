@@ -1,9 +1,18 @@
-import { PrismaClient, TypeOperationEnum } from "@prisma/client";
+import { Prisma, PrismaClient, TypeOperationEnum } from "@prisma/client";
 import {
   OneOffOperationRepository,
   OperationApplicationError,
 } from "../application";
 import { OneOffOperation } from "../domain";
+import {
+  createCursorPage,
+  CursorContext,
+  CursorPage,
+  invalidPagination,
+  paginationCursorCodec,
+  PaginationCursorCodec,
+  PaginationRequest,
+} from "../../pagination";
 
 type OperationRow = Readonly<{
   id: number;
@@ -19,15 +28,65 @@ type OperationRow = Readonly<{
 export class PrismaOneOffOperationRepository
   implements OneOffOperationRepository
 {
-  public constructor(private readonly prisma: PrismaClient) {}
+  public constructor(
+    private readonly prisma: PrismaClient,
+    private readonly cursors: PaginationCursorCodec = paginationCursorCodec
+  ) {}
 
-  public async listByOwner(ownerId: number): Promise<OneOffOperation[]> {
+  public async listByOwner(
+    ownerId: number,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<OneOffOperation>> {
+    const context = this.cursorContext(ownerId);
+    const position =
+      pagination.cursor == null
+        ? null
+        : this.cursors.decode(context, pagination.cursor);
+    if (
+      position !== null &&
+      (position.length !== 2 ||
+        typeof position[0] !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(position[0]) ||
+        typeof position[1] !== "number" ||
+        !Number.isSafeInteger(position[1]) ||
+        position[1] <= 0)
+    ) {
+      throw invalidPagination();
+    }
+
+    const afterDate = position?.[0] as string | undefined;
+    const afterId = position?.[1] as number | undefined;
+    const date =
+      afterDate === undefined ? undefined : new Date(`${afterDate}T00:00:00.000Z`);
+    if (date !== undefined && Number.isNaN(date.getTime())) {
+      throw invalidPagination();
+    }
+    const where: Prisma.OneOffOperationRecordWhereInput =
+      date === undefined || afterId === undefined
+        ? { userId: ownerId }
+        : {
+            userId: ownerId,
+            OR: [
+              { operationDate: { lt: date } },
+              { operationDate: date, id: { lt: afterId } },
+            ],
+          };
     const rows = await this.prisma.oneOffOperationRecord.findMany({
-      where: { userId: ownerId },
+      where,
       include: { category: { select: { id: true, userId: true } } },
       orderBy: [{ operationDate: "desc" }, { id: "desc" }],
+      take: pagination.limit + 1,
     });
-    return rows.map((row) => this.toDomain(row));
+    return createCursorPage(
+      rows.map((row) => this.toDomain(row)),
+      pagination,
+      context,
+      (row) => {
+        if (row.id == null) throw invalidPagination();
+        return [row.operationDate, row.id];
+      },
+      this.cursors
+    );
   }
 
   public async findById(
@@ -95,5 +154,12 @@ export class PrismaOneOffOperationRepository
       operationDate: row.operationDate.toISOString().slice(0, 10),
       category: { id: row.category.id, ownerId: row.category.userId },
     });
+  }
+
+  private cursorContext(ownerId: number): CursorContext {
+    return {
+      resource: "one-off-operations",
+      scope: `owner:${ownerId}`,
+    };
   }
 }

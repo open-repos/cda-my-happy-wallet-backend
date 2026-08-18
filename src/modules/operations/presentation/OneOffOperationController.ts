@@ -7,6 +7,7 @@ import {
 } from "../application";
 import { OneOffOperation } from "../domain";
 import { parseResourceId } from "./operationValidators";
+import { parsePaginationRequest } from "../../pagination";
 
 export class OneOffOperationController {
   public constructor(
@@ -15,8 +16,13 @@ export class OneOffOperationController {
   ) {}
 
   public async listCategories(req: Request, res: Response): Promise<Response> {
-    const rows = await this.categories.list(this.ownerId(req));
-    return res.status(200).json({ data: rows.map(this.categoryDto) });
+    const page = await this.categories.list(
+      this.ownerId(req),
+      parsePaginationRequest(req.query)
+    );
+    return res
+      .status(200)
+      .json({ data: page.data.map(this.categoryDto), meta: page.meta });
   }
 
   public async createCategory(req: Request, res: Response): Promise<Response> {
@@ -42,8 +48,13 @@ export class OneOffOperationController {
   }
 
   public async listOperations(req: Request, res: Response): Promise<Response> {
-    const rows = await this.operations.list(this.ownerId(req));
-    return res.status(200).json({ data: rows.map(this.operationDto) });
+    const page = await this.operations.list(
+      this.ownerId(req),
+      parsePaginationRequest(req.query)
+    );
+    return res
+      .status(200)
+      .json({ data: page.data.map(this.operationDto), meta: page.meta });
   }
 
   public async getOperation(req: Request, res: Response): Promise<Response> {

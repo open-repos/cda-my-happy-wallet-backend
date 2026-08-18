@@ -9,13 +9,27 @@ import {
   SaveOperationCategory,
 } from "../../../src/modules/operations/application";
 import { OneOffOperation } from "../../../src/modules/operations/domain";
+import {
+  CursorPage,
+  PaginationRequest,
+} from "../../../src/modules/pagination";
+
+const firstPage: PaginationRequest = { limit: 50, cursor: null };
 
 class FakeCategoryRepository implements OperationCategoryRepository {
   public categories: OperationCategory[] = [];
   private nextId = 1;
 
-  public async listByOwner(ownerId: number): Promise<OperationCategory[]> {
-    return this.categories.filter((category) => category.ownerId === ownerId);
+  public async listByOwner(
+    ownerId: number,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<OperationCategory>> {
+    return {
+      data: this.categories
+        .filter((category) => category.ownerId === ownerId)
+        .slice(0, pagination.limit),
+      meta: { limit: pagination.limit, hasNext: false, nextCursor: null },
+    };
   }
 
   public async findById(
@@ -63,8 +77,16 @@ class FakeOperationRepository implements OneOffOperationRepository {
   public operations: OneOffOperation[] = [];
   private nextId = 1;
 
-  public async listByOwner(ownerId: number): Promise<OneOffOperation[]> {
-    return this.operations.filter((operation) => operation.ownerId === ownerId);
+  public async listByOwner(
+    ownerId: number,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<OneOffOperation>> {
+    return {
+      data: this.operations
+        .filter((operation) => operation.ownerId === ownerId)
+        .slice(0, pagination.limit),
+      meta: { limit: pagination.limit, hasNext: false, nextCursor: null },
+    };
   }
 
   public async findById(
@@ -167,8 +189,8 @@ async function run() {
   });
   assert.strictEqual(operation.id, 1);
   assert.strictEqual(operation.money.minorUnits, 4250);
-  assert.strictEqual((await operations.list(7)).length, 1);
-  assert.strictEqual((await operations.list(8)).length, 0);
+  assert.strictEqual((await operations.list(7, firstPage)).data.length, 1);
+  assert.strictEqual((await operations.list(8, firstPage)).data.length, 0);
 
   await assert.rejects(
     () => operations.get(8, operation.id!),

@@ -6,6 +6,12 @@ import {ReadAllOperationFixe } from './readAllOperationFixe'
 import { Request, Response } from 'express'
 import { TypeOperationFixeEnum } from '@prisma/client';
 import { getAuthenticatedUserId } from '../../../auth/authenticatedRequest';
+import { parsePaginationRequest } from '../../../pagination';
+import {
+  paginatedCollectionResponse,
+  paginationParameters,
+  paginationValidationResponse,
+} from '../../../../utils/paginationSwagger';
 
 //Controller
 export class ReadAllOperationFixeController {
@@ -19,7 +25,11 @@ export class ReadAllOperationFixeController {
     public async execute(req: Request, res: Response, typeOperation?:TypeOperationFixeEnum) {
 
 
-            const result = await this.useCase.execute(getAuthenticatedUserId(req),typeOperation);
+            const result = await this.useCase.execute(
+              getAuthenticatedUserId(req),
+              parsePaginationRequest(req.query),
+              typeOperation
+            );
 
             return res.status(200).json(result);
 
@@ -33,7 +43,12 @@ export const swGetAllOperationFixe = {
     tags: ["OperationsFixe"],
     summary: "Get all operation fixe from user",
     operationId: "GetOperationFixe",
-    responses: new ResponseOperationFixeGet("OperationFixe").jsonStruct,
+    parameters: paginationParameters,
+    responses: {
+      ...new ResponseOperationFixeGet("OperationFixe").jsonStruct,
+      "200": paginatedCollectionResponse("Paginated fixed operations"),
+      "422": paginationValidationResponse,
+    },
     security: [
         {
           accessToken_auth: [],
@@ -46,7 +61,12 @@ export const swGetAllOperationFixe = {
     tags: ["OperationsFixe"],
     summary: "Get all Charges from user",
     operationId: "GetAllCharge",
-    responses: new ResponseOperationFixeGet("Charge").jsonStruct,
+    parameters: paginationParameters,
+    responses: {
+      ...new ResponseOperationFixeGet("Charge").jsonStruct,
+      "200": paginatedCollectionResponse("Paginated fixed charges"),
+      "422": paginationValidationResponse,
+    },
     security: [
         {
           accessToken_auth: [],
@@ -59,7 +79,12 @@ export const swGetAllOperationFixe = {
     tags: ["OperationsFixe"],
     summary: "Get all Revenus from user",
     operationId: "GetAllRevenu",
-    responses: new ResponseOperationFixeGet("Revenu").jsonStruct,
+    parameters: paginationParameters,
+    responses: {
+      ...new ResponseOperationFixeGet("Revenu").jsonStruct,
+      "200": paginatedCollectionResponse("Paginated fixed revenues"),
+      "422": paginationValidationResponse,
+    },
     security: [
         {
           accessToken_auth: [],

@@ -25,10 +25,12 @@ de template, ni identifiant de migration historique.
 | `PUT` | `/operations/:id` | `200` | Remplacer une opération |
 | `DELETE` | `/operations/:id` | `204` | Supprimer une opération |
 
-Les réponses avec contenu utilisent `{ "data": ... }`. Le montant public est
-une chaîne décimale à deux chiffres afin de préserver sa représentation exacte.
-Le type vaut `DEPENSE` ou `ENTREE`; la date reste une date civile
-`YYYY-MM-DD`.
+Les réponses unitaires avec contenu utilisent `{ "data": ... }`. Les deux
+routes de collection acceptent `limit` et `cursor`, et retournent l'enveloppe
+`{ "data": [], "meta": { "limit", "hasNext", "nextCursor" } }` décrite dans
+[`api-pagination.md`](./api-pagination.md). Le montant public est une chaîne
+décimale à deux chiffres afin de préserver sa représentation exacte. Le type
+vaut `DEPENSE` ou `ENTREE`; la date reste une date civile `YYYY-MM-DD`.
 
 ## Erreurs
 
@@ -36,7 +38,7 @@ Le type vaut `DEPENSE` ou `ENTREE`; la date reste une date civile
 - `401` : token absent, invalide ou expiré ;
 - `404` : ressource absente du compte authentifié ;
 - `409` : nom de catégorie déjà utilisé ou catégorie encore référencée ;
-- `422` : corps ou règle de domaine invalide ;
+- `422` : corps, règle de domaine ou pagination invalide ;
 - `500` : erreur inattendue, sans détail interne dans la réponse.
 
 La documentation OpenAPI décrit les neuf opérations, leurs schémas fermés,

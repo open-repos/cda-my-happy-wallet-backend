@@ -17,6 +17,10 @@ import { OneOffOperationController } from "../../../src/modules/operations/prese
 import { ErrorCode, ErrorException } from "../../../src/utils/errors";
 import { errorHandler } from "../../../src/middlewares/errorHandler.middleware";
 import { createOneOffOperationRouter } from "../../../src/routes/oneOffOperations";
+import {
+  CursorPage,
+  PaginationRequest,
+} from "../../../src/modules/pagination";
 
 const express = require("express") as typeof import("express");
 
@@ -25,8 +29,17 @@ class ApiCategoryRepository implements OperationCategoryRepository {
   public isReferenced: (id: number, ownerId: number) => boolean = () => false;
   private nextId = 1;
 
-  public async listByOwner(ownerId: number): Promise<OperationCategory[]> {
-    return this.rows.filter((row) => row.ownerId === ownerId);
+  public async listByOwner(
+    ownerId: number,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<OperationCategory>> {
+    const data = this.rows
+      .filter((row) => row.ownerId === ownerId)
+      .slice(0, pagination.limit);
+    return {
+      data,
+      meta: { limit: pagination.limit, hasNext: false, nextCursor: null },
+    };
   }
 
   public async findById(
@@ -73,8 +86,17 @@ class ApiOperationRepository implements OneOffOperationRepository {
   public rows: OneOffOperation[] = [];
   private nextId = 1;
 
-  public async listByOwner(ownerId: number): Promise<OneOffOperation[]> {
-    return this.rows.filter((row) => row.ownerId === ownerId);
+  public async listByOwner(
+    ownerId: number,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<OneOffOperation>> {
+    const data = this.rows
+      .filter((row) => row.ownerId === ownerId)
+      .slice(0, pagination.limit);
+    return {
+      data,
+      meta: { limit: pagination.limit, hasNext: false, nextCursor: null },
+    };
   }
 
   public async findById(
@@ -160,6 +182,19 @@ async function run() {
 
   const unauthenticated = await supertest(app).get("/operations");
   assert.strictEqual(unauthenticated.status, 401);
+
+  const invalidLimit = await supertest(app)
+    .get("/operations?limit=101")
+    .set("Authorization", "Bearer owner");
+  assert.strictEqual(invalidLimit.status, 422);
+
+  const emptyCategories = await supertest(app)
+    .get("/operation-categories?limit=1")
+    .set("Authorization", "Bearer owner");
+  assert.deepStrictEqual(emptyCategories.body, {
+    data: [],
+    meta: { limit: 1, hasNext: false, nextCursor: null },
+  });
 
   const unknownField = await supertest(app)
     .post("/operation-categories")

@@ -31,7 +31,8 @@ model OperationFixe {
   // Revenu Revenu? @relation(fields: [idRevenu],references: [typeOperation])
   // idChargeFixe String?
   // idRevenu String?
-  // @@index([userId], name: "userId")
+  @@index([userId, idOperationFixe])
+  @@index([userId, typeOperation, idOperationFixe])
 }
 
 model EvenementMensuel {
@@ -133,6 +134,7 @@ model OperationCategory {
   @@unique([userId, name])
   @@unique([id, userId])
   @@index([templateId])
+  @@index([userId, name, id])
 }
 
 model OneOffOperationRecord {
@@ -151,6 +153,7 @@ model OneOffOperationRecord {
   updatedAt         DateTime          @updatedAt @db.DateTime(0)
 
   @@index([userId, operationDate])
+  @@index([userId, operationDate, id])
   @@index([categoryId, userId])
 }
 

@@ -1,5 +1,4 @@
 import { ErrorException,ErrorCode } from './../utils/errors/';
-import { Result, ResultCode } from './../utils/results/';
 import { isAdmin } from './../middlewares/isAdmin.middleware';
 import { tokenJwtTAuth } from './../middlewares/authenticateToken.middleware';
 import { swnewPassdTokenUser } from './../modules/user/useCases/newPasswordUser/newPasswordUserController';
@@ -28,6 +27,18 @@ import {
   registrationRateLimiter,
   tokenValidationRateLimiter,
 } from '../middlewares/authRateLimit.middleware';
+import { getAuthenticatedUserId } from '../modules/auth/authenticatedRequest';
+import {
+  createCursorPage,
+  decodePositiveIntegerCursor,
+  paginationCursorCodec,
+  parsePaginationRequest,
+} from '../modules/pagination';
+import {
+  paginatedCollectionResponse,
+  paginationParameters,
+  paginationValidationResponse,
+} from '../utils/paginationSwagger';
 // import {SchemasJoi} from "../utils/validators/index"
 // const ApiUserEndpoints: string="/users"
 
@@ -79,8 +90,23 @@ const userRouter: Router = Router();
 
 // const asyncHandler = (fn: any) => (req: Request, res: Response, next: NextFunction) => Promise.resolve(fn(req, res, next)).catch(next);
 // Get list of users
-userRouter.get("/",tokenJwtTAuth,isAdmin, async (_: Request, res: Response) => {
+userRouter.get("/",tokenJwtTAuth,isAdmin, (req, res, next) =>
+  Promise.resolve(listUsers(req, res)).catch(next)
+);
+
+const listUsers = async (req: Request, res: Response): Promise<Response> => {
+  const pagination = parsePaginationRequest(req.query);
+  const context = {
+    resource: "admin-users",
+    scope: `admin:${getAuthenticatedUserId(req)}`,
+  };
+  const afterId = decodePositiveIntegerCursor(
+    pagination,
+    context,
+    paginationCursorCodec
+  );
   const users = await prisma.utilisateur.findMany({
+    where: afterId === null ? undefined : { id: { lt: afterId } },
     select: {
       id: true,
       firstname: true,
@@ -91,10 +117,19 @@ userRouter.get("/",tokenJwtTAuth,isAdmin, async (_: Request, res: Response) => {
       created_at: true,
       updated_at: true,
     },
+    orderBy: { id: "desc" },
+    take: pagination.limit + 1,
   });
-  const result = await new Result(ResultCode.Read,"List of all users","",users).response_get()
-  res.status(200).json(result);
-});
+  return res.status(200).json(
+    createCursorPage(
+      users,
+      pagination,
+      context,
+      (user) => [user.id],
+      paginationCursorCodec
+    )
+  );
+};
 //Register User
 userRouter.post(
   "/register",
@@ -170,15 +205,19 @@ export const swGetListUser = {
   tags: ["Users"],
   summary: "Get List of all Users (ADMIN Only)",
   operationId: "getListUsers",
+  parameters: paginationParameters,
   responses: {
     "200": {
-      description: new Result(ResultCode.Read,"List of all User App").message,
+      ...paginatedCollectionResponse("Paginated list of application users"),
   },
     "403": {
       description: new ErrorException(ErrorCode.Unauthorized).message,
     },
     "404": {
       description: new ErrorException(ErrorCode.NotFound).message,
+    },
+    "422": {
+      ...paginationValidationResponse,
     }
   },
   security: [

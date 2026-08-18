@@ -13,6 +13,10 @@ import {
   validateCategoryBody,
   validateOperationBody,
 } from "../modules/operations";
+import {
+  paginatedCollectionResponse,
+  paginationParameters,
+} from "../utils/paginationSwagger";
 
 type ControllerAction = (req: Request, res: Response) => Promise<Response>;
 
@@ -125,7 +129,11 @@ export const swOneOffOperationRouter = {
       tags: ["Operations"],
       summary: "List personal operation categories",
       security: [{ accessToken_auth: [] }],
-      responses: { "200": { description: "Category collection" }, ...securedResponses },
+      parameters: paginationParameters,
+      responses: {
+        "200": paginatedCollectionResponse("Paginated category collection"),
+        ...securedResponses,
+      },
     },
     post: {
       tags: ["Operations"],
@@ -156,7 +164,11 @@ export const swOneOffOperationRouter = {
       tags: ["Operations"],
       summary: "List personal one-off operations",
       security: [{ accessToken_auth: [] }],
-      responses: { "200": { description: "Operation collection" }, ...securedResponses },
+      parameters: paginationParameters,
+      responses: {
+        "200": paginatedCollectionResponse("Paginated operation collection"),
+        ...securedResponses,
+      },
     },
     post: {
       tags: ["Operations"],

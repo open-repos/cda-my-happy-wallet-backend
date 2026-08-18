@@ -5,6 +5,7 @@ import {
 import { OperationApplicationError } from "./OperationApplicationError";
 import { OperationCategoryRepository } from "./OperationCategoryRepository.interface";
 import { OneOffOperationRepository } from "./OneOffOperationRepository.interface";
+import { CursorPage, PaginationRequest } from "../../pagination";
 
 export type SaveOneOffOperationInput = Readonly<
   Omit<CreateOneOffOperationProps, "id" | "ownerId" | "category"> & {
@@ -18,8 +19,11 @@ export class OneOffOperationUseCases {
     private readonly categories: OperationCategoryRepository
   ) {}
 
-  public list(ownerId: number): Promise<readonly OneOffOperation[]> {
-    return this.operations.listByOwner(ownerId);
+  public list(
+    ownerId: number,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<OneOffOperation>> {
+    return this.operations.listByOwner(ownerId, pagination);
   }
 
   public async get(ownerId: number, id: number): Promise<OneOffOperation> {

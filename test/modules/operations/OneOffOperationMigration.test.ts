@@ -8,6 +8,7 @@ const fixtureCategory = "Migration test";
 const migrationNames = [
   "20260809210000_expand_personal_operation_categories",
   "20260809211000_backfill_personal_operation_categories",
+  "20260818190000_add_collection_pagination_indexes",
 ];
 
 if (
@@ -96,11 +97,20 @@ const prepare = async () => {
   });
 
   assert.ok(oneOff.id > 0);
+  await prisma.$executeRawUnsafe(
+    "CREATE INDEX `OperationFixe_userId_migration_test_idx` ON `OperationFixe`(`userId`)"
+  );
+  await prisma.$executeRawUnsafe(
+    "DROP INDEX `OperationFixe_userId_idOperationFixe_idx` ON `OperationFixe`"
+  );
+  await prisma.$executeRawUnsafe(
+    "DROP INDEX `OperationFixe_userId_typeOperation_idOperationFixe_idx` ON `OperationFixe`"
+  );
   await prisma.$executeRawUnsafe("DROP TABLE `OneOffOperationRecord`");
   await prisma.$executeRawUnsafe("DROP TABLE `OperationCategory`");
   await prisma.$executeRawUnsafe("DROP TABLE `OperationCategoryTemplate`");
   await prisma.$executeRawUnsafe(
-    `DELETE FROM \`_prisma_migrations\` WHERE \`migration_name\` IN (?, ?)`,
+    `DELETE FROM \`_prisma_migrations\` WHERE \`migration_name\` IN (?, ?, ?)`,
     ...migrationNames
   );
 };
@@ -131,6 +141,10 @@ const verify = async () => {
   );
   assert.ok(categories.some((category) => category.name === fixtureCategory));
   assert.ok(categories.length >= 5);
+
+  await prisma.$executeRawUnsafe(
+    "DROP INDEX `OperationFixe_userId_migration_test_idx` ON `OperationFixe`"
+  );
 
   await prisma.oneOffOperationRecord.deleteMany({ where: { userId: user.id } });
   await prisma.operationCategory.deleteMany({ where: { userId: user.id } });

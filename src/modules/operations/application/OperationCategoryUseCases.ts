@@ -4,6 +4,7 @@ import {
   SaveOperationCategory,
 } from "./OperationCategoryRepository.interface";
 import { OperationApplicationError } from "./OperationApplicationError";
+import { CursorPage, PaginationRequest } from "../../pagination";
 
 export type SaveOperationCategoryInput = Readonly<{
   name: string;
@@ -15,8 +16,11 @@ export class OperationCategoryUseCases {
     private readonly categories: OperationCategoryRepository
   ) {}
 
-  public list(ownerId: number): Promise<readonly OperationCategory[]> {
-    return this.categories.listByOwner(ownerId);
+  public list(
+    ownerId: number,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<OperationCategory>> {
+    return this.categories.listByOwner(ownerId, pagination);
   }
 
   public async create(

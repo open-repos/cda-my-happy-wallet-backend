@@ -12,6 +12,8 @@ import {
 import { UserRepo } from "../../../src/modules/user/userRepo";
 import { FakeMailer } from "../../fakes/FakeMailer";
 
+const firstPage = { limit: 50, cursor: null } as const;
+
 const databaseUrl = process.env.DATABASE_URL || "";
 if (
   !databaseUrl.includes("myhappywallet_test") ||
@@ -57,7 +59,7 @@ async function run() {
     categoryRepository
   );
 
-  assert.strictEqual((await categories.list(firstUser.id)).length, 4);
+  assert.strictEqual((await categories.list(firstUser.id, firstPage)).data.length, 4);
   const category = await categories.create(firstUser.id, {
     name: "Voyage",
     color: "#336699",

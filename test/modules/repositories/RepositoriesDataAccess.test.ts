@@ -63,12 +63,13 @@ async function runRepositoryDataAccessTests() {
   assert.strictEqual(operationExists, true);
 
   const userOperations = await operationFixeRepo.getAllOperationsFixes(
-    String(user.id)
+    String(user.id),
+    { limit: 50, cursor: null }
   );
 
-  assert.strictEqual(userOperations.length, 1);
-  assert.strictEqual(userOperations[0].titre, "Loyer");
-  assert.strictEqual(userOperations[0].typeOperation, "CHARGE");
+  assert.strictEqual(userOperations.data.length, 1);
+  assert.strictEqual(userOperations.data[0].titre, "Loyer");
+  assert.strictEqual(userOperations.data[0].typeOperation, "CHARGE");
 
   const resetToken = "c".repeat(128);
   await prisma.utilisateur.update({
