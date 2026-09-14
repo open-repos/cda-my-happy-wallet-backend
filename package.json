@@ -12,7 +12,7 @@
     "build": "npx tsc",
     "type-check": "npx tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
-    "format": "prettier --check package.json .eslintrc.json",
+    "format": "prettier --check package.json .eslintrc.json .github AGENTS.md CONTRIBUTING.md changes",
     "db:migrate": "npx prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:visualize": "npx prisma studio",
@@ -52,7 +52,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@gitlab.com:formation-cda1/projet-chef-oeuvre-rapport/projet-00-myhappywallet-backend.git"
+    "url": "git@github.com:open-repos/cda-my-happy-wallet-backend.git"
   },
   "keywords": [],
   "author": "",
