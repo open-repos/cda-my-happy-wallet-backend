@@ -1,0 +1,109 @@
+name: Backend quality
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Format, lint, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: myhappywallet_test
+          MYSQL_USER: myhappywallet_test
+          MYSQL_PASSWORD: test-password
+          MYSQL_ROOT_PASSWORD: test-root-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --protocol=tcp -h 127.0.0.1 -uroot -ptest-root-password --silent"
+          --health-interval=2s
+          --health-timeout=5s
+          --health-retries=30
+    env:
+      NODE_ENV: test
+      DATABASE_URL: mysql://myhappywallet_test:test-password@my-happy-wallet-mysql-test:3306/myhappywallet_test
+      SHADOW_DATABASE_URL: mysql://myhappywallet_test:test-password@my-happy-wallet-mysql-test:3306/myhappywallet_test_shadow
+      ACCESS_TOKEN: test-access-token-secret-at-least-32-characters
+      REFRESH_TOKEN: test-refresh-token-secret-at-least-32-characters
+      REGISTER_TOKEN: test-register-token-secret-at-least-32-characters
+      MAILER_DRIVER: smtp
+      SMTP_HOST: localhost
+      SMTP_PORT: "1025"
+      SMTP_SECURE: "false"
+      EMAIL_SENDER: no-reply@myhappywallet.local
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Map the guarded test database hostname
+        run: echo "127.0.0.1 my-happy-wallet-mysql-test" | sudo tee -a /etc/hosts
+      - name: Check formatting
+        run: npm run format
+      - name: Lint
+        run: npm run lint
+      - name: Apply test database migrations
+        run: npm run db:deploy
+      - name: Type-check
+        run: npm run type-check
+      - name: Run service and API tests
+        run: |
+          npm run test:services
+          npm run test:mailer
+          npm run test:smtp-mailer
+          npm run test:create-user
+          npm run test:token-service
+          npm run test:security-config
+          npm run test:auth-rate-limit
+          npm run test:http-limits
+          npm run test:cors
+          npm run test:password-reset
+          npm run test:refresh-sessions
+          npm run test:refresh-session-service
+          npm run test:native-session
+          npm run test:renew-session
+          npm run test:health
+          npm run test:delete-revenu-route
+          npm run test:operations-domain
+          npm run test:operations-migration
+          npm run test:operations-schema
+          npm run test:operations-use-cases
+          npm run test:operations-repositories
+          npm run test:operations-api
+          npm run test:budget-api-integration
+          npm run test:pagination
+          npm run test:pagination-openapi
+          npm run test:pagination-schema
+          npm run test:pagination-integration
+          npm run test:prisma-errors
+          npm run test:result-construction
+          npm run test:repositories
+          npm run test:api
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+      - name: Build backend
+        run: npm run build
