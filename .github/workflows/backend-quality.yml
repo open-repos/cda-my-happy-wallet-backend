@@ -39,8 +39,8 @@ jobs:
           --health-retries=30
     env:
       NODE_ENV: test
-      DATABASE_URL: mysql://myhappywallet_test:test-password@127.0.0.1:3306/myhappywallet_test
-      SHADOW_DATABASE_URL: mysql://myhappywallet_test:test-password@127.0.0.1:3306/myhappywallet_test_shadow
+      DATABASE_URL: mysql://myhappywallet_test:test-password@my-happy-wallet-mysql-test:3306/myhappywallet_test
+      SHADOW_DATABASE_URL: mysql://myhappywallet_test:test-password@my-happy-wallet-mysql-test:3306/myhappywallet_test_shadow
       ACCESS_TOKEN: test-access-token-secret-at-least-32-characters
       REFRESH_TOKEN: test-refresh-token-secret-at-least-32-characters
       REGISTER_TOKEN: test-register-token-secret-at-least-32-characters
@@ -60,6 +60,8 @@ jobs:
           cache-dependency-path: package-lock.json
       - name: Install dependencies
         run: npm ci
+      - name: Map the guarded test database hostname
+        run: echo "127.0.0.1 my-happy-wallet-mysql-test" | sudo tee -a /etc/hosts
       - name: Check formatting
         run: npm run format
       - name: Lint
