@@ -14,6 +14,17 @@ These instructions apply to the whole backend repository.
 - Do not merge a release pull request, create a tag or release, configure credentials, or trigger a deployment without explicit user authorization.
 - Keep commits focused. Explain the behavior delivered and the reason for the change in each commit message.
 
+## Planning and Issue selection
+
+- GitHub Issues are the source of truth for the executable specification and current work status. GitLab links in migrated Issues are historical references.
+- Read the complete Issue selected by the task before editing code. Its acceptance criteria, scope, dependencies, milestone, priority and effort apply to the implementation.
+- Never implement an Issue labelled `kind/parent`. It groups executable child Issues.
+- Start only an open Issue labelled `status/ready`, unless the user explicitly selects another Issue. Confirm that every Issue listed under its dependencies is closed.
+- Use one lifecycle label at a time: `status/backlog`, `status/blocked`, `status/ready`, `status/in-progress`, `status/in-review`, or `status/done`.
+- When GitHub write access is available, replace `status/ready` with `status/in-progress` when work starts and with `status/in-review` when the pull request opens. The merge workflow closes the primary Issue and applies `status/done`.
+- In explicitly authorized batch mode, finish and validate one Issue and open its pull request before selecting the next eligible `status/ready` Issue. Use one branch and one pull request per Issue.
+- This repository is self-contained for Codex Cloud. Do not assume that the sibling local `agent-workspace` exists in a cloud checkout; use the selected GitHub Issue and this file.
+
 ## Backend boundaries
 
 - Keep domain rules independent from Express, Prisma, email, and other infrastructure concerns.

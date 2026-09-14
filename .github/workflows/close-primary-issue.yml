@@ -42,4 +42,11 @@ jobs:
 
           gh issue comment "$issue_number" --repo "$REPOSITORY" \
             --body "Delivered by #$PR_NUMBER on \`develop\` after required checks passed."
+          gh issue edit "$issue_number" --repo "$REPOSITORY" \
+            --remove-label status/backlog \
+            --remove-label status/blocked \
+            --remove-label status/ready \
+            --remove-label status/in-progress \
+            --remove-label status/in-review \
+            --add-label status/done
           gh issue close "$issue_number" --repo "$REPOSITORY"
