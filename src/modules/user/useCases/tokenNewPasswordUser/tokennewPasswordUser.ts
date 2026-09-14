@@ -1,19 +1,19 @@
 import { Result, ResultCode }  from './../../../../utils/results/';
-import { UserRepo } from "../../userRepo";
+import { IUserRepository } from "../../userRepository.interface";
 import { ErrorException,ErrorCode } from '../../../../utils/errors/';
+import { parseResetToken } from '../../../auth/resetToken';
 export class TokenNewPasswordUser {
-  private userRepo: UserRepo;
+  private userRepo: IUserRepository;
 
-  constructor(userRepo: UserRepo) {
+  constructor(userRepo: IUserRepository) {
     this.userRepo = userRepo;
   }
 
-  public async execute(token: string) {
+  public async execute(token: unknown) {
 
-    // A enlever une fois le middleware executé
-    const existUserResetToken =  await this.userRepo.existUserResetToken(token)
-    console.log("existUserResetToken",existUserResetToken)
-    if (!existUserResetToken) {
+    const resetToken = parseResetToken(token);
+    const hasValidResetToken = await this.userRepo.hasValidResetToken(resetToken)
+    if (!hasValidResetToken) {
         throw new ErrorException(ErrorCode.Unauthorized,"Link to reset password expired");
     }
 

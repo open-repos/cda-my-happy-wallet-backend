@@ -114,6 +114,7 @@ operationFixeRouter.post(
 // Update revenus / charges by ID
 operationFixeRouter.put(
   "/revenus/:id",
+  tokenJwtTAuth,
   Validator("operationFixe"),
   (req: Request, res: Response, next: NextFunction) =>
     Promise.resolve(
@@ -122,6 +123,7 @@ operationFixeRouter.put(
 );
 operationFixeRouter.put(
   "/charges/:id",
+  tokenJwtTAuth,
   Validator("operationFixe"),
   (req: Request, res: Response, next: NextFunction) =>
     Promise.resolve(
@@ -148,7 +150,7 @@ operationFixeRouter.get(
 );
 
 // Delete revenus / charges by ID
-operationFixeRouter.get(
+operationFixeRouter.delete(
   "/revenus/:id",
   tokenJwtTAuth,
   (req: Request, res: Response, next: NextFunction) =>

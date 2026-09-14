@@ -7,6 +7,11 @@ import { emailSchema, emailUserProps, emailSchemaSwg } from './email.validator';
 import { deleteEmailSchemaSwg,deleteEmailSchema,deleteEmailProps } from "./deleteUser.validator";
 import { newPasswordSchema, newPasswordUserProps, newPasswordSchemaSwg } from './newPassword.validator';
 import { SwaggerSchema } from "joi-to-swagger";
+import {
+    NativeRefreshSessionProps,
+    nativeRefreshSessionSchema,
+    nativeRefreshSessionSchemaSwg,
+} from "./nativeRefreshSession.validator";
 
 // Validation Schema pour middleware Validator 'joi'
 export interface ISchema {
@@ -17,6 +22,7 @@ export interface ISchema {
     emailUser:Joi.ObjectSchema<emailUserProps>
     newPassword:Joi.ObjectSchema<newPasswordUserProps>
     deleteEmail:Joi.ObjectSchema<deleteEmailProps>
+    nativeRefreshSession:Joi.ObjectSchema<NativeRefreshSessionProps>
 }
 
 export const Schemas:ISchema = {
@@ -26,7 +32,8 @@ export const Schemas:ISchema = {
     renewRefreshToken:renewRefreshTokenSchema,
     emailUser:emailSchema,
     newPassword:newPasswordSchema,
-    deleteEmail:deleteEmailSchema
+    deleteEmail:deleteEmailSchema,
+    nativeRefreshSession:nativeRefreshSessionSchema
 }
 
 // Schema pour Swagger (joi-to-swagger)
@@ -39,6 +46,7 @@ interface ISchemaSwg{
     charge:SwaggerSchema
     revenu:SwaggerSchema
     deleteEmail:SwaggerSchema
+    nativeRefreshSession:SwaggerSchema
 }
 
 export const SchemaSwg:ISchemaSwg={
@@ -49,5 +57,6 @@ export const SchemaSwg:ISchemaSwg={
     renewAccessToken:renewAccessTokenSchemaSwg,
     charge:chargeSchemaSwg,
     revenu:revenuSchemaSwg,
-    deleteEmail:deleteEmailSchemaSwg
+    deleteEmail:deleteEmailSchemaSwg,
+    nativeRefreshSession:nativeRefreshSessionSchemaSwg
 }

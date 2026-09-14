@@ -9,6 +9,7 @@ import { NextFunction } from 'express';
 
 import { NewPasswordUser } from './newPasswordUser'
 import { Request, Response } from 'express'
+import { clearAuthCookie } from '../../../auth/authCookieOptions';
 
 
 export const swnewPassdTokenUser = {
@@ -59,14 +60,12 @@ export class NewPasswordUserController {
 
     public async execute(req: Request, res: Response, _:NextFunction) {
 
-            console.log("Dans la fonction execute du NewPasswordController")
             const result = await this.useCase.execute(req.body.password, req.cookies.reset_token_password);
-            console.log('result.success final', result.success);
             if (!result) {
                 // return res.status(400).json({ message: result.message })
                 throw new ErrorException(ErrorCode.UnknownError)
             }
-            res.clearCookie("reset_token_password")
+            clearAuthCookie(res, "reset_token_password")
             return res.status(201).json({succes:result.success, message:result.message});
 
     }

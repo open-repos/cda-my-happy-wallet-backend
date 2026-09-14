@@ -4,9 +4,10 @@ import { UserRepo } from '../../userRepo'
 
 import { Login } from './login'
 import { LoginController } from './loginController'
+import { refreshSessionService } from '../../../auth/refreshSession'
 
 const userRepo = new UserRepo(prisma)
-const login = new Login(userRepo)
+const login = new Login(userRepo, refreshSessionService)
 const loginController = new LoginController(login)
 
 export { login, loginController }

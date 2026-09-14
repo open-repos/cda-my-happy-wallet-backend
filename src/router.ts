@@ -3,6 +3,9 @@ import { operationFixeRouter } from './routes/operationsFixes';
 import {renewAccessToken, swRenewAccessToken} from './modules/auth/accessTokenRenew'
 import { Validator } from './middlewares/validator.middleware';
 import { userRouter, swGetListUser } from './routes/user';
+import { refreshRateLimiter } from './middlewares/authRateLimit.middleware';
+import { nativeSessionRouter } from './routes/nativeSession';
+import { oneOffOperationRouter } from './routes/oneOffOperations';
 
 
 
@@ -30,17 +33,18 @@ mainRouter.get("/", (_: Request,res: Response) => {
     // res.redirect('/api-docs');
 })
 
-mainRouter.post("/token",Validator("renewRefreshToken"),renewAccessToken)
+mainRouter.post("/token",refreshRateLimiter,Validator("renewRefreshToken"),renewAccessToken)
+
+mainRouter.use('/auth/native', nativeSessionRouter)
 
 mainRouter.use('/users',userRouter)
 
 mainRouter.use('/operations-fixes',operationFixeRouter)
 
+mainRouter.use('/', oneOffOperationRouter)
+
 
 // mainRouter.use(notFoundRouter)
 
 export  {mainRouter}
-
-
-
 

@@ -1,200 +1,156 @@
-image: node:16.8.0
+image: node:22-bookworm
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: "$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS"
+      when: never
+    - if: "$CI_COMMIT_BRANCH"
+
+default:
+  interruptible: true
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
 
 stages:
-  # - publish
-  # - build_stage
-  # - pm2_stage
-  - deploy_pre_prod
-  - deploy_prod
+  - validate
+  - test
+  - build
+  - package
+  - deploy
 
-variables:
-  TAG_LATEST: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME:latest
-  TAG_COMMIT: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME:$CI_COMMIT_SHORT_SHA
+.branch_or_merge_request:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: "$CI_COMMIT_BRANCH"
 
-.before_script_template:
+.npm_job:
+  extends: .branch_or_merge_request
   before_script:
-    - echo "====== Pre script ======"
-    # - printenv
-    - echo "$CI_COMMIT_BRANCH" && echo "$CI_PIPELINE_SOURCE" && echo "$CI_COMMIT_TAG"
-    - "which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )"
-    - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
-    - chmod 700 ~/.ssh/id_rsa
-    - eval "$(ssh-agent -s)"
-    - ssh-add ~/.ssh/id_rsa
-    - ssh-keyscan -t rsa "$DEPLOY_HOST" > ~/.ssh/known_hosts
-    - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-    - chmod 644 ~/.ssh/known_hosts
-    - npm i pm2 -g
+    - npm ci --cache .npm --prefer-offline
 
-# .base-rules:
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "develop"'
-#       when: always
-#     - if: '$CI_PIPELINE_SOURCE == "push"'
-#       when: never
-#     - if: $CI_COMMIT_TAG
-#       when: never
+quality:
+  stage: validate
+  extends: .npm_job
+  script:
+    - npm run format
+    - npm run lint
 
-cache: &global_cache
-  key: $CI_COMMIT_REF_SLUG
-  policy: pull-push
-  paths:
-    - node_modules/
-    - package-lock.json
-
+tests:
+  stage: test
+  extends: .npm_job
+  services:
+    - name: mysql:8.0
+      alias: my-happy-wallet-mysql-test
+  variables:
+    NODE_ENV: test
+    MYSQL_DATABASE: myhappywallet_test
+    MYSQL_USER: myhappywallet_test
+    MYSQL_PASSWORD: test-password
+    MYSQL_ROOT_PASSWORD: test-root-password
+    DATABASE_URL: mysql://myhappywallet_test:test-password@my-happy-wallet-mysql-test:3306/myhappywallet_test
+    SHADOW_DATABASE_URL: mysql://myhappywallet_test:test-password@my-happy-wallet-mysql-test:3306/myhappywallet_test_shadow
+    ACCESS_TOKEN: test-access-token-secret-at-least-32-characters
+    REFRESH_TOKEN: test-refresh-token-secret-at-least-32-characters
+    REGISTER_TOKEN: test-register-token-secret-at-least-32-characters
+    MAILER_DRIVER: smtp
+    SMTP_HOST: localhost
+    SMTP_PORT: "1025"
+    SMTP_SECURE: "false"
+    EMAIL_SENDER: no-reply@myhappywallet.local
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+    - until node -e "const net=require('net');const socket=net.connect(3306,'my-happy-wallet-mysql-test',()=>{socket.end();process.exit(0)});socket.on('error',()=>process.exit(1))"; do sleep 2; done
+    - npm run db:deploy
+  needs:
+    - quality
+  script:
+    - npm run type-check
+    - npm run test:services
+    - npm run test:mailer
+    - npm run test:smtp-mailer
+    - npm run test:create-user
+    - npm run test:token-service
+    - npm run test:native-session
+    - npm run test:renew-session
+    - npm run test:health
+    - npm run test:delete-revenu-route
+    - npm run test:operations-domain
+    - npm run test:operations-migration
+    - npm run test:operations-schema
+    - npm run test:operations-use-cases
+    - npm run test:operations-repositories
+    - npm run test:operations-api
+    - npm run test:budget-api-integration
+    - npm run test:prisma-errors
+    - npm run test:result-construction
+    - npm run test:repositories
+    - npm run test:api
 
 build:
-  stage: deploy_pre_prod
-  extends: .before_script_template
-  rules: 
-    - if: '$CI_COMMIT_BRANCH == "develop"' 
-      when: always
-    - if: '$CI_COMMIT_BRANCH != "develop"' 
-      when: never
-    - when: on_success
+  stage: build
+  extends: .npm_job
+  needs:
+    - quality
+    - tests
   script:
-    - echo "====== Deploy to pre Prod server ======"
-    - echo "Test ssh connection"
-    # - ssh -o StrictHostKeyChecking=no -T "$SERVER_USER@$SERVER_IP"
-    # Delploy
-    - echo "Setup tagget server directories"
-    - node --version
-    # - npm i
-    # - npm run build
-    - ls -a
-    # Delploy
-    - echo "Setup tagget server directories"
-    - pm2 deploy ecosystem.config.js development setup 2>&1 || true
-    - echo "make deploy"
-    # - git add . commit -m 'build back'
-    - pm2 deploy ecosystem.config.js development
-    # - cp ../.env ./
-  cache:
-    <<: *global_cache
-    policy: push
+    - npm run prisma:generate
+    - npm run build
+  artifacts:
+    expire_in: 7 days
+    paths:
+      - dist/
+
+container_image:
+  stage: package
+  extends: .branch_or_merge_request
+  image:
+    name: moby/buildkit:rootless
+    entrypoint: [""]
+  cache: []
+  needs:
+    - job: build
+      artifacts: false
+  variables:
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+  before_script:
+    - mkdir -p ~/.docker
+    - REGISTRY_AUTH="$(printf '%s:%s' "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" | base64 | tr -d '\n')"
+    - printf '{"auths":{"%s":{"auth":"%s"}}}\n' "$CI_REGISTRY" "$REGISTRY_AUTH" > ~/.docker/config.json
+  script:
+    - buildctl-daemonless.sh build --frontend dockerfile.v0 --local context=. --local dockerfile=. --import-cache type=registry,ref="$CI_REGISTRY_IMAGE:buildcache" --export-cache type=registry,ref="$CI_REGISTRY_IMAGE:buildcache",mode=max --output type=image,name="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA",push=true
+
+deploy_production:
+  stage: deploy
+  image: debian:bookworm-slim
+  interruptible: false
+  timeout: 15m
+  resource_group: backend-production
   tags:
     - server_runner
-
-
-deploy:
-  stage: deploy_prod
-  extends: .before_script_template
-  rules: 
-    - if: '$CI_COMMIT_BRANCH == "main"' 
-      when: always
-    - if: '$CI_COMMIT_BRANCH != "main"' 
-      when: never
-    - when: on_success
+  cache: []
+  needs:
+    - job: container_image
+      artifacts: false
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
+      when: manual
+      allow_failure: false
+  environment:
+    name: production
+    deployment_tier: production
+  before_script:
+    - test -s "$SSH_PRIVATE_KEY"
+    - test -s "$SSH_KNOWN_HOSTS"
+    - test -n "$SERVER_IP"
+    - test -n "$SERVER_USER"
+    - apt-get update && apt-get install --yes --no-install-recommends openssh-client
+    - install -d -m 700 ~/.ssh
+    - chmod 400 "$SSH_PRIVATE_KEY"
+    - install -m 644 "$SSH_KNOWN_HOSTS" ~/.ssh/known_hosts
   script:
-    - echo "====== Deploy to production server ======"
-    - echo "Test ssh connection"
-    # - ssh -o StrictHostKeyChecking=no -T "$SERVER_USER@$SERVER_IP"
-    # Delploy
-    - echo "Setup tagget server directories"
-    - node --version
-    # - npm i
-    # - npm run build
-    - ls -a
-    # Delploy
-    - echo "Setup tagget server directories"
-    - pm2 deploy ecosystem.config.js production setup 2>&1 || true
-    - echo "make deploy"
-    # - git add . commit -m 'build back'
-    - pm2 deploy ecosystem.config.js production
-    # - cp ../.env ./
-  cache:
-    <<: *global_cache
-    policy: push
-  tags:
-    - server_runner
-
-
-# publish:
-#   image: docker:latest
-#   stage: publish
-#   services:
-#     - docker:dind
-#   rules: 
-#     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" ' 
-#       when: always
-#     - if: '$CI_COMMIT_BRANCH != "develop" || $CI_COMMIT_BRANCH != "main" ' 
-#       when: never
-#     - when: on_success
-#   script:
-#     - docker build -t $TAG_COMMIT -t $TAG_LATEST .
-#     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-#     - docker push $TAG_COMMIT
-#     - docker push $TAG_LATEST
-#   tags:
-#     - server_runner
-
-
-
-# deploy:
-#   image: alpine:latest
-#   stage: build_stage
-#   rules: 
-#     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" ' 
-#       when: always
-#     - if: '$CI_COMMIT_BRANCH != "develop" || $CI_COMMIT_BRANCH != "main" ' 
-#       when: never
-#     - when: on_success
-#   tags:
-#     - server_runner
-#   script:
-#     - chmod og= $SSH_PRIVATE_KEY
-#     - apk update && apk add openssh-client
-#     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY"
-#     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker ls -a"
-#     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $TAG_COMMIT"
-#     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f myhappywallet || true"
-#     - ssh -i $SSH_PRIVATE_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -p 80:80 --name myhappywallet $TAG_COMMIT"
-
-# deploy:
-#   stage: pm2_stage
-#   rules: 
-#     - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" ' 
-#       when: always
-#     - if: '$CI_COMMIT_BRANCH != "develop" || $CI_COMMIT_BRANCH != "main" ' 
-#       when: never
-#     - when: on_success
-#   script:
-#     - echo "====== pm2 stage to server ======"
-#     # - ssh -o StrictHostKeyChecking=no -T "$SERVER_USER@$SERVER_IP"
-#     # Delploy
-#     - echo "Setup tagget server directories"
-#     - npm i
-#     - npm run build
-#     - ls -a
-#     - pm2 start ./dist/index.js
-#   cache:
-#     <<: *global_cache
-#     policy: push
-#   tags:
-#     - server_runner
-
-# deploy:
-#   image: keymetrics/pm2:6
-#   stage: deploy_stage
-#   extends: .before_script_template
-#   rules: 
-#     - if: '$CI_COMMIT_BRANCH == "main"'
-#       when: always
-#     - if: '$CI_COMMIT_BRANCH == "develop"'
-#       when: never
-#     - when: on_success
-#   script:
-#       # Delploy
-#     - echo "====== Deploy to production server ======"
-#     - echo "Setup tagget server directories"
-#     # - pm2 deploy ecosystem.config.js production setup 2>&1 || true
-#     # - echo "make deploy"
-#     # - pm2 deploy ecosystem.config.js production
-#     # - "pm2 startOrGracefulReload ecosystem.config.js --env production && pm2 save"
-#     - pm2 start ecosystem.config.js --only myhappywallet
-#   cache:
-#     <<: *global_cache
-#     policy: pull
-#   tags:
-#     - server_runner
+    - ssh -i "$SSH_PRIVATE_KEY" -o IdentitiesOnly=yes "$SERVER_USER@$SERVER_IP" "sudo -n /usr/local/sbin/deploy-mhw-backend '$CI_COMMIT_SHA'"

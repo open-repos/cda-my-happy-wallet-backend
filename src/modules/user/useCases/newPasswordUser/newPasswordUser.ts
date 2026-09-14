@@ -1,27 +1,28 @@
-import { UserRepo } from "../../userRepo";
+import { IUserRepository } from "../../userRepository.interface";
 import argon2 from "argon2"
-import { ErrorException,ErrorCode } from '../../../../utils/errors/';
+import { ErrorCode, ErrorException } from "../../../../utils/errors";
+import { Result, ResultCode } from "../../../../utils/results";
+import { parseResetToken } from "../../../auth/resetToken";
 export class NewPasswordUser {
-  private userRepo: UserRepo;
+  private userRepo: IUserRepository;
 
-  constructor(userRepo: UserRepo) {
+  constructor(userRepo: IUserRepository) {
     this.userRepo = userRepo;
   }
 
-  public async execute(password: string, token: string) {
+  public async execute(password: string, token: unknown) {
 
-    // A enlever une fois le middleware executé
-    const existUserResetToken =  await this.userRepo.existUserResetToken(token)
-    if (!existUserResetToken) {
-        throw new ErrorException(ErrorCode.Unauthorized);
+    const resetToken = parseResetToken(token);
+    const hasValidResetToken = await this.userRepo.hasValidResetToken(resetToken);
+    if (!hasValidResetToken) {
+      throw new ErrorException(ErrorCode.Unauthorized);
     }
 
     const hashPassword = await argon2.hash(password);
-    console.log("hashed password", hashPassword);
 
     password = hashPassword;
 
-    const result = await this.userRepo.newPassword(password, token);
-    return result;
+    await this.userRepo.newPassword(password, resetToken);
+    return await new Result(ResultCode.Created,`New password created`).response_post();
   }
 }

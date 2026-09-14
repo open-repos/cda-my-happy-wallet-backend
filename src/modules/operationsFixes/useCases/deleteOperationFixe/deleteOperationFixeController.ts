@@ -9,6 +9,7 @@ import { RespUpdateDelete } from './../../../../utils/models/';
 import {DeleteOperationFixe } from './deleteOperationFixe'
 import { Request, Response } from 'express'
 import { TypeOperationFixeEnum } from '@prisma/client';
+import { getAuthenticatedUserId } from '../../../auth/authenticatedRequest';
 
 //Controller
 export class DeleteOperationFixeController {
@@ -22,9 +23,7 @@ export class DeleteOperationFixeController {
     public async execute(req: Request, res: Response,typeOperation:TypeOperationFixeEnum) {
 
 
-            console.log("Dans la fonction execute du operationController")
-            const result = await this.useCase.execute(req.body,req.cookies.id_user,req.params.id,typeOperation);
-            console.log('result.success final', result.success);
+            const result = await this.useCase.execute(req.body,getAuthenticatedUserId(req),req.params.id,typeOperation);
 
             return res.status(200).json(result);
 

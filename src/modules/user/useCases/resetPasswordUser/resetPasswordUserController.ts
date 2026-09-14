@@ -31,9 +31,6 @@ export const swResetUser = {
       "400": {
         description: new ErrorException(ErrorCode.IncompleteRequestBody).message,
       },
-      "401": {
-        description: new ErrorException(ErrorCode.EmailNotFound).message,
-      },
       "403": {
         description: new ErrorException(ErrorCode.Unauthorized).message,
       },
@@ -56,9 +53,7 @@ export class ResetPasswordUserController {
 
     public async execute(req: Request, res: Response, _:NextFunction) {
 
-            console.log("Dans la fonction execute du ResetPasswordController")
             const result = await this.useCase.execute(req.body.email);
-            console.log('result.success final', result.success);
             if (!result) {
                 // return res.status(400).json({ message: result.message })
                 throw new ErrorException(ErrorCode.UnknownError)

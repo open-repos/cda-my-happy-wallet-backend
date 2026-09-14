@@ -1,9 +1,9 @@
 import { Result, ResultCode } from './../../../../utils/results/';
 import { NextFunction } from 'express';
-// import { NODE_ENV } from '../../../../config/config';
 import { Login } from './login'
 import { Request, Response } from 'express'
 import { ErrorException,ErrorCode } from './../../../../utils/errors/';
+import { authCookieOptions, clearAuthCookie } from '../../../auth/authCookieOptions';
 
 export const swLoginUser = {
     tags: ["Users"],
@@ -76,28 +76,16 @@ export class LoginController {
     }
 
     async execute(req: Request, res: Response, _:NextFunction): Promise<void | any> {
-            res.clearCookie("refresh_token");
-            res.clearCookie("id_user");
+            clearAuthCookie(res, "refresh_token");
+            clearAuthCookie(res, "id_user");
             // res.clearCookie("role_user");
             const result= await this.useCase.execute(req.body)
-            console.log("avant de check si success",result)
             if (!result) {
                 // return res.status(400).json({ message: result.message })
                 throw new ErrorException(ErrorCode.UnknownError)
             }
-            console.log(result.payload?.user.id)
-            res.cookie("id_user",result.userId,{
-                httpOnly:true,
-                secure:true,
-                maxAge: 900000, //15min,
-
-            })
-            res.cookie("refresh_token",result.refreshToken,{
-                httpOnly:true,
-                secure:true,
-                maxAge: 900000, //15min
-
-            })
+            res.cookie("id_user",result.userId,authCookieOptions(900000))
+            res.cookie("refresh_token",result.refreshToken,authCookieOptions(900000))
 
           //   res.cookie("role_user",result.payload.user.role,{
           //     httpOnly:true,

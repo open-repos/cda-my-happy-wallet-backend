@@ -7,6 +7,8 @@ import { SchemaSwg } from "./validators/index";
 import { APP_BASE_URL } from "../config/config";
 import { swUserRouter } from "../routes/user";
 import { swOperationFixeRouter } from '../routes/operationsFixes';
+import { swNativeSessionRouter } from '../routes/nativeSession';
+import { swOneOffOperationRouter } from '../routes/oneOffOperations';
 
 const swagger = {
   openapi: "3.0.0",
@@ -65,10 +67,38 @@ const swagger = {
     ...swAdminRouter,
     ...swUserRouter,
     ...swRenewTokenRouter,
-    ...swOperationFixeRouter
+    ...swNativeSessionRouter,
+    ...swOperationFixeRouter,
+    ...swOneOffOperationRouter
   },
   components: {
+    parameters: {
+      PaginationLimit: {
+        name: "limit",
+        in: "query",
+        required: false,
+        description: "Number of collection items to return (default 50, maximum 100)",
+        schema: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+      },
+      PaginationCursor: {
+        name: "cursor",
+        in: "query",
+        required: false,
+        description: "Opaque cursor returned by the previous page",
+        schema: { type: "string", maxLength: 2048 },
+      },
+    },
     schemas: {
+      PaginationMeta: {
+        type: "object",
+        required: ["limit", "hasNext", "nextCursor"],
+        additionalProperties: false,
+        properties: {
+          limit: { type: "integer", minimum: 1, maximum: 100 },
+          hasNext: { type: "boolean" },
+          nextCursor: { type: "string", nullable: true },
+        },
+      },
       Register: SchemaSwg.register,
       Login: SchemaSwg.login,
       Email: SchemaSwg.email,
@@ -83,7 +113,46 @@ const swagger = {
       ListeRevenuResponse:ResSchemaSwg.arrayRevenu,
       Charge:SchemaSwg.charge,
       Revenu:SchemaSwg.revenu,
-      DeleteEmailAccount:SchemaSwg.deleteEmail
+      DeleteEmailAccount:SchemaSwg.deleteEmail,
+      NativeRefreshSession:SchemaSwg.nativeRefreshSession,
+      OperationCategoryInput: {
+        type: "object",
+        required: ["name"],
+        additionalProperties: false,
+        properties: {
+          name: { type: "string", minLength: 2, maxLength: 50 },
+          color: {
+            type: "string",
+            nullable: true,
+            pattern: "^#[0-9A-Fa-f]{6}$",
+          },
+        },
+      },
+      OneOffOperationInput: {
+        type: "object",
+        required: [
+          "title",
+          "amount",
+          "currency",
+          "kind",
+          "operationDate",
+          "categoryId",
+        ],
+        additionalProperties: false,
+        properties: {
+          title: { type: "string", minLength: 2, maxLength: 50 },
+          amount: {
+            oneOf: [
+              { type: "number", minimum: 0.01, maximum: 99999999.99 },
+              { type: "string", pattern: "^(0|[1-9]\\d{0,7})(?:\\.\\d{1,2})?$" },
+            ],
+          },
+          currency: { type: "string", minLength: 3, maxLength: 3 },
+          kind: { type: "string", enum: ["DEPENSE", "ENTREE"] },
+          operationDate: { type: "string", format: "date" },
+          categoryId: { type: "integer", minimum: 1 },
+        },
+      }
     },
     responses: {
       UnauthorizedError401: {
@@ -118,6 +187,3 @@ const swagger = {
   },
 };
 export default swagger;
-
-
-

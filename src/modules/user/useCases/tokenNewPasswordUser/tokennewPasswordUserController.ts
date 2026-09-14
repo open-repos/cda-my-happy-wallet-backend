@@ -1,4 +1,3 @@
-// import { NODE_ENV } from './../../../../config/config';
 import { Result , ResultCode} from './../../../../utils/results/';
 import { ErrorException,ErrorCode }  from './../../../../utils/errors/';
 import { NextFunction } from 'express';
@@ -9,6 +8,7 @@ import { NextFunction } from 'express';
 // Pour UPDATE http://localhost:3001/api/v1/users/:id
 import { TokenNewPasswordUser } from './tokennewPasswordUser'
 import { Request, Response } from 'express'
+import { authCookieOptions } from '../../../auth/authCookieOptions';
 
 
 export const swResetPasswdTokenUser = {
@@ -53,18 +53,12 @@ export class TokenNewPasswordUserController {
 
     public async execute(req: Request, res: Response, _:NextFunction) {
 
-            console.log("Dans la fonction execute du TokenNewPasswordController")
             const result = await this.useCase.execute(req.params.token);
-            console.log('result.success final', result.success);
             if (!result) {
                 // return res.status(400).json({ message: result.message })
                 throw new ErrorException(ErrorCode.UnknownError)
             }
-            res.cookie("reset_token_password",req.params.token,{
-                httpOnly:true,
-                secure:true,
-                maxAge: 900000, //15min
-            })
+            res.cookie("reset_token_password",req.params.token,authCookieOptions(900000))
             return res.status(201).json({succes:result.success, message:result.message});
 
     }

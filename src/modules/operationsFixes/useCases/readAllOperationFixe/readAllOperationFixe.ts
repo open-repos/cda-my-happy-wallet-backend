@@ -1,43 +1,35 @@
-import { ErrorException, ErrorCode } from "./../../../../utils/errors/";
-import { OperationFixeRepo } from "../../operationFixeRepo";
+import {
+  IOperationFixeRepository,
+  OperationFixeListItem,
+} from "../../operationFixeRepository.interface";
 import { TypeOperationFixeEnum } from "@prisma/client";
-//Faire la logique du useCase (ici création utilisateur)import { OperationFixeRepo } from "../../OperationFixeRepo";
+import { CursorPage, PaginationRequest } from "../../../pagination";
 
 export class ReadAllOperationFixe {
-  private operationFixeRepo: OperationFixeRepo;
-  private fctnCall: string = "read";
-
-  constructor(operationFixeRepo: OperationFixeRepo) {
+  private operationFixeRepo: IOperationFixeRepository;
+  constructor(operationFixeRepo: IOperationFixeRepository) {
     this.operationFixeRepo = operationFixeRepo;
   }
 
-  public async execute(userId: string, typeOperationFixe?:TypeOperationFixeEnum) {
-
-    let result:any=undefined
-    console.log("GET typeOperationFixe", typeOperationFixe)
-    if(typeOperationFixe==undefined){
-      result = await this.operationFixeRepo.getAllOperationsFixes(userId);
-      console.log("result find many operationsfixes",result)
+  public execute(
+    userId: string,
+    pagination: PaginationRequest,
+    typeOperationFixe?: TypeOperationFixeEnum
+  ): Promise<CursorPage<OperationFixeListItem>> {
+    if (typeOperationFixe === "CHARGE") {
+      return this.operationFixeRepo.getAllCharges(
+        userId,
+        typeOperationFixe,
+        pagination
+      );
     }
-
-    if(typeOperationFixe=="CHARGE"){
-     result = await this.operationFixeRepo.getAllCharges(userId,typeOperationFixe);
-      console.log("result find many operationsfixes",result)
+    if (typeOperationFixe === "REVENU") {
+      return this.operationFixeRepo.getAllRevenus(
+        userId,
+        typeOperationFixe,
+        pagination
+      );
     }
-
-    if(typeOperationFixe=="REVENU"){
-      result = await this.operationFixeRepo.getAllRevenus(userId,typeOperationFixe);
-      console.log("result find many operationsfixes",result)
-    }
-    
-    console.log("result",result)
-    if (result==null || result==undefined || result.length ===0){
-        throw new ErrorException(
-            ErrorCode.PrismaError,
-            `${this.fctnCall} OperationsFixes doesn't exist`
-          );
-    }
-    return result;
-  
+    return this.operationFixeRepo.getAllOperationsFixes(userId, pagination);
   }
 }
