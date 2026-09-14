@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Format, lint, test and build
+    name: Backend format, lint, migrations, tests and build
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:

@@ -10,8 +10,11 @@ GitHub is the collaboration workspace for issues, branches, and pull requests. G
 4. Add a fragment to `changes/unreleased/` for a user-visible or public API change.
 5. Run the checks listed in `AGENTS.md` with the disposable test database.
 6. Push the topic branch and open a pull request targeting `develop`. Add `Refs #<number>` for the selected Issue and for each related Issue.
-7. Test the result before merging. After a successful merge into `develop`, explicitly close each completed Issue with a comment linking the pull request. Keep partially completed Issues open.
+7. Select the automatic path only for an eligible low-risk change. After a successful merge into `develop`, automation closes the single completed primary Issue and leaves related Issues open.
 8. Release changes later move from `develop` to `main` through a separate pull request.
+
+The eligibility rules, GitLab mirror setup and required branch check are
+documented in `docs/delivery-automation.md`.
 
 Use an imperative commit subject that identifies the delivered behavior, for example:
 
@@ -28,9 +31,9 @@ GitHub processes closing keywords only when changes reach the repository's defau
 Use these rules:
 
 - `Refs #42` links work or context without promising that Issue #42 is complete.
-- After a pull request is merged into `develop`, close Issue #42 explicitly when all its acceptance criteria are satisfied. The closing comment must identify the delivering pull request, for example `Delivered by #57 on develop.`
+- Put the single completed Issue on the exact `Primary issue: Refs #42` line. After a pull request is merged into `develop`, automation comments with the delivering PR and closes it.
 - `Closes #42` is reserved for a pull request targeting `main` that directly completes the Issue.
-- Mention every related Issue separately. Do not close an Issue that still has unmet acceptance criteria.
+- Mention every related Issue separately. Related Issues are never closed by this automation.
 
 ## Release and deployment
 
