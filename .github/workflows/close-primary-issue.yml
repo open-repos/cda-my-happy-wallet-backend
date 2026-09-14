@@ -1,0 +1,45 @@
+name: Close primary Issue delivered to develop
+
+on:
+  pull_request_target:
+    branches:
+      - develop
+    types:
+      - closed
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  close:
+    name: Close completed primary Issue
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Find and close the primary Issue
+        run: |
+          issue_number="$({
+            jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH" |
+              sed -nE 's/^Primary issue:[[:space:]]*Refs[[:space:]]+#([0-9]+)[[:space:]]*$/\1/p'
+          } | head -n 1)"
+
+          if [[ -z "$issue_number" ]]; then
+            echo 'No primary Issue using the expected template was found.'
+            exit 0
+          fi
+
+          is_pull_request="$(gh api "repos/$REPOSITORY/issues/$issue_number" --jq 'has("pull_request")')"
+          if [[ "$is_pull_request" == 'true' ]]; then
+            echo "#$issue_number is a pull request, so it will not be closed as an Issue."
+            exit 1
+          fi
+
+          gh issue comment "$issue_number" --repo "$REPOSITORY" \
+            --body "Delivered by #$PR_NUMBER on \`develop\` after required checks passed."
+          gh issue close "$issue_number" --repo "$REPOSITORY"
