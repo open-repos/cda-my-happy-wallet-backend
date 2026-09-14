@@ -1,0 +1,76 @@
+name: Auto-merge low-risk develop pull requests
+
+on:
+  pull_request_target:
+    branches:
+      - develop
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-merge-develop-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  enable:
+    name: Check eligibility and enable auto-merge
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login == 'acapai'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Require explicit low-risk opt-in
+        id: request
+        run: |
+          body="$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH")"
+          if ! grep -Fqx -- '- [x] Eligible for automatic merge into `develop`' <<<"$body"; then
+            echo 'Automatic merge was not requested.'
+            echo 'eligible=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if grep -Fqx -- '- [x] Requires owner review' <<<"$body"; then
+            echo 'Owner review was requested.'
+            echo 'eligible=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo 'eligible=true' >> "$GITHUB_OUTPUT"
+
+      - name: Reject sensitive changes
+        id: safety
+        if: steps.request.outputs.eligible == 'true'
+        run: |
+          gh api --paginate \
+            "repos/$REPOSITORY/pulls/$PR_NUMBER/files?per_page=100" \
+            --jq '.[].filename' > "$RUNNER_TEMP/changed-files.txt"
+
+          while IFS= read -r file; do
+            normalized="${file,,}"
+            case "$normalized" in
+              .github/*|.gitlab-ci.yml|docker*|*docker*|package.json|package-lock.json|prisma/*|src/config/*|src/database/*|src/middlewares/*|src/routes/*|src/index.ts|src/modules/auth/*|src/modules/user/*|src/modules/operations/*|src/modules/operationsfixes/*|src/modules/pagination/*|src/utils/errors/*|src/utils/results/*|*.env|*.env.*|*config.*|*auth*|*session*|*security*|*token*|*secret*|*migration*|*schema*|*budget*|*operation*|*amount*|*money*|*currency*|*payment*)
+                echo "Owner review is required for sensitive file: $file"
+                echo 'safe=false' >> "$GITHUB_OUTPUT"
+                exit 0
+                ;;
+            esac
+          done < "$RUNNER_TEMP/changed-files.txt"
+          echo 'safe=true' >> "$GITHUB_OUTPUT"
+
+      - name: Enable native auto-merge
+        if: >-
+          steps.request.outputs.eligible == 'true' &&
+          steps.safety.outputs.safe == 'true'
+        run: gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --auto --merge

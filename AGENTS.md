@@ -9,7 +9,9 @@ These instructions apply to the whole backend repository.
 - Open pull requests against `develop`. Keep `main` reserved for tested releases.
 - Do not push directly to `develop` or `main`.
 - An agent may push its working branch and open or update its pull request when the task authorizes repository updates.
-- Do not merge a pull request, create a tag or release, synchronize GitLab, or trigger a deployment without explicit user authorization.
+- A trusted same-repository pull request to `develop` may opt into native auto-merge when every changed file is low risk and all required checks pass. Follow `docs/delivery-automation.md`.
+- CI, dependencies, authentication, sessions, security, database access, migrations, API contracts and financial logic always require owner review.
+- Do not merge a release pull request, create a tag or release, configure credentials, or trigger a deployment without explicit user authorization.
 - Keep commits focused. Explain the behavior delivered and the reason for the change in each commit message.
 
 ## Backend boundaries
@@ -78,7 +80,7 @@ GitHub Actions and Codex Cloud may run these commands directly in their isolated
 
 - Add a Markdown fragment under `changes/unreleased/` for every user-visible or public API change. Follow `changes/README.md`.
 - Link every pull request to its GitHub Issue with `Refs #<number>`. Use additional `Refs #<number>` lines for related issues that the pull request does not complete.
-- GitHub only applies `Closes #<number>` automatically when a pull request reaches the default branch, currently `main`. Pull requests normally target `develop`, so after one is merged and validated, explicitly close every completed issue with a comment linking the pull request. Leave incomplete issues open.
+- GitHub only applies `Closes #<number>` automatically when a pull request reaches the default branch, currently `main`. For pull requests to `develop`, declare exactly one completed `Primary issue: Refs #<number>`; automation closes it after a successful merge and leaves related Issues open.
 - Use `Closes #<number>` in a pull request only when it targets the default branch and directly completes that issue.
 - Describe the API impact, validation performed, configuration or migration needs, compatibility constraints, and known risks in the pull request.
 - Never commit credentials, tokens, production data, or populated environment files. Document new variables in an example environment file.

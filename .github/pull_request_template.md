@@ -6,10 +6,21 @@ Primary issue: Refs #
 
 Related issues: Refs #
 
+## Automation
+
+- [ ] Eligible for automatic merge into `develop`
+- [ ] Requires owner review
+
 <!--
-Pull requests normally target develop. After merge, explicitly close completed
-issues with a comment linking this pull request. Use "Closes #N" only for a
-pull request targeting the default branch, currently main.
+Automatic merge is limited to trusted same-repository pull requests and is
+refused for CI, dependencies, authentication, security, database, API contract,
+financial logic and other sensitive configuration. Select exactly one option.
+-->
+
+<!--
+Pull requests normally target develop. The primary Issue is closed after a
+successful merge. Related Issues remain open. Use "Closes #N" only for a pull
+request targeting the default branch, currently main.
 -->
 
 ## Validation

@@ -12,7 +12,7 @@
     "build": "npx tsc",
     "type-check": "npx tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
-    "format": "prettier --check package.json .eslintrc.json .github AGENTS.md CONTRIBUTING.md changes",
+    "format": "prettier --check package.json .eslintrc.json .github AGENTS.md CONTRIBUTING.md changes docs/delivery-automation.md",
     "db:migrate": "npx prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:visualize": "npx prisma studio",
