@@ -36,6 +36,14 @@ These instructions apply to the whole backend repository.
 - Never expose passwords, tokens, cookies, private financial data, internal identifiers, or detailed production errors.
 - Add focused tests for changes to authentication, authorization, ownership, validation, pagination, money calculations, or error handling.
 
+## Cross-repository features
+
+- Represent a feature spanning frontend and backend with one planning parent and one executable child Issue in each repository. Link the child Issues and record the blocking direction in their dependency sections and in `open-repos/2`.
+- Run the backend child in the backend Codex Cloud environment and the frontend child in the frontend environment. Never modify or commit the other repository from the same cloud task.
+- When the frontend depends on a new API contract, complete and merge the backend contract first. The frontend may prepare typed contracts, fixtures, or mocks in parallel only when the shared contract is already explicit.
+- Open one pull request per child Issue. After both are merged into `develop`, run the cross-repository integration or staging validation required by the planning parent.
+- If a selected backend Issue reveals required frontend work that is not covered by a linked Issue, create or request the frontend child Issue instead of widening the current pull request.
+
 ## Database changes
 
 - Create a new immutable Prisma migration for every schema change. Never edit a migration that may already have run outside the working environment.
