@@ -16,13 +16,16 @@ These instructions apply to the whole backend repository.
 
 ## Planning and Issue selection
 
+- Use the organization Project `open-repos/2` (`My Happy Wallet Roadmap`) as the cross-repository planning view. Its `Workflow`, `Priority`, `Effort`, `Kind`, `Milestone`, and `Repository` fields define ordering and progress.
 - GitHub Issues are the source of truth for the executable specification and current work status. GitLab links in migrated Issues are historical references.
+- The selected Issue and its dependency links remain authoritative for implementation. Project fields organize work but do not override the Issue scope or acceptance criteria.
 - Read the complete Issue selected by the task before editing code. Its acceptance criteria, scope, dependencies, milestone, priority and effort apply to the implementation.
 - Never implement an Issue labelled `kind/parent`. It groups executable child Issues.
 - Start only an open Issue labelled `status/ready`, unless the user explicitly selects another Issue. Confirm that every Issue listed under its dependencies is closed.
 - Use one lifecycle label at a time: `status/backlog`, `status/blocked`, `status/ready`, `status/in-progress`, `status/in-review`, or `status/done`.
 - When GitHub write access is available, replace `status/ready` with `status/in-progress` when work starts and with `status/in-review` when the pull request opens. The merge workflow closes the primary Issue and applies `status/done`.
 - In explicitly authorized batch mode, finish and validate one Issue and open its pull request before selecting the next eligible `status/ready` Issue. Use one branch and one pull request per Issue.
+- When selecting work autonomously, prefer a `Ready` task from an already started milestone that is closest to completion. Re-read the Project and linked dependencies after each completed Issue.
 - This repository is self-contained for Codex Cloud. Do not assume that the sibling local `agent-workspace` exists in a cloud checkout; use the selected GitHub Issue and this file.
 
 ## Backend boundaries
