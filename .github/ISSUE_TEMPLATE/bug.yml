@@ -3,6 +3,9 @@ description: Report backend behavior that differs from the expected contract.
 title: "[Bug]: "
 labels:
   - bug
+  - status/backlog
+projects:
+  - open-repos/2
 body:
   - type: dropdown
     id: area
