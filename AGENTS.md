@@ -14,6 +14,20 @@ These instructions apply to the whole backend repository.
 - Do not merge a release pull request, create a tag or release, configure credentials, or trigger a deployment without explicit user authorization.
 - Keep commits focused. Explain the behavior delivered and the reason for the change in each commit message.
 
+## Planning and Issue selection
+
+- Use the organization Project `open-repos/2` (`My Happy Wallet Roadmap`) as the cross-repository planning view. Its `Workflow`, `Priority`, `Effort`, `Kind`, `Milestone`, and `Repository` fields define ordering and progress.
+- GitHub Issues are the source of truth for the executable specification and current work status. GitLab links in migrated Issues are historical references.
+- The selected Issue and its dependency links remain authoritative for implementation. Project fields organize work but do not override the Issue scope or acceptance criteria.
+- Read the complete Issue selected by the task before editing code. Its acceptance criteria, scope, dependencies, milestone, priority and effort apply to the implementation.
+- Never implement an Issue labelled `kind/parent`. It groups executable child Issues.
+- Start only an open Issue labelled `status/ready`, unless the user explicitly selects another Issue. Confirm that every Issue listed under its dependencies is closed.
+- Use one lifecycle label at a time: `status/backlog`, `status/blocked`, `status/ready`, `status/in-progress`, `status/in-review`, or `status/done`.
+- When GitHub write access is available, replace `status/ready` with `status/in-progress` when work starts and with `status/in-review` when the pull request opens. The merge workflow closes the primary Issue and applies `status/done`.
+- In explicitly authorized batch mode, finish and validate one Issue and open its pull request before selecting the next eligible `status/ready` Issue. Use one branch and one pull request per Issue.
+- When selecting work autonomously, prefer a `Ready` task from an already started milestone that is closest to completion. Re-read the Project and linked dependencies after each completed Issue.
+- This repository is self-contained for Codex Cloud. Do not assume that the sibling local `agent-workspace` exists in a cloud checkout; use the selected GitHub Issue and this file.
+
 ## Backend boundaries
 
 - Keep domain rules independent from Express, Prisma, email, and other infrastructure concerns.
@@ -21,6 +35,14 @@ These instructions apply to the whole backend repository.
 - Preserve the public API response and error contracts unless the selected Issue explicitly changes them.
 - Never expose passwords, tokens, cookies, private financial data, internal identifiers, or detailed production errors.
 - Add focused tests for changes to authentication, authorization, ownership, validation, pagination, money calculations, or error handling.
+
+## Cross-repository features
+
+- Represent a feature spanning frontend and backend with one planning parent and one executable child Issue in each repository. Link the child Issues and record the blocking direction in their dependency sections and in `open-repos/2`.
+- Run the backend child in the backend Codex Cloud environment and the frontend child in the frontend environment. Never modify or commit the other repository from the same cloud task.
+- When the frontend depends on a new API contract, complete and merge the backend contract first. The frontend may prepare typed contracts, fixtures, or mocks in parallel only when the shared contract is already explicit.
+- Open one pull request per child Issue. After both are merged into `develop`, run the cross-repository integration or staging validation required by the planning parent.
+- If a selected backend Issue reveals required frontend work that is not covered by a linked Issue, create or request the frontend child Issue instead of widening the current pull request.
 
 ## Database changes
 

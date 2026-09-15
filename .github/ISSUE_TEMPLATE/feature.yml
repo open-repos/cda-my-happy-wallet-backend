@@ -3,6 +3,9 @@ description: Propose a backend capability or API improvement.
 title: "[Feature]: "
 labels:
   - enhancement
+  - status/backlog
+projects:
+  - open-repos/2
 body:
   - type: markdown
     attributes:
