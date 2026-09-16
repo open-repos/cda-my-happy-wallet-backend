@@ -127,21 +127,19 @@ export class UserRepo implements IUserRepository {
     // return { success: true, message: `New password created` };
   }
 
-  public async confirmRegistration(id: string) {
+  public async confirmRegistration(id: string, email: string): Promise<boolean> {
     const UserEntity = this.entities.utilisateur;
-    const result = await UserEntity.update({
+    const result = await UserEntity.updateMany({
         where: {
           id: parseInt(id),
+          email,
+          verified: false,
         },
         data: {
           verified: true,
         },
       });
-    return result
-    // return {
-    //   success: true,
-    //   message: `Registration User ${user.email} is successfull`,
-    // };
+    return result.count === 1
   }
 
   public async exists(email: string): Promise<boolean> {

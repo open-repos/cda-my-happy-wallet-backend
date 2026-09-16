@@ -43,6 +43,12 @@ export const swConfirmRegistrationUser = {
         "201": {
           "description": new Result(ResultCode.Created,'','User successfully registered').message
         },
+        "401": {
+          "description": new ErrorException(ErrorCode.Unauthorized).message
+        },
+        "409": {
+          "description": new ErrorException(ErrorCode.Conflict).message
+        },
         "404": {
           "description": new ErrorException(ErrorCode.NotFound).message
         }
