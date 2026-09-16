@@ -65,6 +65,7 @@ npm run test:services
 npm run test:mailer
 npm run test:smtp-mailer
 npm run test:create-user
+npm run test:registration-confirmation
 npm run test:token-service
 npm run test:security-config
 npm run test:auth-rate-limit

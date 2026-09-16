@@ -17,7 +17,7 @@ class RegistrationRepository implements IUserRepository {
   public async delete(): Promise<any> { throw new Error("Not used"); }
   public async resetPassword(): Promise<any> { throw new Error("Not used"); }
   public async newPassword(): Promise<any> { throw new Error("Not used"); }
-  public async confirmRegistration(): Promise<any> { throw new Error("Not used"); }
+  public async confirmRegistration(): Promise<boolean> { throw new Error("Not used"); }
   public async exists(): Promise<boolean> { return this.userExists; }
   public async getUserByEmail(): Promise<any> { throw new Error("Not used"); }
   public async getUserById(): Promise<any> { throw new Error("Not used"); }
