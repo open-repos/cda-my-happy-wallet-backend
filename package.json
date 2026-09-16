@@ -22,6 +22,7 @@
     "test:smtp-mailer": "ts-node test/modules/user/SmtpMailer.test.ts",
     "test:create-user": "ts-node test/modules/user/CreateUser.test.ts",
     "test:registration-confirmation": "ts-node test/modules/user/ConfirmRegistrationUser.test.ts",
+    "test:registration-confirmation-controller": "ts-node test/modules/user/ConfirmRegistrationUserController.test.ts",
     "test:token-service": "ts-node test/modules/auth/TokenService.test.ts",
     "test:security-config": "ts-node test/modules/auth/SecurityConfig.test.ts",
     "test:auth-rate-limit": "ts-node test/modules/auth/AuthRateLimit.test.ts",
