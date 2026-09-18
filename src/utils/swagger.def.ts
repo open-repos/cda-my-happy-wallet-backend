@@ -9,6 +9,7 @@ import { swUserRouter } from "../routes/user";
 import { swOperationFixeRouter } from '../routes/operationsFixes';
 import { swNativeSessionRouter } from '../routes/nativeSession';
 import { swOneOffOperationRouter } from '../routes/oneOffOperations';
+import { swMonthlyEventRouter } from '../routes/monthlyEvents';
 
 const swagger = {
   openapi: "3.0.0",
@@ -69,7 +70,8 @@ const swagger = {
     ...swRenewTokenRouter,
     ...swNativeSessionRouter,
     ...swOperationFixeRouter,
-    ...swOneOffOperationRouter
+    ...swOneOffOperationRouter,
+    ...swMonthlyEventRouter
   },
   components: {
     parameters: {
@@ -151,6 +153,20 @@ const swagger = {
           kind: { type: "string", enum: ["DEPENSE", "ENTREE"] },
           operationDate: { type: "string", format: "date" },
           categoryId: { type: "integer", minimum: 1 },
+        },
+      },
+      MonthlyEventInput: {
+        type: "object",
+        required: ["title", "amount", "currency", "kind", "startDate", "recurrence"],
+        additionalProperties: false,
+        properties: {
+          title: { type: "string", minLength: 2, maxLength: 50 },
+          amount: { oneOf: [{ type: "number", minimum: 0.01, maximum: 99999999.99 }, { type: "string", pattern: "^(0|[1-9]\\d{0,7})(?:\\.\\d{1,2})?$" }] },
+          currency: { type: "string", minLength: 3, maxLength: 3 },
+          kind: { type: "string", enum: ["DEPENSE", "ENTREE"] },
+          startDate: { type: "string", format: "date" },
+          recurrence: { type: "string", enum: ["AUCUNE", "MENSUELLE"] },
+          endDate: { type: "string", format: "date", nullable: true },
         },
       }
     },

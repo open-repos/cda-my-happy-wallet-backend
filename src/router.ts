@@ -6,6 +6,7 @@ import { userRouter, swGetListUser } from './routes/user';
 import { refreshRateLimiter } from './middlewares/authRateLimit.middleware';
 import { nativeSessionRouter } from './routes/nativeSession';
 import { oneOffOperationRouter } from './routes/oneOffOperations';
+import { monthlyEventRouter } from './routes/monthlyEvents';
 
 
 
@@ -42,9 +43,9 @@ mainRouter.use('/users',userRouter)
 mainRouter.use('/operations-fixes',operationFixeRouter)
 
 mainRouter.use('/', oneOffOperationRouter)
+mainRouter.use('/', monthlyEventRouter)
 
 
 // mainRouter.use(notFoundRouter)
 
 export  {mainRouter}
-

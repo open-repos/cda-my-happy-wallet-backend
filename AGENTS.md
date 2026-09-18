@@ -85,6 +85,10 @@ npm run test:operations-schema
 npm run test:operations-use-cases
 npm run test:operations-repositories
 npm run test:operations-api
+npm run test:monthly-events-domain
+npm run test:monthly-events-api
+npm run test:monthly-events-persistence
+npm run test:monthly-events-migration
 npm run test:budget-api-integration
 npm run test:pagination
 npm run test:pagination-openapi
