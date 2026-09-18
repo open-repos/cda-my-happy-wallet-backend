@@ -21,12 +21,12 @@ compatibles avec la version precedente de l'application.
 
 Configurer ces variables avec la portee `production` et l'option `Protected` :
 
-| Variable          | Type     | Usage                                    |
-| ----------------- | -------- | ---------------------------------------- |
-| `SSH_PRIVATE_KEY` | File     | Cle privee du compte `mhw-backend`       |
-| `SSH_KNOWN_HOSTS` | File     | Cle d'hote verifiee hors de la CI        |
-| `SERVER_IP`       | Variable | Hote SSH cible                           |
-| `SERVER_USER`     | Variable | `mhw-backend`                            |
+| Variable          | Type     | Usage                              |
+| ----------------- | -------- | ---------------------------------- |
+| `SSH_PRIVATE_KEY` | File     | Cle privee du compte `mhw-backend` |
+| `SSH_KNOWN_HOSTS` | File     | Cle d'hote verifiee hors de la CI  |
+| `SERVER_IP`       | Variable | Hote SSH cible                     |
+| `SERVER_USER`     | Variable | `mhw-backend`                      |
 
 Le registre utilise les variables GitLab predefinies `CI_REGISTRY*`. Aucun
 secret applicatif ni jeton du registre ne doit etre stocke dans le depot.
@@ -137,3 +137,8 @@ Nginx continue de proxifier `127.0.0.1:4201`; aucun port du conteneur n'est
 expose publiquement. Activer `Prevent outdated deployment jobs`, proteger
 `main` et l'environnement `production`, et reserver le runner tague
 `server_runner` aux refs protegees.
+
+La sauvegarde chiffree, la restauration isolee, l'invalidation des sessions et
+le retour arriere sont decrits dans
+[backup-and-restore.md](backup-and-restore.md). Une restauration n'est jamais
+declenchee automatiquement par la pipeline de deploiement.
