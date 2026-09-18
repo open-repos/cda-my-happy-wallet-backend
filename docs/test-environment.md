@@ -6,7 +6,8 @@ It is a prerequisite for creating `docker-compose.test.yml`.
 ## Current State
 
 - Tests currently run inside the workspace `agent-node` container.
-- The backend uses Prisma 3.10 and must stay on `node:16-bullseye` until Prisma is upgraded or its binary targets are revalidated.
+- The backend and its development toolchain use Node.js 22. ESLint 10 requires
+  Node.js 22.13 or newer within that release line.
 - The current `npm test` script is still transitional and delegates to `npm run type-check`.
 - API characterization tests use Supertest without a real database connection.
 
