@@ -36,16 +36,30 @@ model OperationFixe {
 }
 
 model EvenementMensuel {
-  // idListEventObject  Int       @id
-  // idEvenementMensuel Int
-  id Int  @id @default(autoincrement())
-  titre             String  @db.VarChar(50)
-  montant           Decimal @db.Decimal(10, 2)
-  devise            String  @db.VarChar(3)
-  created_at         DateTime @default(now()) @db.Timestamp(0)
-  updated_at         DateTime @default(now()) @db.DateTime(0)
-  Utilisateur Utilisateur @relation(fields:[userId], references:[id])
-  userId Int
+  id         Int                    @id @default(autoincrement())
+  title      String                 @map("titre") @db.VarChar(50)
+  amount     Decimal                @map("montant") @db.Decimal(10, 2)
+  currency   String                 @map("devise") @db.VarChar(3)
+  kind       MonthlyEventKind       @default(DEPENSE)
+  startDate  DateTime               @default(dbgenerated("(curdate())")) @db.Date
+  recurrence MonthlyEventRecurrence @default(AUCUNE)
+  endDate    DateTime?              @db.Date
+  createdAt  DateTime               @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime               @updatedAt @map("updated_at") @db.DateTime(0)
+  user       Utilisateur            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+
+  @@index([userId, startDate, id])
+}
+
+enum MonthlyEventKind {
+  DEPENSE
+  ENTREE
+}
+
+enum MonthlyEventRecurrence {
+  AUCUNE
+  MENSUELLE
 }
 
 
