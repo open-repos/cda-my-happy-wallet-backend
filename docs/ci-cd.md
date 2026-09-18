@@ -17,6 +17,10 @@ sonde de disponibilite et restaure l'image precedente si la sonde echoue. Les
 migrations SQL ne sont pas annulees automatiquement : elles doivent rester
 compatibles avec la version precedente de l'application.
 
+Les compteurs des routes d'authentification sont partages par Redis. La
+[politique de rate limiting distribue](distributed-rate-limiting.md) decrit le
+modele de menace, le comportement en panne et le retour arriere.
+
 ## Variables GitLab
 
 Configurer ces variables avec la portee `production` et l'option `Protected` :
@@ -69,6 +73,7 @@ APP_BASE_URL=/v1
 API_PUBLIC_URL=https://api.myhappywallet.andriacapai.com
 FRONTEND_URL=https://myhappywallet.andriacapai.com
 CORS_ORIGINS=https://myhappywallet.andriacapai.com
+REDIS_URL=redis://rate-limit-redis:6379
 DATABASE_URL=<production-database-url>
 ACCESS_TOKEN=<random-secret-at-least-32-characters>
 REFRESH_TOKEN=<different-random-secret-at-least-32-characters>

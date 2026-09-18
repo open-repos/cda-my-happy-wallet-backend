@@ -3,6 +3,9 @@ services:
     image: ${BACKEND_IMAGE:?BACKEND_IMAGE must reference an immutable image tag}
     env_file:
       - ${BACKEND_ENV_FILE:-/etc/myhappywallet-backend/backend.env}
+    depends_on:
+      rate-limit-redis:
+        condition: service_healthy
     ports:
       - "127.0.0.1:4201:4201"
     extra_hosts:
@@ -35,6 +38,39 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  rate-limit-redis:
+    image: redis:8.2.1-alpine
+    command:
+      - redis-server
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+      - --maxmemory
+      - 64mb
+      - --maxmemory-policy
+      - allkeys-lru
+    networks:
+      - backend
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /data:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
 
 networks:
   backend:
