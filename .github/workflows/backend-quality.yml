@@ -37,6 +37,15 @@ jobs:
           --health-interval=2s
           --health-timeout=5s
           --health-retries=30
+      redis:
+        image: redis:8.2.1-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=2s
+          --health-timeout=5s
+          --health-retries=30
     env:
       NODE_ENV: test
       DATABASE_URL: mysql://myhappywallet_test:test-password@my-happy-wallet-mysql-test:3306/myhappywallet_test
@@ -49,6 +58,7 @@ jobs:
       SMTP_PORT: "1025"
       SMTP_SECURE: "false"
       EMAIL_SENDER: no-reply@myhappywallet.local
+      REDIS_URL: redis://127.0.0.1:6379
     steps:
       - name: Check out repository
         uses: actions/checkout@v7

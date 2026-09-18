@@ -17,16 +17,19 @@ import {
   urlEncodedBodyParser,
 } from './middlewares/requestBody.middleware';
 import { corsMiddleware } from './middlewares/cors.middleware';
+import { checkRateLimitStore } from './infrastructure/rateLimit/redisRateLimitStore';
 
 type ServerDependencies = {
   checkDatabase: () => Promise<void>;
   apiDocsEnabled?: boolean;
+  checkRateLimitStore?: () => Promise<void>;
 };
 
 const defaultDependencies: ServerDependencies = {
   checkDatabase: async () => {
     await prisma.$queryRaw`SELECT 1`;
   },
+  checkRateLimitStore,
 };
 
 export const createServer = async (
@@ -49,6 +52,7 @@ export const createServer = async (
     server.get('/health/ready', async (_: Request, res: Response) => {
       try {
         await dependencies.checkDatabase();
+        await dependencies.checkRateLimitStore?.();
         res.set('Cache-Control', 'no-store').status(200).json({ status: 'ok' });
       } catch {
         res

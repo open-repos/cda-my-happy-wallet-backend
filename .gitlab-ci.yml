@@ -46,6 +46,8 @@ tests:
   services:
     - name: mysql:8.0
       alias: my-happy-wallet-mysql-test
+    - name: redis:8.2.1-alpine
+      alias: my-happy-wallet-redis-test
   variables:
     NODE_ENV: test
     MYSQL_DATABASE: myhappywallet_test
@@ -62,6 +64,7 @@ tests:
     SMTP_PORT: "1025"
     SMTP_SECURE: "false"
     EMAIL_SENDER: no-reply@myhappywallet.local
+    REDIS_URL: redis://my-happy-wallet-redis-test:6379
   before_script:
     - npm ci --cache .npm --prefer-offline
     - until node -e "const net=require('net');const socket=net.connect(3306,'my-happy-wallet-mysql-test',()=>{socket.end();process.exit(0)});socket.on('error',()=>process.exit(1))"; do sleep 2; done
@@ -74,6 +77,7 @@ tests:
     - npm run test:mailer
     - npm run test:smtp-mailer
     - npm run test:create-user
+    - npm run test:auth-rate-limit
     - npm run test:token-service
     - npm run test:native-session
     - npm run test:renew-session
