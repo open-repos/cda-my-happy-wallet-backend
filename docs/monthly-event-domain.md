@@ -166,6 +166,13 @@ Le MVP garde prévisions et écritures réelles séparées.
 - une prévision pourrait être comptée avec son opération réelle : les DTO et les
   agrégats conservent leur nature et n'effectuent aucune conversion implicite.
 
+## Décisions ultérieures
+
+La conversion d'une occurrence en opération, son annulation et la conservation
+de sa résolution sont désormais définies par
+[`daily-budget-domain.md`](daily-budget-domain.md) pour `M05`. Elles restent
+hors du périmètre de l'implémentation `M04`.
+
 ## Inconnues restantes
 
 Les éléments suivants sont reportés hors du MVP et nécessiteront une nouvelle
@@ -174,7 +181,6 @@ décision produit avant extension du domaine :
 - exceptions et modifications d'une seule occurrence;
 - répétitions hebdomadaires, annuelles ou selon une règle libre;
 - heure de la journée et rappels;
-- rapprochement ou conversion en opération réelle;
 - conservation d'un historique immuable des projections.
 
 Le prochain point de validation humaine intervient pendant la recette Web de
