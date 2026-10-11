@@ -10,6 +10,7 @@ import { swOperationFixeRouter } from '../routes/operationsFixes';
 import { swNativeSessionRouter } from '../routes/nativeSession';
 import { swOneOffOperationRouter } from '../routes/oneOffOperations';
 import { swMonthlyEventRouter } from '../routes/monthlyEvents';
+import { swFinancialGoalRouter } from '../routes/financialGoals';
 
 const swagger = {
   openapi: "3.0.0",
@@ -71,7 +72,8 @@ const swagger = {
     ...swNativeSessionRouter,
     ...swOperationFixeRouter,
     ...swOneOffOperationRouter,
-    ...swMonthlyEventRouter
+    ...swMonthlyEventRouter,
+    ...swFinancialGoalRouter
   },
   components: {
     parameters: {
@@ -167,6 +169,42 @@ const swagger = {
           startDate: { type: "string", format: "date" },
           recurrence: { type: "string", enum: ["AUCUNE", "MENSUELLE"] },
           endDate: { type: "string", format: "date", nullable: true },
+        },
+      },
+      FinancialGoalInput: {
+        type: "object",
+        required: ["title", "targetAmount", "currency"],
+        additionalProperties: false,
+        properties: {
+          title: { type: "string", minLength: 2, maxLength: 50 },
+          targetAmount: { oneOf: [{ type: "number", minimum: 0.01, maximum: 99999999.99 }, { type: "string", pattern: "^(0|[1-9]\\d{0,7})(?:\\.\\d{1,2})?$" }] },
+          savedAmount: { oneOf: [{ type: "number", minimum: 0, maximum: 99999999.99 }, { type: "string", pattern: "^(0|[1-9]\\d{0,7})(?:\\.\\d{1,2})?$" }] },
+          monthlyContribution: { oneOf: [{ type: "number", minimum: 0, maximum: 99999999.99 }, { type: "string", pattern: "^(0|[1-9]\\d{0,7})(?:\\.\\d{1,2})?$" }] },
+          currency: { type: "string", minLength: 3, maxLength: 3 },
+          targetDate: { type: "string", format: "date", nullable: true },
+        },
+      },
+      FinancialGoal: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          title: { type: "string" },
+          targetAmount: { type: "string", example: "1200.00" },
+          savedAmount: { type: "string", example: "300.00" },
+          monthlyContribution: { type: "string", example: "150.00" },
+          currency: { type: "string", example: "EUR" },
+          targetDate: { type: "string", format: "date", nullable: true },
+          forecast: {
+            type: "object",
+            properties: {
+              referenceMonth: { type: "string", example: "2026-10" },
+              status: { type: "string", enum: ["REACHED", "NO_DEADLINE", "ON_TRACK", "BEHIND", "MISSED"] },
+              remainingAmount: { type: "string", example: "900.00" },
+              contributionsNeeded: { type: "integer", nullable: true },
+              estimatedReachMonth: { type: "string", nullable: true, example: "2027-04" },
+              requiredMonthlyContribution: { type: "string", nullable: true },
+            },
+          },
         },
       }
     },

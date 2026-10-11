@@ -110,6 +110,10 @@ jobs:
           npm run test:monthly-events-api
           npm run test:monthly-events-persistence
           npm run test:monthly-events-migration
+          npm run test:financial-goals-domain
+          npm run test:financial-goals-api
+          npm run test:financial-goals-persistence
+          npm run test:financial-goals-migration
           npm run test:budget-api-integration
           npm run test:budget-period-domain
           npm run test:budget-period-persistence

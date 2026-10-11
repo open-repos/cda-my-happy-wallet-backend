@@ -7,6 +7,7 @@ import { refreshRateLimiter } from './middlewares/authRateLimit.middleware';
 import { nativeSessionRouter } from './routes/nativeSession';
 import { oneOffOperationRouter } from './routes/oneOffOperations';
 import { monthlyEventRouter } from './routes/monthlyEvents';
+import { financialGoalRouter } from './routes/financialGoals';
 
 
 
@@ -44,6 +45,7 @@ mainRouter.use('/operations-fixes',operationFixeRouter)
 
 mainRouter.use('/', oneOffOperationRouter)
 mainRouter.use('/', monthlyEventRouter)
+mainRouter.use('/', financialGoalRouter)
 
 
 // mainRouter.use(notFoundRouter)
