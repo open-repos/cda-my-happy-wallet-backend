@@ -317,6 +317,22 @@ Les lots d'implémentation couvrent :
 - isolation propriétaire et devise ;
 - pagination, taille maximale de 31 points et plans SQL utilisant les index.
 
+### Couverture livrée par M05-07
+
+| Exigence                                                                                                           | Test                                                             |
+| ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| Mois de 28 à 31 jours, bissextiles, dernier jour, centimes, grands montants, négatifs, absence d'arrondi cumulatif | `test:budget-edge-cases`                                         |
+| Fuseau métier `Europe/Paris`, indépendance du fuseau du processus                                                  | `test:budget-edge-cases`                                         |
+| Rabattement de récurrence et arrondis des objectifs                                                                | `test:budget-edge-cases`                                         |
+| Lecture mensuelle bornée, au plus 31 points et 62 agrégats, plans SQL                                              | `test:budget-bounded-scan`                                       |
+| Clôture figée et compteur d'occurrences non résolues                                                               | `test:budget-bounded-scan`, `test:budget-period-persistence`     |
+| Réalisations et annulations concurrentes, idempotence, isolation                                                   | `test:budget-bounded-scan`, `test:event-occurrences-persistence` |
+| Contrat HTTP, `PERIOD_CLOSED` sur réalisation rétroactive                                                          | `test:budget-projection-api`                                     |
+
+Le refus `period_closed` des créations, modifications et suppressions
+d'opérations ponctuelles dans un mois clôturé n'est pas encore implémenté; il
+est suivi dans une Work Item dédiée.
+
 ## Options écartées
 
 ### Persister chaque projection journalière

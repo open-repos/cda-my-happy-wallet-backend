@@ -123,6 +123,8 @@ jobs:
           npm run test:event-occurrences-persistence
           npm run test:event-occurrences-migration
           npm run test:budget-projection-api
+          npm run test:budget-edge-cases
+          npm run test:budget-bounded-scan
           npm run test:pagination
           npm run test:pagination-openapi
           npm run test:pagination-schema
