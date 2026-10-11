@@ -40,6 +40,17 @@ Bilans clôturés du plus récent au plus ancien, paginés par curseur
 report entrant, totaux réels, résultat du mois, reste réel, `balanceStatus`,
 `unresolvedEvents` et `closedAt`.
 
+## Corrections d'un mois clôturé
+
+`POST`, `PUT` et `DELETE /operations` restent acceptés pour une date d'un mois
+passé. Le backend recalcule alors le bilan clôturé de ce mois, puis le report
+de chaque mois suivant jusqu'au mois courant. La synthèse et l'historique
+exposent `revision` et `correctedAt` : un bilan corrigé a un `correctedAt` non
+nul, que le frontend doit signaler (« Bilan corrigé le … »). Une écriture
+concurrente du même bilan est rejouée; après trois conflits, la requête renvoie
+une erreur serveur alors que l'opération est déjà enregistrée, et la prochaine
+correction d'opération de ce mois rétablit la chaîne.
+
 ## Lecture du report
 
 `realRemaining = carryIn + monthResult`. `carryFromMonth` vaut le mois

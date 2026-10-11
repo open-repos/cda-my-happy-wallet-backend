@@ -105,6 +105,8 @@ model BudgetPeriod {
   unresolvedEvents Int                @default(0)
   revision         Int                @default(1)
   closedAt         DateTime?          @db.DateTime(3)
+  /// Dernier recalcul d'un bilan clôturé après une correction d'opération.
+  correctedAt      DateTime?          @db.DateTime(3)
   createdAt        DateTime           @default(now()) @db.Timestamp(0)
   updatedAt        DateTime           @updatedAt @db.DateTime(0)
   userId           Int

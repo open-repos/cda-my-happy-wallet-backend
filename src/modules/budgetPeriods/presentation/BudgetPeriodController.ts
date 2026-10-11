@@ -70,6 +70,8 @@ export class BudgetPeriodController {
       month: budget.month,
       currency: budget.currency,
       status: period.status,
+      revision: period.revision,
+      correctedAt: period.correctedAt?.toISOString() ?? null,
       balanceStatus: budget.balanceStatus,
       fixedIncome: amountOf(budget.fixedIncomeMinorUnits),
       fixedExpense: amountOf(budget.fixedExpenseMinorUnits),
@@ -142,6 +144,8 @@ export class BudgetPeriodController {
         ? "POSITIVE"
         : "NEGATIVE",
     unresolvedEvents: period.unresolvedEvents,
+    revision: period.revision,
     closedAt: period.closedAt?.toISOString() ?? null,
+    correctedAt: period.correctedAt?.toISOString() ?? null,
   });
 }

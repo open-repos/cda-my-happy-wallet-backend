@@ -16,10 +16,28 @@ export type SaveOneOffOperationInput = Readonly<
   }
 >;
 
+/** Notifie le budget qu'une écriture a touché ces dates et devises. */
+export type OperationCorrectionListener = Readonly<{
+  afterOperationChange(
+    ownerId: number,
+    changes: readonly Readonly<{ operationDate: string; currency: string }>[]
+  ): Promise<void>;
+}>;
+
+const ignoreCorrections: OperationCorrectionListener = {
+  afterOperationChange: async () => undefined,
+};
+
+const changeOf = (operation: OneOffOperation) => ({
+  operationDate: operation.operationDate,
+  currency: operation.money.currency,
+});
+
 export class OneOffOperationUseCases {
   public constructor(
     private readonly operations: OneOffOperationRepository,
-    private readonly categories: OperationCategoryRepository
+    private readonly categories: OperationCategoryRepository,
+    private readonly corrections: OperationCorrectionListener = ignoreCorrections
   ) {}
 
   public list(
@@ -42,7 +60,11 @@ export class OneOffOperationUseCases {
     ownerId: number,
     input: SaveOneOffOperationInput
   ): Promise<OneOffOperation> {
-    return this.operations.create(await this.toDomain(ownerId, input));
+    const operation = await this.operations.create(
+      await this.toDomain(ownerId, input)
+    );
+    await this.corrections.afterOperationChange(ownerId, [changeOf(operation)]);
+    return operation;
   }
 
   public async update(
@@ -50,19 +72,28 @@ export class OneOffOperationUseCases {
     id: number,
     input: SaveOneOffOperationInput
   ): Promise<OneOffOperation> {
-    const operation = await this.operations.update(
-      await this.toDomain(ownerId, input, id)
-    );
-    if (operation == null) {
+    const before = await this.operations.findById(id, ownerId);
+    const operation =
+      before == null
+        ? null
+        : await this.operations.update(await this.toDomain(ownerId, input, id));
+    if (before == null || operation == null) {
       throw new OperationApplicationError("OPERATION_NOT_FOUND");
     }
+    // L'ancienne et la nouvelle date ou devise peuvent toucher deux chaînes.
+    await this.corrections.afterOperationChange(ownerId, [
+      changeOf(before),
+      changeOf(operation),
+    ]);
     return operation;
   }
 
   public async delete(ownerId: number, id: number): Promise<void> {
-    if (!(await this.operations.delete(id, ownerId))) {
+    const before = await this.operations.findById(id, ownerId);
+    if (before == null || !(await this.operations.delete(id, ownerId))) {
       throw new OperationApplicationError("OPERATION_NOT_FOUND");
     }
+    await this.corrections.afterOperationChange(ownerId, [changeOf(before)]);
   }
 
   private async toDomain(
