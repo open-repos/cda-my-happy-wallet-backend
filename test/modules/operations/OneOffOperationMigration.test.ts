@@ -10,6 +10,7 @@ const migrationNames = [
   "20260809211000_backfill_personal_operation_categories",
   "20260818190000_add_collection_pagination_indexes",
   "20260919110000_add_budget_periods",
+  "20261011120000_add_event_occurrence_resolutions",
 ];
 
 if (
@@ -107,12 +108,15 @@ const prepare = async () => {
   await prisma.$executeRawUnsafe(
     "DROP INDEX `OperationFixe_userId_typeOperation_idOperationFixe_idx` ON `OperationFixe`"
   );
+  await prisma.$executeRawUnsafe("DROP TABLE `EventOccurrenceResolution`");
   await prisma.$executeRawUnsafe("DROP TABLE `BudgetPeriod`");
   await prisma.$executeRawUnsafe("DROP TABLE `OneOffOperationRecord`");
   await prisma.$executeRawUnsafe("DROP TABLE `OperationCategory`");
   await prisma.$executeRawUnsafe("DROP TABLE `OperationCategoryTemplate`");
   await prisma.$executeRawUnsafe(
-    `DELETE FROM \`_prisma_migrations\` WHERE \`migration_name\` IN (?, ?, ?, ?)`,
+    `DELETE FROM \`_prisma_migrations\` WHERE \`migration_name\` IN (${migrationNames
+      .map(() => "?")
+      .join(", ")})`,
     ...migrationNames
   );
 };

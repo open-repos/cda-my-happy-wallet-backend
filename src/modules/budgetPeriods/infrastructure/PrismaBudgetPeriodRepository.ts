@@ -1,5 +1,6 @@
 import {
   BudgetPeriodStatus,
+  Prisma,
   PrismaClient,
   TypeOperationEnum,
   TypeOperationFixeEnum,
@@ -9,7 +10,7 @@ import {
   BudgetPeriodState,
   CloseBudgetPeriodInput,
 } from "../application";
-import { BudgetMovement } from "../domain";
+import { BudgetMovement, PlannedMovement } from "../domain";
 import { monthBounds } from "../domain/BudgetPeriod";
 
 type DecimalValue = { toFixed(fractionDigits: number): string };
@@ -107,6 +108,7 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
         actualIncome: decimalOf(totals.actualIncomeMinorUnits),
         actualExpense: decimalOf(totals.actualExpenseMinorUnits),
         realRemaining: decimalOf(totals.realRemainingMinorUnits),
+        unresolvedEvents: totals.unresolvedEvents,
         closedAt: new Date(),
         revision: { increment: 1 },
       },
@@ -167,6 +169,67 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
     }));
   }
 
+  public async plannedMovements(
+    ownerId: number,
+    month: string,
+    currency: string
+  ): Promise<readonly PlannedMovement[]> {
+    const monthStart = monthBounds(month).start;
+    const occurrence = Prisma.sql`DATE_ADD(STR_TO_DATE(${monthStart}, '%Y-%m-%d'), INTERVAL LEAST(DAY(e.startDate), DAY(LAST_DAY(STR_TO_DATE(${monthStart}, '%Y-%m-%d')))) - 1 DAY)`;
+    const rows = await this.prisma.$queryRaw<
+      {
+        occurrenceDate: Date;
+        kind: "DEPENSE" | "ENTREE";
+        total: DecimalValue;
+        occurrences: bigint | number;
+      }[]
+    >(Prisma.sql`
+      SELECT o.occurrenceDate, o.kind, SUM(o.amount) AS total,
+             COUNT(*) AS occurrences
+      FROM (
+        SELECT e.id, e.kind, e.montant AS amount, ${occurrence} AS occurrenceDate
+        FROM EvenementMensuel e
+        WHERE e.userId = ${ownerId}
+          AND e.devise = ${currency}
+          AND (
+            (e.recurrence = 'AUCUNE' AND DATE_FORMAT(e.startDate, '%Y-%m') = ${month})
+            OR
+            (e.recurrence = 'MENSUELLE'
+              AND e.startDate <= LAST_DAY(STR_TO_DATE(${monthStart}, '%Y-%m-%d'))
+              AND (e.endDate IS NULL OR ${occurrence} <= e.endDate))
+          )
+      ) o
+      LEFT JOIN EventOccurrenceResolution r
+        ON r.userId = ${ownerId}
+       AND r.sourceEventId = o.id
+       AND r.occurrenceDate = o.occurrenceDate
+      WHERE r.id IS NULL
+      GROUP BY o.occurrenceDate, o.kind
+      ORDER BY o.occurrenceDate ASC, o.kind ASC
+    `);
+    return rows.map((row) => ({
+      occurrenceDate: row.occurrenceDate.toISOString().slice(0, 10),
+      kind: row.kind,
+      minorUnits: minorUnitsOf(row.total),
+      count: Number(row.occurrences),
+    }));
+  }
+
+  public async goalSavings(ownerId: number, currency: string): Promise<number> {
+    const rows = await this.prisma.$queryRaw<{ total: DecimalValue | null }[]>(
+      Prisma.sql`
+        SELECT SUM(monthlyContribution) AS total
+        FROM ObjectifFinancier
+        WHERE userId = ${ownerId}
+          AND devise = ${currency}
+          AND monthlyContribution > 0
+          AND savedAmount < montant
+      `
+    );
+    const total = rows[0]?.total;
+    return total == null ? 0 : minorUnitsOf(total);
+  }
+
   private async findById(
     id: number,
     ownerId: number
@@ -189,6 +252,7 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
     actualIncome: DecimalValue;
     actualExpense: DecimalValue;
     realRemaining: DecimalValue;
+    unresolvedEvents: number;
     revision: number;
     closedAt: Date | null;
   }): BudgetPeriodState {
@@ -203,6 +267,7 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
       actualIncomeMinorUnits: minorUnitsOf(row.actualIncome),
       actualExpenseMinorUnits: minorUnitsOf(row.actualExpense),
       realRemainingMinorUnits: minorUnitsOf(row.realRemaining),
+      unresolvedEvents: row.unresolvedEvents,
       revision: row.revision,
       closedAt: row.closedAt,
     };

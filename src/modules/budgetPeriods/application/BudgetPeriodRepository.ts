@@ -1,4 +1,4 @@
-import { BudgetMovement } from "../domain";
+import { BudgetMovement, PlannedMovement } from "../domain";
 
 export type BudgetPeriodState = Readonly<{
   id: number;
@@ -11,6 +11,7 @@ export type BudgetPeriodState = Readonly<{
   actualIncomeMinorUnits: number;
   actualExpenseMinorUnits: number;
   realRemainingMinorUnits: number;
+  unresolvedEvents: number;
   revision: number;
   closedAt: Date | null;
 }>;
@@ -19,6 +20,7 @@ export type CloseBudgetPeriodInput = Readonly<{
   actualIncomeMinorUnits: number;
   actualExpenseMinorUnits: number;
   realRemainingMinorUnits: number;
+  unresolvedEvents: number;
 }>;
 
 export interface BudgetPeriodRepository {
@@ -54,4 +56,12 @@ export interface BudgetPeriodRepository {
     month: string,
     currency: string
   ): Promise<readonly BudgetMovement[]>;
+  /** Occurrences du mois sans résolution, agrégées par date et sens (≤ 62 lignes). */
+  plannedMovements(
+    ownerId: number,
+    month: string,
+    currency: string
+  ): Promise<readonly PlannedMovement[]>;
+  /** Somme des versements mensuels des objectifs non atteints dans la devise. */
+  goalSavings(ownerId: number, currency: string): Promise<number>;
 }
