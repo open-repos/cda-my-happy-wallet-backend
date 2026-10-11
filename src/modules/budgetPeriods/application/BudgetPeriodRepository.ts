@@ -12,6 +12,7 @@ export type BudgetPeriodState = Readonly<{
   actualIncomeMinorUnits: number;
   actualExpenseMinorUnits: number;
   realRemainingMinorUnits: number;
+  carryInMinorUnits: number;
   unresolvedEvents: number;
   revision: number;
   closedAt: Date | null;
@@ -35,7 +36,8 @@ export interface BudgetPeriodRepository {
     month: string,
     currency: string,
     fixedIncomeMinorUnits: number,
-    fixedExpenseMinorUnits: number
+    fixedExpenseMinorUnits: number,
+    carryInMinorUnits: number
   ): Promise<BudgetPeriodState>;
   updateOpenFixedSnapshot(
     id: number,
@@ -63,6 +65,8 @@ export interface BudgetPeriodRepository {
     month: string,
     currency: string
   ): Promise<readonly PlannedMovement[]>;
+  /** Premier mois `YYYY-MM` portant une opération ponctuelle dans la devise. */
+  firstActivityMonth(ownerId: number, currency: string): Promise<string | null>;
   /** Bilans clôturés d'une devise, du plus récent au plus ancien. */
   listClosed(
     ownerId: number,

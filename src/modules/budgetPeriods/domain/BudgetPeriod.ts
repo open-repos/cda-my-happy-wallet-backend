@@ -21,8 +21,12 @@ export type RealBudgetSummary = Readonly<{
   fixedIncomeMinorUnits: number;
   fixedExpenseMinorUnits: number;
   baseMinorUnits: number;
+  /** Reste réel signé du mois précédent clôturé; 0 pour la première période. */
+  carryInMinorUnits: number;
   actualIncomeMinorUnits: number;
   actualExpenseMinorUnits: number;
+  /** Résultat propre au mois, hors report : socle + entrées − dépenses. */
+  monthResultMinorUnits: number;
   realRemainingMinorUnits: number;
   balanceStatus: BudgetBalanceStatus;
   remainingDays: number;
@@ -36,6 +40,7 @@ export type CalculateRealBudgetInput = Readonly<{
   today: string;
   fixedIncomeMinorUnits: number;
   fixedExpenseMinorUnits: number;
+  carryInMinorUnits?: number;
   movements: readonly BudgetMovement[];
 }>;
 
@@ -110,6 +115,10 @@ export const calculateRealBudget = (
   }
   assertMinorUnits(input.fixedIncomeMinorUnits);
   assertMinorUnits(input.fixedExpenseMinorUnits);
+  const carryInMinorUnits = input.carryInMinorUnits ?? 0;
+  if (!Number.isSafeInteger(carryInMinorUnits)) {
+    throw new BudgetPeriodError("INVALID_AMOUNT");
+  }
 
   const byDate = new Map<
     string,
@@ -156,7 +165,7 @@ export const calculateRealBudget = (
 
   const baseMinorUnits =
     input.fixedIncomeMinorUnits - input.fixedExpenseMinorUnits;
-  let runningMinorUnits = baseMinorUnits;
+  let runningMinorUnits = baseMinorUnits + carryInMinorUnits;
   const days: DailyBudgetPoint[] = [];
   for (let day = 1; day <= bounds.days; day += 1) {
     const date = dateOf(input.month, day);
@@ -171,8 +180,9 @@ export const calculateRealBudget = (
     days.push({ date, ...totals, realRemainingMinorUnits: runningMinorUnits });
   }
 
-  const realRemainingMinorUnits =
+  const monthResultMinorUnits =
     baseMinorUnits + actualIncomeMinorUnits - actualExpenseMinorUnits;
+  const realRemainingMinorUnits = monthResultMinorUnits + carryInMinorUnits;
   const currentMonth = input.today.slice(0, 7);
   const remainingDays =
     currentMonth === input.month
@@ -185,8 +195,10 @@ export const calculateRealBudget = (
     fixedIncomeMinorUnits: input.fixedIncomeMinorUnits,
     fixedExpenseMinorUnits: input.fixedExpenseMinorUnits,
     baseMinorUnits,
+    carryInMinorUnits,
     actualIncomeMinorUnits,
     actualExpenseMinorUnits,
+    monthResultMinorUnits,
     realRemainingMinorUnits,
     balanceStatus:
       realRemainingMinorUnits === 0

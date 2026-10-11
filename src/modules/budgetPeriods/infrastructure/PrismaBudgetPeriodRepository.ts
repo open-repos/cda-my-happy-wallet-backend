@@ -65,7 +65,8 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
     month: string,
     currency: string,
     fixedIncomeMinorUnits: number,
-    fixedExpenseMinorUnits: number
+    fixedExpenseMinorUnits: number,
+    carryInMinorUnits: number
   ): Promise<BudgetPeriodState> {
     const row = await this.prisma.budgetPeriod.upsert({
       where: {
@@ -82,6 +83,7 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
         fixedIncome: decimalOf(fixedIncomeMinorUnits),
         fixedExpense: decimalOf(fixedExpenseMinorUnits),
         baseAmount: decimalOf(fixedIncomeMinorUnits - fixedExpenseMinorUnits),
+        carryIn: decimalOf(carryInMinorUnits),
       },
       update: {},
     });
@@ -226,6 +228,18 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
     }));
   }
 
+  public async firstActivityMonth(
+    ownerId: number,
+    currency: string
+  ): Promise<string | null> {
+    const first = await this.prisma.oneOffOperationRecord.findFirst({
+      where: { userId: ownerId, currency },
+      orderBy: [{ operationDate: "asc" }, { id: "asc" }],
+      select: { operationDate: true },
+    });
+    return first?.operationDate.toISOString().slice(0, 7) ?? null;
+  }
+
   public async listClosed(
     ownerId: number,
     currency: string,
@@ -316,6 +330,7 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
     actualIncome: DecimalValue;
     actualExpense: DecimalValue;
     realRemaining: DecimalValue;
+    carryIn: DecimalValue;
     unresolvedEvents: number;
     revision: number;
     closedAt: Date | null;
@@ -331,6 +346,7 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
       actualIncomeMinorUnits: minorUnitsOf(row.actualIncome),
       actualExpenseMinorUnits: minorUnitsOf(row.actualExpense),
       realRemainingMinorUnits: minorUnitsOf(row.realRemaining),
+      carryInMinorUnits: minorUnitsOf(row.carryIn),
       unresolvedEvents: row.unresolvedEvents,
       revision: row.revision,
       closedAt: row.closedAt,

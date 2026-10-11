@@ -113,7 +113,10 @@ const run = async () => {
   );
   assert.strictEqual(current.period.status, "OPEN");
   assert.strictEqual(current.budget.baseMinorUnits, 86360);
-  assert.strictEqual(current.budget.realRemainingMinorUnits, 84810);
+  // Août (premier mois d'activité) reporte 863,60 − 12,00 = 851,60 €.
+  assert.strictEqual(current.budget.carryInMinorUnits, 85160);
+  assert.strictEqual(current.budget.monthResultMinorUnits, 84810);
+  assert.strictEqual(current.budget.realRemainingMinorUnits, 169970);
   assert.strictEqual(current.budget.days.length, 30);
   const plan = await prisma.$queryRawUnsafe<Array<Record<string, string>>>(
     "EXPLAIN FORMAT=JSON SELECT `id`, `amount`, `type`, `operationDate` FROM `OneOffOperationRecord` WHERE `userId` = ? AND `currency` = ? AND `operationDate` BETWEEN ? AND ? ORDER BY `operationDate` ASC, `id` ASC",

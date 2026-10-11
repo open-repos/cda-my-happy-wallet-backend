@@ -25,9 +25,11 @@ const prepare = async () => {
     "DROP INDEX `OneOffOperationRecord_userId_currency_operationDate_id_idx` ON `OneOffOperationRecord`"
   );
   await prisma.$executeRawUnsafe("DROP TABLE `BudgetPeriod`");
+  // Les migrations ultérieures sur BudgetPeriod sont rejouées avec elle.
   await prisma.$executeRawUnsafe(
-    "DELETE FROM `_prisma_migrations` WHERE `migration_name` = ?",
-    migration
+    "DELETE FROM `_prisma_migrations` WHERE `migration_name` IN (?, ?)",
+    migration,
+    "20261011150000_add_budget_period_carry_in"
   );
 };
 

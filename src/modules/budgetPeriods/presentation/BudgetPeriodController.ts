@@ -35,7 +35,12 @@ export class BudgetPeriodController {
       this.today()
     );
     return res.status(200).json({
-      data: this.summaryDto(result.period, result.budget, result.forecast),
+      data: this.summaryDto(
+        result.period,
+        result.budget,
+        result.forecast,
+        result.carryFromMonth
+      ),
     });
   }
 
@@ -58,7 +63,8 @@ export class BudgetPeriodController {
   private summaryDto(
     period: BudgetPeriodState,
     budget: RealBudgetSummary,
-    forecast: ForecastBudgetSummary | null
+    forecast: ForecastBudgetSummary | null,
+    carryFromMonth: string | null
   ) {
     return {
       month: budget.month,
@@ -68,8 +74,11 @@ export class BudgetPeriodController {
       fixedIncome: amountOf(budget.fixedIncomeMinorUnits),
       fixedExpense: amountOf(budget.fixedExpenseMinorUnits),
       base: amountOf(budget.baseMinorUnits),
+      carryIn: amountOf(budget.carryInMinorUnits),
+      carryFromMonth,
       actualIncome: amountOf(budget.actualIncomeMinorUnits),
       actualExpense: amountOf(budget.actualExpenseMinorUnits),
+      monthResult: amountOf(budget.monthResultMinorUnits),
       realRemaining: amountOf(budget.realRemainingMinorUnits),
       remainingDays: budget.remainingDays,
       realDailyAllowance: optionalAmountOf(budget.realDailyAllowanceMinorUnits),
@@ -119,8 +128,12 @@ export class BudgetPeriodController {
     base: amountOf(
       period.fixedIncomeMinorUnits - period.fixedExpenseMinorUnits
     ),
+    carryIn: amountOf(period.carryInMinorUnits),
     actualIncome: amountOf(period.actualIncomeMinorUnits),
     actualExpense: amountOf(period.actualExpenseMinorUnits),
+    monthResult: amountOf(
+      period.realRemainingMinorUnits - period.carryInMinorUnits
+    ),
     realRemaining: amountOf(period.realRemainingMinorUnits),
     balanceStatus:
       period.realRemainingMinorUnits === 0
