@@ -1,3 +1,4 @@
+import { CursorPage, PaginationRequest } from "../../pagination";
 import { BudgetMovement, PlannedMovement } from "../domain";
 
 export type BudgetPeriodState = Readonly<{
@@ -62,6 +63,12 @@ export interface BudgetPeriodRepository {
     month: string,
     currency: string
   ): Promise<readonly PlannedMovement[]>;
+  /** Bilans clôturés d'une devise, du plus récent au plus ancien. */
+  listClosed(
+    ownerId: number,
+    currency: string,
+    page: PaginationRequest
+  ): Promise<CursorPage<BudgetPeriodState>>;
   /** Somme des versements mensuels des objectifs non atteints dans la devise. */
   goalSavings(ownerId: number, currency: string): Promise<number>;
 }

@@ -15,6 +15,9 @@ const paginatedPaths = [
   "/operations-fixes/charges",
   "/operation-categories",
   "/operations",
+  "/goals",
+  "/budget-periods/history",
+  "/event-occurrences/pending",
 ] as const;
 
 const document = swagger as unknown as {
@@ -28,7 +31,8 @@ const document = swagger as unknown as {
 for (const path of paginatedPaths) {
   const operation = document.paths[path]?.get;
   assert.ok(operation, `Missing GET ${path} in OpenAPI`);
-  assert.deepStrictEqual(operation.parameters, [
+  // Les filtres métier éventuels précèdent toujours les paramètres partagés.
+  assert.deepStrictEqual(operation.parameters?.slice(-2), [
     { $ref: "#/components/parameters/PaginationLimit" },
     { $ref: "#/components/parameters/PaginationCursor" },
   ]);

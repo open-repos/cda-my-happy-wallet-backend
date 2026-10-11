@@ -6,7 +6,10 @@ import {
   OperationCategoryUseCases,
 } from "../application";
 import { OneOffOperation } from "../domain";
-import { parseResourceId } from "./operationValidators";
+import {
+  parseOperationListQuery,
+  parseResourceId,
+} from "./operationValidators";
 import { parsePaginationRequest } from "../../pagination";
 
 export class OneOffOperationController {
@@ -48,9 +51,11 @@ export class OneOffOperationController {
   }
 
   public async listOperations(req: Request, res: Response): Promise<Response> {
+    const query = parseOperationListQuery(req.query);
     const page = await this.operations.list(
       this.ownerId(req),
-      parsePaginationRequest(req.query)
+      query.pagination,
+      query.filter
     );
     return res
       .status(200)

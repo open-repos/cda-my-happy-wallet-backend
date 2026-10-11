@@ -6,10 +6,13 @@ import { BudgetPeriodRepository } from "../../budgetPeriods/application";
 import { MonthlyEventRepository } from "../../monthlyEvents/application";
 import { OperationCategoryRepository } from "../../operations/application";
 import { OneOffOperation } from "../../operations/domain";
+import { CursorPage, PaginationRequest } from "../../pagination";
 import {
   OccurrenceResolution,
   OccurrenceResolutionError,
   OccurrenceSnapshot,
+  PENDING_WINDOW_MONTHS,
+  PendingOccurrence,
 } from "../domain";
 import {
   OccurrenceResolutionConflict,
@@ -39,6 +42,27 @@ export class EventOccurrenceUseCases {
     private readonly resolutions: OccurrenceResolutionRepository,
     private readonly today: CivilDateClock = parisCivilDateClock
   ) {}
+
+  /** File à traiter jusqu'à `through` (aujourd'hui par défaut), bornée à 12 mois. */
+  public pending(
+    ownerId: number,
+    through: string | undefined,
+    page: PaginationRequest
+  ): Promise<CursorPage<PendingOccurrence>> {
+    const last = through ?? this.today();
+    const index =
+      Number(last.slice(0, 4)) * 12 +
+      Number(last.slice(5, 7)) -
+      PENDING_WINDOW_MONTHS;
+    const from = `${String(Math.floor(index / 12)).padStart(4, "0")}-${String(
+      (index % 12) + 1
+    ).padStart(2, "0")}-01`;
+    return this.resolutions.listPending(ownerId, from, last, page);
+  }
+
+  public currentDate(): string {
+    return this.today();
+  }
 
   public async realize(
     ownerId: number,

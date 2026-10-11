@@ -4,7 +4,10 @@ import {
 } from "../domain";
 import { OperationApplicationError } from "./OperationApplicationError";
 import { OperationCategoryRepository } from "./OperationCategoryRepository.interface";
-import { OneOffOperationRepository } from "./OneOffOperationRepository.interface";
+import {
+  OneOffOperationRepository,
+  OperationListFilter,
+} from "./OneOffOperationRepository.interface";
 import { CursorPage, PaginationRequest } from "../../pagination";
 
 export type SaveOneOffOperationInput = Readonly<
@@ -21,9 +24,10 @@ export class OneOffOperationUseCases {
 
   public list(
     ownerId: number,
-    pagination: PaginationRequest
+    pagination: PaginationRequest,
+    filter: OperationListFilter = {}
   ): Promise<CursorPage<OneOffOperation>> {
-    return this.operations.listByOwner(ownerId, pagination);
+    return this.operations.listByOwner(ownerId, pagination, filter);
   }
 
   public async get(ownerId: number, id: number): Promise<OneOffOperation> {
