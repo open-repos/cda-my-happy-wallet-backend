@@ -11,7 +11,10 @@ import {
   BudgetPeriodState,
 } from "./BudgetPeriodRepository";
 
-export type BudgetPeriodEngineErrorCode = "INVALID_OWNER_ID" | "FUTURE_PERIOD";
+export type BudgetPeriodEngineErrorCode =
+  | "INVALID_OWNER_ID"
+  | "FUTURE_PERIOD"
+  | "CONCURRENT_UPDATE";
 
 export class BudgetPeriodEngineError extends Error {
   public constructor(public readonly code: BudgetPeriodEngineErrorCode) {
@@ -94,6 +97,91 @@ export class BudgetPeriodEngine {
         goalSavingsMinorUnits,
       }),
     };
+  }
+
+  /**
+   * Recalcule les périodes existantes à partir d'un mois passé corrigé : bilans
+   * clôturés et reports jusqu'au mois courant. Le snapshot fixe reste figé.
+   */
+  public async recalculateFrom(
+    ownerId: number,
+    month: string,
+    currency: string,
+    today: string
+  ): Promise<void> {
+    if (month >= today.slice(0, 7)) return;
+    for (let attempt = 0; attempt < MAX_RECALCULATION_ATTEMPTS; attempt += 1) {
+      if (await this.tryRecalculateFrom(ownerId, month, currency, today)) {
+        return;
+      }
+    }
+    throw new BudgetPeriodEngineError("CONCURRENT_UPDATE");
+  }
+
+  private async tryRecalculateFrom(
+    ownerId: number,
+    month: string,
+    currency: string,
+    today: string
+  ): Promise<boolean> {
+    const periods = await this.periods.listFrom(ownerId, currency, month);
+    for (const period of periods) {
+      const previous = await this.previousClosed(
+        ownerId,
+        period.month,
+        currency,
+        today
+      );
+      const carryInMinorUnits = previous?.realRemainingMinorUnits ?? 0;
+      if (period.status === "OPEN") {
+        if (
+          carryInMinorUnits !== period.carryInMinorUnits &&
+          !(await this.periods.recalculate(
+            period.id,
+            ownerId,
+            period.revision,
+            {
+              carryInMinorUnits,
+            }
+          ))
+        ) {
+          return false;
+        }
+        continue;
+      }
+      const budget = calculateRealBudget({
+        month: period.month,
+        currency,
+        today,
+        fixedIncomeMinorUnits: period.fixedIncomeMinorUnits,
+        fixedExpenseMinorUnits: period.fixedExpenseMinorUnits,
+        carryInMinorUnits,
+        movements: await this.periods.actualMovements(
+          ownerId,
+          period.month,
+          currency
+        ),
+      });
+      const unchanged =
+        carryInMinorUnits === period.carryInMinorUnits &&
+        budget.actualIncomeMinorUnits === period.actualIncomeMinorUnits &&
+        budget.actualExpenseMinorUnits === period.actualExpenseMinorUnits &&
+        budget.realRemainingMinorUnits === period.realRemainingMinorUnits;
+      if (
+        !unchanged &&
+        !(await this.periods.recalculate(period.id, ownerId, period.revision, {
+          carryInMinorUnits,
+          closedTotals: {
+            actualIncomeMinorUnits: budget.actualIncomeMinorUnits,
+            actualExpenseMinorUnits: budget.actualExpenseMinorUnits,
+            realRemainingMinorUnits: budget.realRemainingMinorUnits,
+          },
+        }))
+      ) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -207,6 +295,8 @@ export class BudgetPeriodEngine {
     return planned.reduce((sum, item) => sum + item.count, 0);
   }
 }
+
+const MAX_RECALCULATION_ATTEMPTS = 3;
 
 const shiftMonth = (month: string, offset: number): string => {
   const index =

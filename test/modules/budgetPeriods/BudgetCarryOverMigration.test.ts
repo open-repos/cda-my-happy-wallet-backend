@@ -34,8 +34,12 @@ const prepare = async () => {
     "ALTER TABLE `BudgetPeriod` DROP COLUMN `carryIn`"
   );
   await prisma.$executeRawUnsafe(
-    "DELETE FROM `_prisma_migrations` WHERE `migration_name` = ?",
-    migration
+    "ALTER TABLE `BudgetPeriod` DROP COLUMN `correctedAt`"
+  );
+  await prisma.$executeRawUnsafe(
+    "DELETE FROM `_prisma_migrations` WHERE `migration_name` IN (?, ?)",
+    migration,
+    "20261011170000_add_budget_period_corrected_at"
   );
   await prisma.$executeRawUnsafe(
     "INSERT INTO `BudgetPeriod` (`periodStart`, `currency`, `fixedIncome`, `fixedExpense`, `baseAmount`, `updatedAt`, `userId`) VALUES (?, 'EUR', 100, 40, 60, NOW(), ?)",
@@ -52,6 +56,7 @@ const verify = async () => {
   // Une période existante n'a pas de report rétroactif.
   assert.strictEqual(period.carryIn.toFixed(2), "0.00");
   assert.strictEqual(period.baseAmount.toFixed(2), "60.00");
+  assert.strictEqual(period.correctedAt, null);
   await prisma.utilisateur.delete({ where: { id: user.id } });
 };
 

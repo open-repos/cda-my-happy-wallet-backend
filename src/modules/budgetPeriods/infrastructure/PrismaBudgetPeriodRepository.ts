@@ -9,6 +9,7 @@ import {
   BudgetPeriodRepository,
   BudgetPeriodState,
   CloseBudgetPeriodInput,
+  RecalculatedPeriod,
 } from "../application";
 import {
   createCursorPage,
@@ -228,6 +229,55 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
     }));
   }
 
+  public async listFrom(
+    ownerId: number,
+    currency: string,
+    month: string
+  ): Promise<readonly BudgetPeriodState[]> {
+    const rows = await this.prisma.budgetPeriod.findMany({
+      where: {
+        userId: ownerId,
+        currency,
+        periodStart: { gte: this.periodStart(month) },
+      },
+      orderBy: [{ periodStart: "asc" }, { id: "asc" }],
+    });
+    return rows.map((row) => this.toState(row));
+  }
+
+  public async recalculate(
+    id: number,
+    ownerId: number,
+    expectedRevision: number,
+    values: RecalculatedPeriod
+  ): Promise<boolean> {
+    const totals = values.closedTotals;
+    const result = await this.prisma.budgetPeriod.updateMany({
+      where: {
+        id,
+        userId: ownerId,
+        revision: expectedRevision,
+        status:
+          totals === undefined
+            ? BudgetPeriodStatus.OPEN
+            : BudgetPeriodStatus.CLOSED,
+      },
+      data: {
+        carryIn: decimalOf(values.carryInMinorUnits),
+        revision: { increment: 1 },
+        ...(totals === undefined
+          ? {}
+          : {
+              actualIncome: decimalOf(totals.actualIncomeMinorUnits),
+              actualExpense: decimalOf(totals.actualExpenseMinorUnits),
+              realRemaining: decimalOf(totals.realRemainingMinorUnits),
+              correctedAt: new Date(),
+            }),
+      },
+    });
+    return result.count === 1;
+  }
+
   public async firstActivityMonth(
     ownerId: number,
     currency: string
@@ -334,6 +384,7 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
     unresolvedEvents: number;
     revision: number;
     closedAt: Date | null;
+    correctedAt: Date | null;
   }): BudgetPeriodState {
     return {
       id: row.id,
@@ -350,6 +401,7 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
       unresolvedEvents: row.unresolvedEvents,
       revision: row.revision,
       closedAt: row.closedAt,
+      correctedAt: row.correctedAt,
     };
   }
 

@@ -352,7 +352,8 @@ Les lots d'implémentation couvrent :
 | Réalisations et annulations concurrentes, idempotence, isolation                                                   | `test:budget-bounded-scan`, `test:event-occurrences-persistence` |
 | Contrat HTTP, `PERIOD_CLOSED` sur réalisation rétroactive                                                          | `test:budget-projection-api`                                     |
 
-Le recalcul des bilans clôturés après correction est suivi par M05-08.
+Le recalcul des bilans clôturés après correction est couvert par
+`test:budget-corrections`.
 
 ## Options écartées
 

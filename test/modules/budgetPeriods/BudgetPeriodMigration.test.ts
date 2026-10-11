@@ -27,9 +27,10 @@ const prepare = async () => {
   await prisma.$executeRawUnsafe("DROP TABLE `BudgetPeriod`");
   // Les migrations ultérieures sur BudgetPeriod sont rejouées avec elle.
   await prisma.$executeRawUnsafe(
-    "DELETE FROM `_prisma_migrations` WHERE `migration_name` IN (?, ?)",
+    "DELETE FROM `_prisma_migrations` WHERE `migration_name` IN (?, ?, ?)",
     migration,
-    "20261011150000_add_budget_period_carry_in"
+    "20261011150000_add_budget_period_carry_in",
+    "20261011170000_add_budget_period_corrected_at"
   );
 };
 

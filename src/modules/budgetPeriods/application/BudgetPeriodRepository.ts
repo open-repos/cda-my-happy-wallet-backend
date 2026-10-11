@@ -16,6 +16,17 @@ export type BudgetPeriodState = Readonly<{
   unresolvedEvents: number;
   revision: number;
   closedAt: Date | null;
+  correctedAt: Date | null;
+}>;
+
+/** Valeurs recalculées d'une période; les totaux réels ne concernent qu'un bilan clôturé. */
+export type RecalculatedPeriod = Readonly<{
+  carryInMinorUnits: number;
+  closedTotals?: Readonly<{
+    actualIncomeMinorUnits: number;
+    actualExpenseMinorUnits: number;
+    realRemainingMinorUnits: number;
+  }>;
 }>;
 
 export type CloseBudgetPeriodInput = Readonly<{
@@ -65,6 +76,22 @@ export interface BudgetPeriodRepository {
     month: string,
     currency: string
   ): Promise<readonly PlannedMovement[]>;
+  /** Périodes de la devise à partir d'un mois inclus, de la plus ancienne à la plus récente. */
+  listFrom(
+    ownerId: number,
+    currency: string,
+    month: string
+  ): Promise<readonly BudgetPeriodState[]>;
+  /**
+   * Écrit un recalcul si la révision n'a pas changé; renvoie false sinon.
+   * Incrémente la révision et date la correction d'un bilan clôturé.
+   */
+  recalculate(
+    id: number,
+    ownerId: number,
+    expectedRevision: number,
+    values: RecalculatedPeriod
+  ): Promise<boolean>;
   /** Premier mois `YYYY-MM` portant une opération ponctuelle dans la devise. */
   firstActivityMonth(ownerId: number, currency: string): Promise<string | null>;
   /** Bilans clôturés d'une devise, du plus récent au plus ancien. */
