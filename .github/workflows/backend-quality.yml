@@ -118,6 +118,10 @@ jobs:
           npm run test:budget-period-domain
           npm run test:budget-period-persistence
           npm run test:budget-period-migration
+          npm run test:budget-forecast-domain
+          npm run test:event-occurrences-use-cases
+          npm run test:event-occurrences-persistence
+          npm run test:event-occurrences-migration
           npm run test:pagination
           npm run test:pagination-openapi
           npm run test:pagination-schema

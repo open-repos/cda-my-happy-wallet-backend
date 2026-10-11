@@ -84,6 +84,7 @@ model Utilisateur {
   operationCategories OperationCategory[]
   oneOffOperations OneOffOperationRecord[] @relation("OneOffOperationOwner")
   budgetPeriods BudgetPeriod[]
+  occurrenceResolutions EventOccurrenceResolution[]
   created_at  DateTime @default(now()) @db.Timestamp(0)
   updated_at  DateTime @default(now()) @db.DateTime(0)
 }
@@ -114,6 +115,36 @@ model BudgetPeriod {
 enum BudgetPeriodStatus {
   OPEN
   CLOSED
+}
+
+/// Décision durable sur une occurrence datée; l'absence de ligne signifie PLANNED.
+model EventOccurrenceResolution {
+  id             Int                        @id @default(autoincrement())
+  /// Référence historique à la règle, sans cascade : la décision survit à la suppression de la règle.
+  sourceEventId  Int
+  occurrenceDate DateTime                   @db.Date
+  status         OccurrenceResolutionStatus
+  title          String                     @db.VarChar(50)
+  amount         Decimal                    @db.Decimal(10, 2)
+  currency       String                     @db.Char(3)
+  kind           MonthlyEventKind
+  /// Opération créée par la réalisation; repasse à null si l'opération est supprimée ensuite.
+  operationId    Int?                       @unique
+  operation      OneOffOperationRecord?     @relation(fields: [operationId], references: [id], onDelete: SetNull)
+  resolvedAt     DateTime                   @default(now()) @db.DateTime(3)
+  createdAt      DateTime                   @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime                   @updatedAt @db.DateTime(0)
+  userId         Int
+  user           Utilisateur                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sourceEventId, occurrenceDate])
+  @@index([userId, occurrenceDate, status, id])
+  @@index([userId, currency, occurrenceDate, id])
+}
+
+enum OccurrenceResolutionStatus {
+  REALIZED
+  CANCELED
 }
 
 model RefreshSession {
@@ -196,6 +227,7 @@ model OneOffOperationRecord {
   categoryId        Int
   owner             Utilisateur       @relation("OneOffOperationOwner", fields: [userId], references: [id], onDelete: Cascade)
   category          OperationCategory @relation(fields: [categoryId, userId], references: [id, userId], onDelete: Restrict)
+  resolution        EventOccurrenceResolution?
   createdAt         DateTime          @default(now()) @db.Timestamp(0)
   updatedAt         DateTime          @updatedAt @db.DateTime(0)
 

@@ -1,6 +1,8 @@
 import {
   assertCivilDate,
+  calculateForecastBudget,
   calculateRealBudget,
+  ForecastBudgetSummary,
   monthBounds,
   RealBudgetSummary,
 } from "../domain";
@@ -21,6 +23,8 @@ export class BudgetPeriodEngineError extends Error {
 export type BudgetPeriodSummary = Readonly<{
   period: BudgetPeriodState;
   budget: RealBudgetSummary;
+  /** Calculé pour le mois courant seulement; un mois passé est un bilan. */
+  forecast: ForecastBudgetSummary | null;
 }>;
 
 export class BudgetPeriodEngine {
@@ -82,13 +86,36 @@ export class BudgetPeriodEngine {
       movements,
     });
 
-    if (period.status === "OPEN" && month < currentMonth) {
-      period = await this.periods.close(period.id, ownerId, {
-        actualIncomeMinorUnits: budget.actualIncomeMinorUnits,
-        actualExpenseMinorUnits: budget.actualExpenseMinorUnits,
-        realRemainingMinorUnits: budget.realRemainingMinorUnits,
-      });
+    if (month < currentMonth) {
+      if (period.status === "OPEN") {
+        const planned = await this.periods.plannedMovements(
+          ownerId,
+          month,
+          normalizedCurrency
+        );
+        period = await this.periods.close(period.id, ownerId, {
+          actualIncomeMinorUnits: budget.actualIncomeMinorUnits,
+          actualExpenseMinorUnits: budget.actualExpenseMinorUnits,
+          realRemainingMinorUnits: budget.realRemainingMinorUnits,
+          unresolvedEvents: planned.reduce((sum, item) => sum + item.count, 0),
+        });
+      }
+      return { period, budget, forecast: null };
     }
-    return { period, budget };
+
+    const [planned, goalSavingsMinorUnits] = await Promise.all([
+      this.periods.plannedMovements(ownerId, month, normalizedCurrency),
+      this.periods.goalSavings(ownerId, normalizedCurrency),
+    ]);
+    return {
+      period,
+      budget,
+      forecast: calculateForecastBudget({
+        real: budget,
+        today,
+        planned,
+        goalSavingsMinorUnits,
+      }),
+    };
   }
 }
