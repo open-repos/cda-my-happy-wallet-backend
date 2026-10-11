@@ -90,6 +90,9 @@ npm run test:monthly-events-api
 npm run test:monthly-events-persistence
 npm run test:monthly-events-migration
 npm run test:budget-api-integration
+npm run test:budget-period-domain
+npm run test:budget-period-persistence
+npm run test:budget-period-migration
 npm run test:pagination
 npm run test:pagination-openapi
 npm run test:pagination-schema
