@@ -1,0 +1,2 @@
+ALTER TABLE `BudgetPeriod`
+  ADD COLUMN `carryIn` DECIMAL(10, 2) NOT NULL DEFAULT 0;

@@ -17,7 +17,9 @@ DTO n'expose d'identifiant propriétaire. La date du jour vient de l'horloge
 
 `GET /budget-periods/{month}/summary?currency=EUR`
 
-Renvoie le socle, les totaux fixes et réels, le reste réel, les jours restants,
+Renvoie le socle, le report (`carryIn`, `carryFromMonth`), les totaux fixes et
+réels, le résultat propre au mois (`monthResult`), le reste réel, les jours
+restants,
 le disponible réel par jour, `unresolvedEvents` et au plus 31 points
 journaliers. Pour le mois courant, `forecast` contient les entrées et dépenses
 planifiées, l'épargne des objectifs, le reste prévisionnel, le disponible
@@ -35,7 +37,17 @@ en `422` avec `code: FUTURE_PERIOD`. Le résumé ne transporte aucune opération
 
 Bilans clôturés du plus récent au plus ancien, paginés par curseur
 `(mois, id)` lié au propriétaire et à la devise. Chaque élément donne socle,
-totaux réels, reste réel, `balanceStatus`, `unresolvedEvents` et `closedAt`.
+report entrant, totaux réels, résultat du mois, reste réel, `balanceStatus`,
+`unresolvedEvents` et `closedAt`.
+
+## Lecture du report
+
+`realRemaining = carryIn + monthResult`. `carryFromMonth` vaut le mois
+précédent dont le reste est reporté, ou `null` au premier mois d'activité de
+la devise et avant. `balanceStatus` porte sur le reste réel, report compris;
+`monthResult` permet de montrer si le mois lui-même était excédentaire. Le
+frontend doit afficher le report sur une ligne nommée, par exemple « Report de
+septembre : −120,00 € », jamais fondu dans le socle.
 
 ## Opérations filtrées
 

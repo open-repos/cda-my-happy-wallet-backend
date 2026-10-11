@@ -100,6 +100,8 @@ model BudgetPeriod {
   actualIncome     Decimal            @default(0) @db.Decimal(10, 2)
   actualExpense    Decimal            @default(0) @db.Decimal(10, 2)
   realRemaining    Decimal            @default(0) @db.Decimal(10, 2)
+  /// Reste réel signé du mois précédent clôturé, reporté sur cette période.
+  carryIn          Decimal            @default(0) @db.Decimal(10, 2)
   unresolvedEvents Int                @default(0)
   revision         Int                @default(1)
   closedAt         DateTime?          @db.DateTime(3)

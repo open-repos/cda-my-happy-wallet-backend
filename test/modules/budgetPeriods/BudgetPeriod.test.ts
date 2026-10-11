@@ -97,3 +97,33 @@ assert.throws(
     error instanceof BudgetPeriodError &&
     error.code === "MOVEMENT_OUTSIDE_PERIOD"
 );
+
+// Report : le reste du mois précédent s'ajoute, en positif comme en négatif.
+const carried = calculateRealBudget({
+  month: "2026-10",
+  currency: "EUR",
+  today: "2026-10-11",
+  fixedIncomeMinorUnits: 200000,
+  fixedExpenseMinorUnits: 80000,
+  carryInMinorUnits: -12000,
+  movements: [{ operationDate: "2026-10-03", minorUnits: 4000, kind: "DEPENSE" }],
+});
+assert.strictEqual(carried.carryInMinorUnits, -12000);
+assert.strictEqual(carried.monthResultMinorUnits, 116000);
+assert.strictEqual(carried.realRemainingMinorUnits, 104000);
+assert.strictEqual(carried.days[0].realRemainingMinorUnits, 108000);
+assert.strictEqual(carried.days[30].realRemainingMinorUnits, 104000);
+assert.strictEqual(
+  calculateRealBudget({
+    month: "2026-10",
+    currency: "EUR",
+    today: "2026-10-11",
+    fixedIncomeMinorUnits: 0,
+    fixedExpenseMinorUnits: 0,
+    carryInMinorUnits: 5000,
+    movements: [],
+  }).balanceStatus,
+  "POSITIVE"
+);
+assert.strictEqual(summary.carryInMinorUnits, 0);
+assert.strictEqual(summary.monthResultMinorUnits, summary.realRemainingMinorUnits);

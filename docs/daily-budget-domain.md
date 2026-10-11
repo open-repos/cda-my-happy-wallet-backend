@@ -42,10 +42,14 @@ Pour une période et une devise :
 ```text
 socle = revenus fixes - charges fixes
 
-reste réel =
+résultat du mois =
   socle
   + entrées réelles
   - dépenses réelles
+
+reste réel =
+  report du mois précédent
+  + résultat du mois
 
 reste prévisionnel =
   reste réel
@@ -105,16 +109,35 @@ Le bilan d'un mois passé vaut `POSITIVE`, `BALANCED` ou `NEGATIVE` selon
 le signe du reste réel clôturé. Les événements annulés ou planifiés ne changent
 pas ce bilan; les éléments non résolus sont signalés séparément.
 
-### Immutabilité
+### Report de solde
 
-Une création, modification ou suppression d'opération qui affecterait une
-période clôturée est refusée par un conflit métier `period_closed`. Une
-correction comptable ou une réouverture auditée sort du MVP et demandera une
-décision dédiée.
+Décision du 11 octobre 2026 (M05-09). Le reste réel d'un mois clôturé est
+reporté sur le mois suivant de la même devise, en positif comme en négatif. Le
+report est mémorisé à l'ouverture de la période (`carryIn`) et reste une ligne
+distincte du socle : l'interface affiche « report du mois précédent » et le
+« résultat du mois » séparément.
 
-Les opérations futures restent autorisées tant que leur période n'est pas
-clôturée. Une période future n'est pas incluse dans le disponible journalier du
-mois courant.
+La chaîne démarre au premier mois portant une opération ponctuelle dans la
+devise : ce mois a un report nul, et un mois antérieur est calculé isolément,
+sans report. Ce choix évite qu'une période sans aucune saisie reporte tout son
+socle avant que l'utilisateur ne commence à suivre ses dépenses. Entre ce
+premier mois et le mois demandé, chaque mois manquant est matérialisé et
+clôturé avec le snapshot fixe du mois précédent, pour garder la chaîne
+continue. Une saisie oubliée dans un mois entier reste donc reportée comme un
+excédent tant qu'elle n'est pas corrigée.
+
+### Corrections d'un mois clôturé
+
+Décision du 11 octobre 2026 (option B, M05-08). Une opération peut être
+ajoutée, modifiée ou supprimée à sa vraie date même dans un mois clôturé. Le
+snapshot fixe reste figé; les totaux réels et le reste réel sont recalculés,
+la révision est incrémentée et la date de correction est mémorisée. Le nouveau
+reste se propage au report de chaque mois suivant jusqu'au mois courant.
+
+La réalisation d'une occurrence d'événement dans un mois passé reste refusée
+(`PERIOD_CLOSED`) : une occurrence en retard se réalise au mois courant.
+Une période future n'est pas incluse dans le disponible journalier du mois
+courant.
 
 ## Cycle de vie d'une occurrence
 
@@ -329,9 +352,7 @@ Les lots d'implémentation couvrent :
 | Réalisations et annulations concurrentes, idempotence, isolation                                                   | `test:budget-bounded-scan`, `test:event-occurrences-persistence` |
 | Contrat HTTP, `PERIOD_CLOSED` sur réalisation rétroactive                                                          | `test:budget-projection-api`                                     |
 
-Le refus `period_closed` des créations, modifications et suppressions
-d'opérations ponctuelles dans un mois clôturé n'est pas encore implémenté; il
-est suivi dans une Work Item dédiée.
+Le recalcul des bilans clôturés après correction est suivi par M05-08.
 
 ## Options écartées
 
