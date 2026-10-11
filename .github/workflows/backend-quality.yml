@@ -128,6 +128,7 @@ jobs:
           npm run test:budget-carry-over
           npm run test:budget-carry-over-migration
           npm run test:budget-corrections
+          npm run test:budget-recalculation-retry
           npm run test:pagination
           npm run test:pagination-openapi
           npm run test:pagination-schema

@@ -32,8 +32,35 @@ export type BudgetPeriodSummary = Readonly<{
   carryFromMonth: string | null;
 }>;
 
+/** Tentatives de recalcul d'une chaîne de périodes avant `CONCURRENT_UPDATE`. */
+export const MAX_RECALCULATION_ATTEMPTS = 5;
+const MAX_RETRY_DELAY_MS = 200;
+
+/** Attente avant la tentative `attempt` (à partir de 1). */
+export type RecalculationPause = (attempt: number) => Promise<void>;
+
+/**
+ * Délai aléatoire et croissant (5 à 25 ms, doublé à chaque tentative, au plus
+ * 200 ms) : deux écrivains concurrents se désynchronisent au lieu de se gêner
+ * à chaque tentative.
+ */
+export const jitteredRetryDelay = (
+  attempt: number,
+  random: () => number = Math.random
+): number =>
+  Math.min(
+    MAX_RETRY_DELAY_MS,
+    Math.max(1, Math.round((5 + random() * 20) * 2 ** (attempt - 1)))
+  );
+
+const pauseBeforeRetry: RecalculationPause = (attempt) =>
+  new Promise((resolve) => setTimeout(resolve, jitteredRetryDelay(attempt)));
+
 export class BudgetPeriodEngine {
-  public constructor(private readonly periods: BudgetPeriodRepository) {}
+  public constructor(
+    private readonly periods: BudgetPeriodRepository,
+    private readonly pause: RecalculationPause = pauseBeforeRetry
+  ) {}
 
   public async summarize(
     ownerId: number,
@@ -111,6 +138,7 @@ export class BudgetPeriodEngine {
   ): Promise<void> {
     if (month >= today.slice(0, 7)) return;
     for (let attempt = 0; attempt < MAX_RECALCULATION_ATTEMPTS; attempt += 1) {
+      if (attempt > 0) await this.pause(attempt);
       if (await this.tryRecalculateFrom(ownerId, month, currency, today)) {
         return;
       }
@@ -295,8 +323,6 @@ export class BudgetPeriodEngine {
     return planned.reduce((sum, item) => sum + item.count, 0);
   }
 }
-
-const MAX_RECALCULATION_ATTEMPTS = 3;
 
 const shiftMonth = (month: string, offset: number): string => {
   const index =

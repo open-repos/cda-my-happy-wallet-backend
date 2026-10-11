@@ -60,6 +60,7 @@
     "test:budget-carry-over": "ts-node test/modules/budgetPeriods/BudgetCarryOver.test.ts",
     "test:budget-carry-over-migration": "ts-node test/modules/budgetPeriods/BudgetCarryOverMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/budgetPeriods/BudgetCarryOverMigration.test.ts verify",
     "test:budget-corrections": "ts-node test/modules/budgetPeriods/BudgetCorrections.test.ts",
+    "test:budget-recalculation-retry": "ts-node test/modules/budgetPeriods/BudgetRecalculationRetry.test.ts",
     "test:budget-edge-cases": "ts-node test/modules/budgetPeriods/BudgetEdgeCases.test.ts",
     "test:budget-bounded-scan": "ts-node test/modules/budgetPeriods/BudgetBoundedScan.test.ts",
     "test:budget-projection-api": "ts-node test/modules/budgetApi/BudgetProjectionApi.test.ts",
