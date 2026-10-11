@@ -47,9 +47,11 @@ passé. Le backend recalcule alors le bilan clôturé de ce mois, puis le report
 de chaque mois suivant jusqu'au mois courant. La synthèse et l'historique
 exposent `revision` et `correctedAt` : un bilan corrigé a un `correctedAt` non
 nul, que le frontend doit signaler (« Bilan corrigé le … »). Une écriture
-concurrente du même bilan est rejouée; après trois conflits, la requête renvoie
-une erreur serveur alors que l'opération est déjà enregistrée, et la prochaine
-correction d'opération de ce mois rétablit la chaîne.
+concurrente du même bilan est rejouée jusqu'à cinq fois, après une attente
+aléatoire et croissante (5 à 25 ms, doublée à chaque tentative, au plus
+200 ms) qui désynchronise les écrivains. Après cinq conflits, la requête
+renvoie une erreur serveur alors que l'opération est déjà enregistrée, et la
+prochaine correction d'opération de ce mois rétablit la chaîne.
 
 ## Lecture du report
 
