@@ -12,6 +12,7 @@ import { swOneOffOperationRouter } from '../routes/oneOffOperations';
 import { swMonthlyEventRouter } from '../routes/monthlyEvents';
 import { swFinancialGoalRouter } from '../routes/financialGoals';
 import { swBudgetPeriodRouter } from '../routes/budgetPeriods';
+import { swAnalyticsRouter } from '../routes/analytics';
 import { swEventOccurrenceRouter } from '../routes/eventOccurrences';
 
 const swagger = {
@@ -77,6 +78,7 @@ const swagger = {
     ...swMonthlyEventRouter,
     ...swFinancialGoalRouter,
     ...swBudgetPeriodRouter,
+    ...swAnalyticsRouter,
     ...swEventOccurrenceRouter
   },
   components: {
