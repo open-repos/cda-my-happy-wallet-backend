@@ -2,6 +2,7 @@ import { Prisma, PrismaClient, TypeOperationEnum } from "@prisma/client";
 import {
   OneOffOperationRepository,
   OperationApplicationError,
+  OperationListFilter,
 } from "../application";
 import { OneOffOperation } from "../domain";
 import {
@@ -35,9 +36,10 @@ export class PrismaOneOffOperationRepository
 
   public async listByOwner(
     ownerId: number,
-    pagination: PaginationRequest
+    pagination: PaginationRequest,
+    filter: OperationListFilter = {}
   ): Promise<CursorPage<OneOffOperation>> {
-    const context = this.cursorContext(ownerId);
+    const context = this.cursorContext(ownerId, filter);
     const position =
       pagination.cursor == null
         ? null
@@ -61,16 +63,34 @@ export class PrismaOneOffOperationRepository
     if (date !== undefined && Number.isNaN(date.getTime())) {
       throw invalidPagination();
     }
-    const where: Prisma.OneOffOperationRecordWhereInput =
-      date === undefined || afterId === undefined
-        ? { userId: ownerId }
+    const where: Prisma.OneOffOperationRecordWhereInput = {
+      userId: ownerId,
+      ...(filter.currency === undefined ? {} : { currency: filter.currency }),
+      ...(filter.from === undefined && filter.to === undefined
+        ? {}
         : {
-            userId: ownerId,
-            OR: [
-              { operationDate: { lt: date } },
-              { operationDate: date, id: { lt: afterId } },
+            operationDate: {
+              ...(filter.from === undefined
+                ? {}
+                : { gte: new Date(`${filter.from}T00:00:00.000Z`) }),
+              ...(filter.to === undefined
+                ? {}
+                : { lte: new Date(`${filter.to}T00:00:00.000Z`) }),
+            },
+          }),
+      ...(date === undefined || afterId === undefined
+        ? {}
+        : {
+            AND: [
+              {
+                OR: [
+                  { operationDate: { lt: date } },
+                  { operationDate: date, id: { lt: afterId } },
+                ],
+              },
             ],
-          };
+          }),
+    };
     const rows = await this.prisma.oneOffOperationRecord.findMany({
       where,
       include: { category: { select: { id: true, userId: true } } },
@@ -156,10 +176,17 @@ export class PrismaOneOffOperationRepository
     });
   }
 
-  private cursorContext(ownerId: number): CursorContext {
+  /** Les filtres font partie du contexte : un curseur ne change pas de liste. */
+  private cursorContext(
+    ownerId: number,
+    filter: OperationListFilter = {}
+  ): CursorContext {
+    const filters = [filter.from ?? "", filter.to ?? "", filter.currency ?? ""];
     return {
       resource: "one-off-operations",
-      scope: `owner:${ownerId}`,
+      scope: filters.some((value) => value !== "")
+        ? `owner:${ownerId}:${filters.join(":")}`
+        : `owner:${ownerId}`,
     };
   }
 }

@@ -43,3 +43,16 @@ export class OccurrenceResolutionError extends Error {
     this.name = "OccurrenceResolutionError";
   }
 }
+
+/** Occurrence encore planifiée, proposée dans la file « à traiter ». */
+export type PendingOccurrence = Readonly<{
+  sourceEventId: number;
+  occurrenceDate: string;
+  title: string;
+  minorUnits: number;
+  currency: string;
+  kind: MonthlyEventKind;
+}>;
+
+/** La file couvre le mois de `through` et les 11 mois précédents. */
+export const PENDING_WINDOW_MONTHS = 12;

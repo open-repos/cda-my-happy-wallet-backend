@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import Joi, { ObjectSchema } from "joi";
 import { ErrorCode, ErrorException } from "../../../utils/errors";
+import { PaginationRequest, parsePaginationRequest } from "../../pagination";
+import { OperationListFilter } from "../application";
 
 const categoryBodySchema = Joi.object({
   name: Joi.string().trim().min(2).max(50).required(),
@@ -71,4 +73,42 @@ export const parseResourceId = (value: string): number => {
     throw new ErrorException(ErrorCode.WrongParamsID);
   }
   return id;
+};
+
+const civilDate = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+const isCivilDate = (value: unknown): value is string =>
+  typeof value === "string" &&
+  civilDate.test(value) &&
+  new Date(`${value}T00:00:00.000Z`).toISOString().slice(0, 10) === value;
+
+const invalidFilter = () =>
+  new ErrorException(
+    ErrorCode.ValidationFailed,
+    "Operation filter parameters are invalid"
+  );
+
+/** `from` et `to` sont inclusifs; une journée utilise la même date pour les deux. */
+export const parseOperationListQuery = (
+  query: Readonly<Record<string, unknown>>
+): { filter: OperationListFilter; pagination: PaginationRequest } => {
+  const { from, to, currency, ...pagination } = query;
+  if (from !== undefined && !isCivilDate(from)) throw invalidFilter();
+  if (to !== undefined && !isCivilDate(to)) throw invalidFilter();
+  if (from !== undefined && to !== undefined && from > to) {
+    throw invalidFilter();
+  }
+  if (
+    currency !== undefined &&
+    (typeof currency !== "string" || !/^[A-Za-z]{3}$/.test(currency))
+  ) {
+    throw invalidFilter();
+  }
+  return {
+    filter: {
+      ...(from === undefined ? {} : { from }),
+      ...(to === undefined ? {} : { to }),
+      ...(currency === undefined ? {} : { currency: currency.toUpperCase() }),
+    },
+    pagination: parsePaginationRequest(pagination),
+  };
 };

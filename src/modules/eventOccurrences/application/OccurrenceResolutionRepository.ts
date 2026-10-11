@@ -1,5 +1,10 @@
 import { OneOffOperation } from "../../operations/domain";
-import { OccurrenceResolution, OccurrenceSnapshot } from "../domain";
+import { CursorPage, PaginationRequest } from "../../pagination";
+import {
+  OccurrenceResolution,
+  OccurrenceSnapshot,
+  PendingOccurrence,
+} from "../domain";
 
 /** Levée lorsqu'une décision concurrente occupe déjà l'occurrence. */
 export class OccurrenceResolutionConflict extends Error {
@@ -21,4 +26,11 @@ export interface OccurrenceResolutionRepository {
     operation: OneOffOperation
   ): Promise<OccurrenceResolution>;
   cancel(snapshot: OccurrenceSnapshot): Promise<OccurrenceResolution>;
+  /** Occurrences sans décision entre deux dates civiles incluses, par date puis règle. */
+  listPending(
+    ownerId: number,
+    from: string,
+    through: string,
+    page: PaginationRequest
+  ): Promise<CursorPage<PendingOccurrence>>;
 }

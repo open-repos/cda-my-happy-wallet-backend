@@ -10,6 +10,14 @@ import {
   BudgetPeriodState,
   CloseBudgetPeriodInput,
 } from "../application";
+import {
+  createCursorPage,
+  CursorPage,
+  invalidPagination,
+  paginationCursorCodec,
+  PaginationCursorCodec,
+  PaginationRequest,
+} from "../../pagination";
 import { BudgetMovement, PlannedMovement } from "../domain";
 import { monthBounds } from "../domain/BudgetPeriod";
 
@@ -30,7 +38,10 @@ const minorUnitsOf = (value: DecimalValue): number => {
 const decimalOf = (minorUnits: number): string => (minorUnits / 100).toFixed(2);
 
 export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
-  public constructor(private readonly prisma: PrismaClient) {}
+  public constructor(
+    private readonly prisma: PrismaClient,
+    private readonly cursors: PaginationCursorCodec = paginationCursorCodec
+  ) {}
 
   public async find(
     ownerId: number,
@@ -213,6 +224,59 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
       minorUnits: minorUnitsOf(row.total),
       count: Number(row.occurrences),
     }));
+  }
+
+  public async listClosed(
+    ownerId: number,
+    currency: string,
+    page: PaginationRequest
+  ): Promise<CursorPage<BudgetPeriodState>> {
+    const context = {
+      resource: "budget-period-history",
+      scope: `owner:${ownerId}:${currency}`,
+    };
+    const position =
+      page.cursor == null ? null : this.cursors.decode(context, page.cursor);
+    if (
+      position !== null &&
+      (position.length !== 2 ||
+        typeof position[0] !== "string" ||
+        !/^\d{4}-(0[1-9]|1[0-2])$/.test(position[0]) ||
+        typeof position[1] !== "number" ||
+        !Number.isSafeInteger(position[1]) ||
+        position[1] <= 0)
+    ) {
+      throw invalidPagination();
+    }
+    const rows = await this.prisma.budgetPeriod.findMany({
+      where: {
+        userId: ownerId,
+        currency,
+        status: BudgetPeriodStatus.CLOSED,
+        ...(position === null
+          ? {}
+          : {
+              OR: [
+                {
+                  periodStart: { lt: this.periodStart(position[0] as string) },
+                },
+                {
+                  periodStart: this.periodStart(position[0] as string),
+                  id: { lt: position[1] as number },
+                },
+              ],
+            }),
+      },
+      orderBy: [{ periodStart: "desc" }, { id: "desc" }],
+      take: page.limit + 1,
+    });
+    return createCursorPage(
+      rows.map((row) => this.toState(row)),
+      page,
+      context,
+      (period) => [period.month, period.id],
+      this.cursors
+    );
   }
 
   public async goalSavings(ownerId: number, currency: string): Promise<number> {

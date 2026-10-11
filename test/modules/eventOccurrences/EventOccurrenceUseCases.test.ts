@@ -8,9 +8,11 @@ import {
   OccurrenceResolution,
   OccurrenceResolutionError,
   OccurrenceSnapshot,
+  PendingOccurrence,
 } from "../../../src/modules/eventOccurrences/domain";
 import { MonthlyEvent } from "../../../src/modules/monthlyEvents/domain";
 import { OneOffOperation } from "../../../src/modules/operations/domain";
+import { CursorPage, PaginationRequest } from "../../../src/modules/pagination";
 
 const OWNER = 7;
 const rent = MonthlyEvent.create({
@@ -27,6 +29,7 @@ const rent = MonthlyEvent.create({
 class FakeResolutions implements OccurrenceResolutionRepository {
   public rows: OccurrenceResolution[] = [];
   public operations = 0;
+  public pendingWindow: [string, string] | null = null;
   /** Simule une décision concurrente insérée juste avant l'écriture. */
   public raceWith: OccurrenceResolution | null = null;
 
@@ -86,6 +89,18 @@ class FakeResolutions implements OccurrenceResolutionRepository {
       operation: null,
     });
   }
+  public async listPending(
+    _: number,
+    from: string,
+    through: string,
+    page: PaginationRequest
+  ): Promise<CursorPage<PendingOccurrence>> {
+    this.pendingWindow = [from, through];
+    return {
+      data: [],
+      meta: { limit: page.limit, hasNext: false, nextCursor: null },
+    };
+  }
   private applyRace() {
     if (this.raceWith != null) {
       this.rows.push(this.raceWith);
@@ -130,6 +145,18 @@ const rejectsWith = (promise: Promise<unknown>, code: string) =>
 
 async function run() {
   const { resolutions, useCases } = build();
+
+  // La file couvre le mois courant et les 11 précédents, passage d'année inclus.
+  await useCases.pending(OWNER, undefined, { limit: 10, cursor: null });
+  assert.deepStrictEqual(resolutions.pendingWindow, [
+    "2025-11-01",
+    "2026-10-11",
+  ]);
+  await useCases.pending(OWNER, "2027-01-15", { limit: 10, cursor: null });
+  assert.deepStrictEqual(resolutions.pendingWindow, [
+    "2026-02-01",
+    "2027-01-15",
+  ]);
 
   // Le 31 du mois d'ancrage tombe le 31 octobre.
   const realized = await useCases.realize(OWNER, 1, "2026-10-31", {

@@ -8,6 +8,8 @@ import { nativeSessionRouter } from './routes/nativeSession';
 import { oneOffOperationRouter } from './routes/oneOffOperations';
 import { monthlyEventRouter } from './routes/monthlyEvents';
 import { financialGoalRouter } from './routes/financialGoals';
+import { budgetPeriodRouter } from './routes/budgetPeriods';
+import { eventOccurrenceRouter } from './routes/eventOccurrences';
 
 
 
@@ -44,8 +46,10 @@ mainRouter.use('/users',userRouter)
 mainRouter.use('/operations-fixes',operationFixeRouter)
 
 mainRouter.use('/', oneOffOperationRouter)
+mainRouter.use('/', eventOccurrenceRouter)
 mainRouter.use('/', monthlyEventRouter)
 mainRouter.use('/', financialGoalRouter)
+mainRouter.use('/', budgetPeriodRouter)
 
 
 // mainRouter.use(notFoundRouter)

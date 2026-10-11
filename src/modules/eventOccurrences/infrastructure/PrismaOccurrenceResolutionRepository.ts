@@ -7,10 +7,22 @@ import {
 } from "@prisma/client";
 import { OneOffOperation } from "../../operations/domain";
 import {
+  createCursorPage,
+  CursorPage,
+  invalidPagination,
+  paginationCursorCodec,
+  PaginationCursorCodec,
+  PaginationRequest,
+} from "../../pagination";
+import {
   OccurrenceResolutionConflict,
   OccurrenceResolutionRepository,
 } from "../application";
-import { OccurrenceResolution, OccurrenceSnapshot } from "../domain";
+import {
+  OccurrenceResolution,
+  OccurrenceSnapshot,
+  PendingOccurrence,
+} from "../domain";
 
 type DecimalValue = { toFixed(fractionDigits: number): string };
 
@@ -57,7 +69,96 @@ const isUniqueViolation = (error: unknown): boolean =>
 export class PrismaOccurrenceResolutionRepository
   implements OccurrenceResolutionRepository
 {
-  public constructor(private readonly prisma: PrismaClient) {}
+  public constructor(
+    private readonly prisma: PrismaClient,
+    private readonly cursors: PaginationCursorCodec = paginationCursorCodec
+  ) {}
+
+  public async listPending(
+    ownerId: number,
+    from: string,
+    through: string,
+    page: PaginationRequest
+  ): Promise<CursorPage<PendingOccurrence>> {
+    const context = {
+      resource: "pending-event-occurrences",
+      scope: `owner:${ownerId}:${from}:${through}`,
+    };
+    const position =
+      page.cursor == null ? null : this.cursors.decode(context, page.cursor);
+    if (
+      position !== null &&
+      (position.length !== 2 ||
+        typeof position[0] !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(position[0]) ||
+        typeof position[1] !== "number" ||
+        !Number.isSafeInteger(position[1]) ||
+        position[1] <= 0)
+    ) {
+      throw invalidPagination();
+    }
+    const cursor =
+      position === null
+        ? Prisma.empty
+        : Prisma.sql`AND (o.occurrenceDate > STR_TO_DATE(${position[0]}, '%Y-%m-%d') OR (o.occurrenceDate = STR_TO_DATE(${position[0]}, '%Y-%m-%d') AND o.id > ${position[1]}))`;
+    // Au plus 12 mois générés; chaque règle produit au plus une occurrence par mois.
+    const rows = await this.prisma.$queryRaw<
+      {
+        id: number;
+        title: string;
+        amount: DecimalValue;
+        currency: string;
+        kind: MonthlyEventKind;
+        occurrenceDate: Date;
+      }[]
+    >(Prisma.sql`
+      WITH RECURSIVE months (monthStart) AS (
+        SELECT STR_TO_DATE(${from}, '%Y-%m-%d')
+        UNION ALL
+        SELECT DATE_ADD(monthStart, INTERVAL 1 MONTH) FROM months
+        WHERE monthStart < DATE_FORMAT(STR_TO_DATE(${through}, '%Y-%m-%d'), '%Y-%m-01')
+      )
+      SELECT o.id, o.title, o.amount, o.currency, o.kind, o.occurrenceDate
+      FROM (
+        SELECT e.id, e.titre AS title, e.montant AS amount, e.devise AS currency,
+               e.kind, e.startDate, e.endDate,
+               DATE_ADD(m.monthStart, INTERVAL LEAST(DAY(e.startDate), DAY(LAST_DAY(m.monthStart))) - 1 DAY) AS occurrenceDate
+        FROM months m
+        JOIN EvenementMensuel e
+          ON e.userId = ${ownerId}
+         AND e.startDate <= LAST_DAY(m.monthStart)
+         AND (
+           (e.recurrence = 'AUCUNE' AND e.startDate >= m.monthStart)
+           OR e.recurrence = 'MENSUELLE'
+         )
+      ) o
+      LEFT JOIN EventOccurrenceResolution r
+        ON r.userId = ${ownerId}
+       AND r.sourceEventId = o.id
+       AND r.occurrenceDate = o.occurrenceDate
+      WHERE r.id IS NULL
+        AND o.occurrenceDate BETWEEN STR_TO_DATE(${from}, '%Y-%m-%d') AND STR_TO_DATE(${through}, '%Y-%m-%d')
+        AND o.occurrenceDate >= o.startDate
+        AND (o.endDate IS NULL OR o.occurrenceDate <= o.endDate)
+        ${cursor}
+      ORDER BY o.occurrenceDate ASC, o.id ASC
+      LIMIT ${page.limit + 1}
+    `);
+    return createCursorPage(
+      rows.map((row) => ({
+        sourceEventId: row.id,
+        occurrenceDate: civilDateOf(row.occurrenceDate),
+        title: row.title,
+        minorUnits: minorUnitsOf(row.amount),
+        currency: row.currency,
+        kind: row.kind,
+      })),
+      page,
+      context,
+      (item) => [item.occurrenceDate, item.sourceEventId],
+      this.cursors
+    );
+  }
 
   public async find(
     ownerId: number,

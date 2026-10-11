@@ -11,6 +11,8 @@ import { swNativeSessionRouter } from '../routes/nativeSession';
 import { swOneOffOperationRouter } from '../routes/oneOffOperations';
 import { swMonthlyEventRouter } from '../routes/monthlyEvents';
 import { swFinancialGoalRouter } from '../routes/financialGoals';
+import { swBudgetPeriodRouter } from '../routes/budgetPeriods';
+import { swEventOccurrenceRouter } from '../routes/eventOccurrences';
 
 const swagger = {
   openapi: "3.0.0",
@@ -73,7 +75,9 @@ const swagger = {
     ...swOperationFixeRouter,
     ...swOneOffOperationRouter,
     ...swMonthlyEventRouter,
-    ...swFinancialGoalRouter
+    ...swFinancialGoalRouter,
+    ...swBudgetPeriodRouter,
+    ...swEventOccurrenceRouter
   },
   components: {
     parameters: {
