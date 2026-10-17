@@ -34,8 +34,15 @@ export const swAdminRouter = {
 const mainRouter: Router = Router();
 
 mainRouter.get("/", (_: Request,res: Response) => {
-    res.send("Racine de l'API. ")
-    // res.redirect('/api-docs');
+    res.status(200).json({
+      name: "My Happy Wallet API",
+      version: "v1",
+      status: "ok",
+      health: {
+        live: "/health/live",
+        ready: "/health/ready",
+      },
+    })
 })
 
 mainRouter.post("/token",refreshRateLimiter,Validator("renewRefreshToken"),renewAccessToken)

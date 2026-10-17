@@ -4,6 +4,9 @@ Dans ce projet je mettrais toutes les tâches liées au Backend de mon projet "C
 
 ## Getting started
 
+Le contrat de la racine JSON `GET /v1/` et des routes de santé est décrit dans
+[docs/api-root.md](docs/api-root.md).
+
 ## Tests backend
 
 Framework retenu : Jest.
