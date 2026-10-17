@@ -78,12 +78,17 @@ const authenticate = (req: Request, _: Response, next: NextFunction) => {
 };
 
 async function run() {
+  let today = "2026-10-11";
+  let clockReads = 0;
   const app = express();
   app.use(express.json());
   app.use(
     createFinancialGoalRouter(
       new FinancialGoalController(
-        new FinancialGoalUseCases(new FakeRepository(), () => "2026-10-11")
+        new FinancialGoalUseCases(new FakeRepository(), () => {
+          clockReads += 1;
+          return today;
+        })
       ),
       authenticate
     )
@@ -152,6 +157,41 @@ async function run() {
   assert.strictEqual(defaults.status, 201);
   assert.strictEqual(defaults.body.data.savedAmount, "0.00");
   assert.strictEqual(defaults.body.data.forecast.status, "NO_DEADLINE");
+
+  // Une nouvelle lecture franchissant minuit doit recalculer la prévision.
+  // Les objectifs d'une même page partagent une seule lecture de l'horloge.
+  for (const [
+    date,
+    referenceMonth,
+    estimatedReachMonth,
+    requiredMonthlyContribution,
+  ] of [
+    ["2026-10-31", "2026-10", "2027-04", "180.00"],
+    ["2026-11-01", "2026-11", "2027-05", "225.00"],
+  ]) {
+    today = date;
+    const expected = {
+      referenceMonth,
+      status: "BEHIND",
+      remainingAmount: "900.00",
+      contributionsNeeded: 6,
+      estimatedReachMonth,
+      requiredMonthlyContribution,
+    };
+    const read = await owner(supertest(app).get("/goals/1"));
+    assert.strictEqual(read.status, 200);
+    assert.deepStrictEqual(read.body.data.forecast, expected);
+
+    clockReads = 0;
+    const page = await owner(supertest(app).get("/goals"));
+    assert.strictEqual(page.status, 200);
+    assert.strictEqual(clockReads, 1);
+    assert.deepStrictEqual(page.body.data[0].forecast, expected);
+    assert.strictEqual(
+      page.body.data[1].forecast.referenceMonth,
+      referenceMonth
+    );
+  }
 
   const other = (request: supertest.Test) =>
     request.set("Authorization", "Bearer other");
