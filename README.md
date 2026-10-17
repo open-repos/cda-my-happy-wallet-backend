@@ -32,6 +32,9 @@ Pour lancer le serveur compilé avec une configuration locale préparée depuis
 [.env.example](.env.example), utiliser `npm start`. Le port de l'exemple est
 `4200` ; `GET /v1/` identifie l'API et `GET /health/ready` vérifie ses dépendances.
 Les trois secrets JWT doivent être distincts et contenir au moins 32 caractères.
+En production, `JWT_ISSUER` et `JWT_AUDIENCE` sont aussi obligatoires. La
+[politique JWT](docs/jwt-issuer-audience.md) décrit les audiences par usage et
+la bascule des sessions existantes avec reconnexion.
 L'exemple configure aussi Redis et SMTP : ces services doivent être disponibles
 pour les fonctionnalités qui les utilisent. Voir les diagnostics du guide de test.
 

@@ -39,6 +39,13 @@ Les champs exacts de la racine sont définis dans [api-root.md](api-root.md).
 
 ## Comptes et sessions
 
+Les JWT portent un `iss` vérifié et une audience propre à leur usage (accès,
+renouvellement, confirmation). Les jetons sans ces claims sont refusés.
+Les routes, enveloppes, cookies et durées ci-dessous restent identiques ; les
+clients traitent les jetons comme des valeurs opaques. La première livraison
+nécessite une reconnexion et régénère les liens de confirmation encore en
+attente : voir la [politique et la bascule JWT](jwt-issuer-audience.md).
+
 Ces routes conservent leurs conventions historiques : les corps invalides
 utilisent `400 IncompleteRequestBody`, pas le `422` des nouveaux modules.
 

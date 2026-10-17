@@ -25,7 +25,7 @@ export class ConfirmRegistrationUser {
   private tokenService: ITokenService;
   constructor(
     userRepo: IUserRepository,
-    tokenService: ITokenService = new JsonWebTokenService()
+    tokenService: ITokenService = new JsonWebTokenService("registration")
   ) {
     this.userRepo = userRepo;
     this.tokenService = tokenService;

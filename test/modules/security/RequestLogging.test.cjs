@@ -162,6 +162,8 @@ async function realServer(mode) {
     ACCESS_TOKEN: "test-access-token-secret-at-least-32-characters",
     REFRESH_TOKEN: "test-refresh-token-secret-at-least-32-characters",
     REGISTER_TOKEN: "test-register-token-secret-at-least-32-characters",
+    JWT_ISSUER: "urn:myhappywallet:logging-test:issuer",
+    JWT_AUDIENCE: "urn:myhappywallet:logging-test",
     MAILER_DRIVER: "smtp",
     EMAIL_SENDER: "no-reply@myhappywallet.local",
   });

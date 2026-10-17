@@ -37,6 +37,8 @@ uniquement des exemples de test. L'URL SQL n'est pas contactée par ces suites.
   export ACCESS_TOKEN=test-access-token-secret-at-least-32-characters
   export REFRESH_TOKEN=test-refresh-token-secret-at-least-32-characters
   export REGISTER_TOKEN=test-register-token-secret-at-least-32-characters
+  export JWT_ISSUER=urn:myhappywallet:test:issuer
+  export JWT_AUDIENCE=urn:myhappywallet:test
   export DATABASE_URL=mysql://test-user:test-password@127.0.0.1:3306/myhappywallet_test
   export MAILER_DRIVER=smtp
   export SMTP_HOST=127.0.0.1 SMTP_PORT=1025 SMTP_SECURE=false
@@ -127,6 +129,8 @@ export SHADOW_DATABASE_URL=mysql://myhappywallet_test:test-password@my-happy-wal
 export ACCESS_TOKEN=test-access-token-secret-at-least-32-characters
 export REFRESH_TOKEN=test-refresh-token-secret-at-least-32-characters
 export REGISTER_TOKEN=test-register-token-secret-at-least-32-characters
+export JWT_ISSUER=urn:myhappywallet:test:issuer
+export JWT_AUDIENCE=urn:myhappywallet:test
 export MAILER_DRIVER=smtp
 export SMTP_HOST=127.0.0.1 SMTP_PORT=1025 SMTP_SECURE=false
 export EMAIL_SENDER=no-reply@myhappywallet.local
@@ -138,6 +142,7 @@ docker run --rm --network mhw-docs-test \
   --env npm_config_cache=/tmp/npm-cache \
   --env NODE_ENV --env DATABASE_URL --env SHADOW_DATABASE_URL \
   --env ACCESS_TOKEN --env REFRESH_TOKEN --env REGISTER_TOKEN \
+  --env JWT_ISSUER --env JWT_AUDIENCE \
   --env MAILER_DRIVER --env SMTP_HOST --env SMTP_PORT --env SMTP_SECURE \
   --env EMAIL_SENDER --env REDIS_URL \
   node:22-bookworm bash -euc '
@@ -161,12 +166,14 @@ docker run --rm --network mhw-docs-test \
   npm run test:registration-confirmation-controller
   npm run test:token-service
   npm run test:security-config
+  npm run test:jwt-policy
   npm run test:auth-rate-limit
   npm run test:http-limits
   npm run test:cors
   npm run test:password-reset
   npm run test:refresh-sessions
   npm run test:refresh-session-service
+  npm run test:jwt-session-migration
   npm run test:native-session
   npm run test:renew-session
   npm run test:health
@@ -229,7 +236,7 @@ Les deux audits reproduisent les étapes bloquantes ajoutées par
 l'installation en CI. Ils doivent sortir avec le code `0` ; une vulnérabilité
 de niveau faible ou supérieur, ou une erreur de registre, interrompt le parcours.
 Le [guide des dépendances](runtime-dependency-security.md#contrôle-bloquant-en-ci)
-décrit le diagnostic et la reprise. Ces étapes s'ajoutent aux 60 suites sans
+décrit le diagnostic et la reprise. Ces étapes s'ajoutent aux 62 suites sans
 en changer la liste.
 
 Résultats attendus : audits et format/lint sans échec, migrations appliquées (ou aucune
@@ -244,6 +251,11 @@ tandis que `test:smtp-mailer` vérifie l'adaptateur avec un transport injecté.
 des requêtes synthétiques et le vrai serveur dans trois processus isolés.
 Ces processus ne démarrent ni MySQL ni Redis et ne prouvent pas les contrôles
 de démarrage de production.
+`test:jwt-policy` contrôle les claims et les parcours avec des dépôts mémoire.
+`test:jwt-session-migration` remet uniquement la migration de révocation de
+#35 en attente dans le schéma MySQL jetable, puis vérifie son application,
+sa répétabilité et une session créée après la bascule. Il exige `NODE_ENV=test`
+et l'hôte/base exacts du guide ; ne jamais le lancer contre une base existante.
 
 `npm test` exécute seulement `type-check` et `test:operations-domain`.
 `lint` et `type-check` ciblent principalement `src/` ; `format` ne couvre pas
@@ -263,6 +275,7 @@ docker run --rm --name mhw-docs-api-test --network mhw-docs-test \
   --publish 127.0.0.1:4200:4200 --env PORT=4200 \
   --env NODE_ENV --env DATABASE_URL \
   --env ACCESS_TOKEN --env REFRESH_TOKEN --env REGISTER_TOKEN \
+  --env JWT_ISSUER --env JWT_AUDIENCE \
   --env MAILER_DRIVER --env SMTP_HOST --env SMTP_PORT --env SMTP_SECURE \
   --env EMAIL_SENDER --env REDIS_URL \
   node:22-bookworm npm start
@@ -285,6 +298,7 @@ docker rm --force mhw-docs-mysql-test mhw-docs-redis-test
 docker network rm mhw-docs-test
 unset DATABASE_URL SHADOW_DATABASE_URL REDIS_URL
 unset ACCESS_TOKEN REFRESH_TOKEN REGISTER_TOKEN
+unset JWT_ISSUER JWT_AUDIENCE
 unset NODE_ENV MAILER_DRIVER SMTP_HOST SMTP_PORT SMTP_SECURE EMAIL_SENDER
 ```
 
