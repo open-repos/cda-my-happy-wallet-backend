@@ -1,5 +1,11 @@
 # Sauvegarde Et Restauration Des Donnees
 
+La strategie definie par [#34](https://github.com/open-repos/cda-my-happy-wallet-backend/issues/34)
+est completee par le [runbook operateur de #49](backup-recovery-runbook.md) :
+planification, points de decision, diagnostics, preuve de recette et reprise.
+La recette jetable se lance avec `node scripts/test-backup-recovery.cjs` dans
+le contexte de test decrit dans ce runbook. Elle ne sauvegarde pas la production.
+
 ## Objectifs Et Responsabilites
 
 Cette procedure couvre la base MySQL de production, y compris les donnees
@@ -16,9 +22,11 @@ restauration chaque mois et apres toute migration de schema importante.
 
 - Le dump contient des donnees personnelles et financieres, des mots de passe
   haches, des jetons de reinitialisation et des empreintes de refresh tokens.
-- Une lecture du VPS ne doit pas donner acces a la fois au dump chiffre et a la
-  cle de dechiffrement. Copier les archives vers un stockage hors site avec
-  historique immuable; conserver la cle dans le gestionnaire de secrets.
+- Copier les archives vers un stockage hors site avec historique immuable et
+  conserver une copie de la cle dans le gestionnaire de secrets hors VPS. Le
+  timer symetrique doit pouvoir lire une cle locale : les modes Unix protegent
+  des comptes non autorises, mais pas d'une compromission de root sur ce VPS.
+  Ne pas presenter ce montage comme une protection contre cet attaquant.
 - Les noms de fichiers, journaux et alertes n'incluent ni email, ni identifiant
   utilisateur, ni contenu metier, ni secret.
 - Les comptes MySQL de sauvegarde et restauration sont distincts. Le premier
@@ -66,6 +74,14 @@ GRANT ALL PRIVILEGES
   ON `myhappywallet_restore\_%`.* TO 'mhw_restore'@'localhost';
 ```
 
+Le schema applicatif versionne ne contient pas de routine stockee. Le dump
+ci-dessous omet donc `--routines` : dans la documentation MySQL 8.0, cette option
+demande un privilege de lecture global qui depasse le compte limite au schema.
+Avant une sauvegarde, l'administrateur verifie l'absence de routines ajoutees
+hors depot. S'il en existe, arreter et definir leur export et leur restauration
+avec leurs privileges/definers, sans accorder silencieusement des droits globaux.
+Reference : [manuel mysqldump MySQL 8.0](https://dev.mysql.com/doc/refman/8.0/en/mysqldump.html#option_mysqldump_routines).
+
 Creer un mot de passe de chiffrement aleatoire dans
 `/etc/myhappywallet-backend/backup/archive.pass`, mode `600`. Sauvegarder cette
 valeur dans le gestionnaire de secrets hors du VPS. Ne jamais la placer dans
@@ -89,7 +105,7 @@ test ! -e "$base"
 
 mysqldump \
   --defaults-extra-file=/etc/myhappywallet-backend/backup/client.cnf \
-  --single-transaction --quick --routines --triggers --events --hex-blob \
+  --single-transaction --quick --triggers --events --hex-blob \
   --set-gtid-purged=OFF --no-tablespaces myhappywallet \
 | gzip -9 \
 | openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 \
@@ -123,6 +139,10 @@ openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
 
 Les sorties attendues sont `OK` pour le checksum et un code `0` pour `gzip`.
 Ne jamais dechiffrer vers un fichier persistant pour cette verification.
+Charger le checksum depuis la copie hors site de confiance : un digest stocke
+a cote de l'archive detecte une corruption accidentelle, mais ne prouve pas son
+authenticite si un attaquant peut remplacer les deux. Le chiffrement CBC
+existant n'ajoute pas a lui seul une authentification de l'archive.
 
 ## Exercice De Restauration Isole
 
@@ -185,8 +205,9 @@ mysql --defaults-extra-file=/etc/myhappywallet-backend/backup/restore-client.cnf
    ```
 
 5. Generer de nouvelles valeurs `ACCESS_TOKEN`, `REFRESH_TOKEN` et
-   `REGISTER_TOKEN` dans le gestionnaire de secrets. Conserver les anciennes
-   valeurs uniquement dans le paquet de rollback chiffre, pendant l'exercice.
+   `REGISTER_TOKEN` dans le gestionnaire de secrets. Les anciens secrets peuvent
+   etre conserves pour tracer la configuration anterieure dans un paquet chiffre,
+   mais ne doivent pas etre reactives lors de la reprise.
 6. Modifier `DATABASE_URL`, redemarrer avec le meme SHA applicatif, puis verifier
    les sondes, une connexion, la propriete des donnees et un calcul financier.
 7. Reouvrir les ecritures. Tous les utilisateurs doivent se reconnecter.
@@ -195,14 +216,21 @@ Les migrations Prisma restent forward-only. Une sauvegarde de donnees ne sert
 pas a annuler une migration pendant un deploiement ordinaire; le schema restaure
 doit etre compatible avec le SHA applicatif choisi.
 
-## Retour Arriere Teste
+## Retour Arriere Avant Reouverture Des Ecritures
 
-Conserver jusqu'a la fin de la recette l'ancienne base en lecture seule, son URL
-et les anciens secrets dans un paquet chiffre. Si la verification post-bascule
-echoue, remettre l'application en maintenance, restaurer l'ancienne
-configuration, redemarrer le SHA precedent et verifier les sondes. Ne rouvrir
-les ecritures qu'apres confirmation. La base candidate reste isolee pour le
-diagnostic puis est supprimee par une operation distincte autorisee.
+Conserver jusqu'a la fin de la recette l'ancienne base isolee des ecritures
+applicatives et son URL dans un paquet chiffre. Si la verification post-bascule
+echoue avant reouverture, rester en maintenance et revenir a cette base et au
+SHA compatible. Avant de la desservir, y invalider egalement les sessions et
+liens temporaires, puis configurer trois nouveaux secrets distincts. Reutiliser
+ses anciennes sessions ou ses anciennes cles pourrait ressusciter des acces
+revoques depuis le dump. Verifier les sondes et une nouvelle connexion avant
+de rouvrir les ecritures. La candidate reste isolee pour diagnostic et n'est
+supprimee que par une operation distincte autorisee.
+
+Si des ecritures ont deja repris sur la candidate, aucun simple retour d'URL
+ne garantit leur conservation : repasser en maintenance et reconcilier les
+changements avec le proprietaire. Ne pas fusionner deux bases automatiquement.
 
 Le compte rendu mensuel contient seulement : horodatage, identifiant de
 l'archive, checksum valide, duree, nombre de tables, statut des migrations,
@@ -218,3 +246,10 @@ temporaires ont ete invalides dans la candidate. Le retour vers la source a ete
 simule en conservant la base initiale intacte, puis la candidate, l'archive et
 la cle de test ont ete supprimees. Cette preuve valide la procedure technique;
 elle ne remplace pas l'exercice mensuel sur une copie de production expurgee.
+
+Cette preuve est historique et son nombre de tables n'est pas une attente
+figee pour le schema actuel. La recette de #49 compare dynamiquement les tables
+et les donnees de deux copies, verifie les migrations, les proprietaires et les
+sessions, puis simule une selection de base et un retour avant reouverture des
+ecritures. Elle ne deploie aucun backend ; les sondes, la connexion avec les
+nouvelles cles et le RTO reel restent a verifier lors de la recette operateur.
