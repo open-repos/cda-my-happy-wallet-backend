@@ -205,6 +205,7 @@ model OperationCategory {
   id         Int                        @id @default(autoincrement())
   name       String                     @db.VarChar(50)
   color      String?                    @db.Char(7)
+  icon       String?                    @db.VarChar(64)
   userId     Int
   templateId Int?
   user       Utilisateur                @relation(fields: [userId], references: [id], onDelete: Cascade)

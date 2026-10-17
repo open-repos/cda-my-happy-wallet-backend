@@ -25,6 +25,7 @@ export const toOperationHttpError = (error: unknown): Error => {
         });
       case "INVALID_CATEGORY_NAME":
       case "INVALID_CATEGORY_COLOR":
+      case "INVALID_CATEGORY_ICON":
         return new ErrorException(
           ErrorCode.ValidationFailed,
           "Category data is invalid",

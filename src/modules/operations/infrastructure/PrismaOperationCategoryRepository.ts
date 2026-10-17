@@ -89,6 +89,7 @@ export class PrismaOperationCategoryRepository
             userId: category.ownerId,
             name: category.name,
             color: category.color,
+            icon: category.icon ?? null,
           },
         })
       );
@@ -104,7 +105,12 @@ export class PrismaOperationCategoryRepository
     try {
       const result = await this.prisma.operationCategory.updateMany({
         where: { id, userId: category.ownerId },
-        data: { name: category.name, color: category.color },
+        // `icon` absent : Prisma ignore un champ `undefined`.
+        data: {
+          name: category.name,
+          color: category.color,
+          icon: category.icon,
+        },
       });
       return result.count === 0 ? null : this.findById(id, category.ownerId);
     } catch (error) {
@@ -131,11 +137,13 @@ export class PrismaOperationCategoryRepository
     userId: number;
     name: string;
     color: string | null;
+    icon: string | null;
   }): OperationCategory => ({
     id: row.id,
     ownerId: row.userId,
     name: row.name,
     color: row.color,
+    icon: row.icon,
   });
 
   private cursorContext(ownerId: number): CursorContext {

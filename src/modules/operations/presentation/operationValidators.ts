@@ -10,6 +10,8 @@ const categoryBodySchema = Joi.object({
     .pattern(/^#[0-9A-F]{6}$/i)
     .allow(null)
     .optional(),
+  // Validée par le cas d'usage pour répondre avec `INVALID_CATEGORY_ICON`.
+  icon: Joi.any().optional(),
 }).unknown(false);
 
 const operationBodySchema = Joi.object({

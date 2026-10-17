@@ -7,3 +7,4 @@ export {
   OneOffOperationKind,
   OperationCategoryReference,
 } from "./OneOffOperation";
+export { CATEGORY_ICON_PATTERN, isCategoryIcon } from "./CategoryIcon";

@@ -136,6 +136,15 @@ const swagger = {
             nullable: true,
             pattern: "^#[0-9A-Fa-f]{6}$",
           },
+          icon: {
+            type: "string",
+            nullable: true,
+            maxLength: 64,
+            pattern: "^(solid|regular):[a-z0-9-]+$",
+            example: "solid:utensils",
+            description:
+              "Font Awesome 6 Free icon allowed on Web and mobile (see docs/operation-category-icons.md). Omitted on PUT: unchanged; null: color dot. Any other value: 422 INVALID_CATEGORY_ICON.",
+          },
         },
       },
       OneOffOperationInput: {

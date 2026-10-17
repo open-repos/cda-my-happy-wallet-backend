@@ -13,6 +13,7 @@ const migrationNames = [
   "20261011120000_add_event_occurrence_resolutions",
   "20261011150000_add_budget_period_carry_in",
   "20261011170000_add_budget_period_corrected_at",
+  "20261017120000_add_operation_category_icon",
 ];
 
 if (
