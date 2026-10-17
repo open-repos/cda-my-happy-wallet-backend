@@ -80,12 +80,13 @@ const authenticate = (req: Request, _: Response, next: NextFunction) => {
 async function run() {
   let today = "2026-10-11";
   let clockReads = 0;
+  const repository = new FakeRepository();
   const app = express();
   app.use(express.json());
   app.use(
     createFinancialGoalRouter(
       new FinancialGoalController(
-        new FinancialGoalUseCases(new FakeRepository(), () => {
+        new FinancialGoalUseCases(repository, () => {
           clockReads += 1;
           return today;
         })
@@ -97,7 +98,25 @@ async function run() {
   const owner = (request: supertest.Test) =>
     request.set("Authorization", "Bearer owner");
 
-  assert.strictEqual((await supertest(app).get("/goals")).status, 401);
+  for (const [method, path] of [
+    ["get", "/goals"],
+    ["post", "/goals"],
+    ["get", "/goals/1"],
+    ["put", "/goals/1"],
+    ["delete", "/goals/1"],
+  ] as const) {
+    const response = await supertest(app)[method](path).send({});
+    assert.strictEqual(response.status, 401, `${method} ${path}`);
+    assert.deepStrictEqual(response.body, {
+      response: "error",
+      error: {
+        type: "Unauthorized",
+        path,
+        statusCode: 401,
+        message: "User Unauthorized",
+      },
+    });
+  }
   assert.strictEqual(
     (await owner(supertest(app).get("/goals?limit=0"))).status,
     422
@@ -117,9 +136,16 @@ async function run() {
     targetDate: "2027-02-30",
   });
   assert.strictEqual(impossibleDate.status, 422);
-  assert.ok(
-    JSON.stringify(impossibleDate.body).includes("INVALID_TARGET_DATE")
-  );
+  assert.deepStrictEqual(impossibleDate.body, {
+    response: "error",
+    error: {
+      type: "ValidationFailed",
+      path: "/goals",
+      statusCode: 422,
+      message: "Financial goal data is invalid",
+      details: { code: "INVALID_TARGET_DATE" },
+    },
+  });
 
   const created = await owner(supertest(app).post("/goals")).send({
     title: "Vacances",
@@ -130,7 +156,9 @@ async function run() {
     targetDate: "2027-03-15",
   });
   assert.strictEqual(created.status, 201);
+  assert.match(created.headers["content-type"], /^application\/json\b/);
   assert.strictEqual(created.headers.location, "/goals/1");
+  assert.deepStrictEqual(Object.keys(created.body), ["data"]);
   assert.deepStrictEqual(created.body.data, {
     id: 1,
     title: "Vacances",
@@ -148,6 +176,36 @@ async function run() {
       requiredMonthlyContribution: "180.00",
     },
   });
+
+  const validInput = {
+    title: "Vacances",
+    targetAmount: "1200.00",
+    currency: "EUR",
+  };
+  for (const overrides of [
+    { ownerId: 8 },
+    { targetAmount: "0.00" },
+    { monthlyContribution: "1.234" },
+    { savedAmount: "-1.00" },
+  ]) {
+    const response = await owner(supertest(app).put("/goals/1")).send({
+      ...validInput,
+      ...overrides,
+    });
+    assert.strictEqual(response.status, 422);
+    assert.strictEqual(response.body.error.type, "ValidationFailed");
+    assert.strictEqual(response.body.error.path, "/goals/1");
+    assert.strictEqual(response.body.error.statusCode, 422);
+  }
+  assert.strictEqual(repository.rows.length, 1);
+  assert.strictEqual(repository.rows[0].savedMinorUnits, 30000);
+  for (const method of ["get", "put", "delete"] as const) {
+    const response = await owner(supertest(app)[method]("/goals/0")).send(
+      validInput
+    );
+    assert.strictEqual(response.status, 400, method);
+    assert.strictEqual(response.body.error.type, "WrongParamsID");
+  }
 
   const defaults = await owner(supertest(app).post("/goals")).send({
     title: "Fonds d'urgence",
@@ -244,6 +302,21 @@ async function run() {
     204
   );
   assert.strictEqual((await owner(supertest(app).get("/goals/1"))).status, 404);
+
+  repository.listByOwner = async () => {
+    throw new Error("private repository details");
+  };
+  const failed = await owner(supertest(app).get("/goals"));
+  assert.strictEqual(failed.status, 500);
+  assert.deepStrictEqual(failed.body, {
+    response: "error",
+    error: {
+      type: "UnknownError",
+      path: "/goals",
+      statusCode: 500,
+      message: "Unknown Error",
+    },
+  });
 }
 
 run().catch((error) => {

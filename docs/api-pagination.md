@@ -2,8 +2,10 @@
 
 Toutes les routes `GET` de collection utilisent une pagination par curseur.
 Le contrat est commun aux utilisateurs administrés, opérations fixes, revenus,
-charges, catégories personnelles et opérations ponctuelles. Les futures
-collections d'événements, objectifs et projections doivent le réutiliser.
+charges, catégories personnelles, opérations ponctuelles, événements,
+occurrences et objectifs. Les collections d'historique budgétaire et
+d'occurrences à traiter réutilisent également cette enveloppe, avec les filtres
+définis dans leur contrat dédié.
 
 ## Contrat HTTP
 
@@ -36,12 +38,15 @@ invalide retourne `422` avec un message générique.
 
 Chaque ordre se termine par une clé unique :
 
-| Collection | Ordre |
-| --- | --- |
-| Utilisateurs administrés | `id DESC` |
-| Opérations fixes, revenus, charges | `idOperationFixe DESC` |
-| Catégories personnelles | `name ASC, id ASC` |
-| Opérations ponctuelles | `operationDate DESC, id DESC` |
+| Collection                         | Ordre                                                  |
+| ---------------------------------- | ------------------------------------------------------ |
+| Utilisateurs administrés           | `id DESC`                                              |
+| Opérations fixes, revenus, charges | `idOperationFixe DESC`                                 |
+| Catégories personnelles            | `name ASC, id ASC`                                     |
+| Opérations ponctuelles             | `operationDate DESC, id DESC`                          |
+| Règles d'événements                | `startDate ASC, id ASC`                                |
+| Occurrences d'événements           | `occurrenceDate ASC, eventId ASC`, curseur lié au mois |
+| Objectifs financiers               | `id ASC`                                               |
 
 Le repository demande `limit + 1` lignes pour calculer `hasNext`, puis retire
 la ligne sentinelle de la réponse. Cette pagination par clé évite les doublons
@@ -88,4 +93,12 @@ DROP INDEX `OneOffOperationRecord_userId_operationDate_id_idx` ON `OneOffOperati
 
 Avant ce retrait, vérifier que plus aucun backend paginé ne reçoit de trafic.
 L'OpenAPI constitue la référence du contrat HTTP et documente paramètres,
-enveloppe, exemple et réponse `422` pour chacune des six routes.
+enveloppe, exemple et réponse `422` pour les collections exposées.
+
+## Tests de contrat
+
+La [matrice de caractérisation API](api-characterization-tests.md) relie les
+cas aux suites exécutables. `npm run test:pagination-integration` vérifie le
+contrat HTTP sur les vrais routeurs, JWT et dépôts MySQL, notamment pour les
+événements, occurrences et objectifs ; le faux dépôt des tests de routeur ne
+sert pas à prouver le décodage des curseurs.

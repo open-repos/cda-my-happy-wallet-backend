@@ -116,7 +116,27 @@ async function run() {
   );
   app.use(errorHandler);
 
-  assert.strictEqual((await supertest(app).get("/events")).status, 401);
+  for (const [method, path] of [
+    ["get", "/events"],
+    ["post", "/events"],
+    ["get", "/events/1"],
+    ["put", "/events/1"],
+    ["delete", "/events/1"],
+    ["get", "/event-occurrences"],
+  ] as const) {
+    const response = await supertest(app)[method](path).send({});
+    assert.strictEqual(response.status, 401, `${method} ${path}`);
+    assert.match(response.headers["content-type"], /^application\/json\b/);
+    assert.deepStrictEqual(response.body, {
+      response: "error",
+      error: {
+        type: "Unauthorized",
+        path,
+        statusCode: 401,
+        message: "User Unauthorized",
+      },
+    });
+  }
   assert.strictEqual(
     (
       await supertest(app)
@@ -161,8 +181,96 @@ async function run() {
       endDate: "2026-03-31",
     });
   assert.strictEqual(created.status, 201);
-  assert.strictEqual(created.body.data.amount, "10.00");
-  assert.strictEqual(created.body.data.ownerId, undefined);
+  assert.match(created.headers["content-type"], /^application\/json\b/);
+  assert.strictEqual(created.headers.location, "/events/1");
+  const expectedEvent = {
+    id: 1,
+    title: "Prime",
+    amount: "10.00",
+    currency: "EUR",
+    kind: "ENTREE",
+    startDate: "2026-01-31",
+    recurrence: "MENSUELLE",
+    endDate: "2026-03-31",
+  };
+  assert.deepStrictEqual(created.body, { data: expectedEvent });
+  const read = await supertest(app)
+    .get("/events/1")
+    .set("Authorization", "Bearer owner");
+  assert.strictEqual(read.status, 200);
+  assert.deepStrictEqual(read.body, { data: expectedEvent });
+  const listed = await supertest(app)
+    .get("/events")
+    .set("Authorization", "Bearer owner");
+  assert.deepStrictEqual(listed.body, {
+    data: [expectedEvent],
+    meta: { limit: 50, hasNext: false, nextCursor: null },
+  });
+
+  const validInput = {
+    title: "Prime modifiée",
+    amount: "12.30",
+    currency: "EUR",
+    kind: "ENTREE",
+    startDate: "2026-01-31",
+    recurrence: "MENSUELLE",
+    endDate: "2026-03-31",
+  };
+  for (const [overrides, code] of [
+    [{ startDate: "2026-02-31" }, "INVALID_START_DATE"],
+    [{ endDate: "2026-01-30" }, "INVALID_END_DATE"],
+  ] as const) {
+    const response = await supertest(app)
+      .post("/events")
+      .set("Authorization", "Bearer owner")
+      .send({ ...validInput, ...overrides });
+    assert.strictEqual(response.status, 422);
+    assert.deepStrictEqual(response.body, {
+      response: "error",
+      error: {
+        type: "ValidationFailed",
+        path: "/events",
+        statusCode: 422,
+        message: "Monthly event data is invalid",
+        details: { code },
+      },
+    });
+  }
+  for (const overrides of [{ ownerId: 99 }, { amount: "1.234" }]) {
+    const response = await supertest(app)
+      .put("/events/1")
+      .set("Authorization", "Bearer owner")
+      .send({ ...validInput, ...overrides });
+    assert.strictEqual(response.status, 422);
+    assert.strictEqual(response.body.error.type, "ValidationFailed");
+    assert.strictEqual(response.body.error.path, "/events/1");
+  }
+  assert.strictEqual(repository.rows.length, 1);
+  assert.strictEqual(repository.rows[0].minorUnits, 1000);
+
+  const foreignUpdate = await supertest(app)
+    .put("/events/1")
+    .set("Authorization", "Bearer other")
+    .send(validInput);
+  assert.strictEqual(foreignUpdate.status, 404);
+  assert.deepStrictEqual(foreignUpdate.body, {
+    response: "error",
+    error: {
+      type: "NotFound",
+      path: "/events/1",
+      statusCode: 404,
+      message: "The requested resource was not found",
+    },
+  });
+  assert.strictEqual(repository.rows[0].title, "Prime");
+  for (const method of ["get", "put", "delete"] as const) {
+    const response = await supertest(app)
+      [method]("/events/abc")
+      .set("Authorization", "Bearer owner")
+      .send(validInput);
+    assert.strictEqual(response.status, 400, method);
+    assert.strictEqual(response.body.error.type, "WrongParamsID");
+  }
 
   assert.strictEqual(
     (await supertest(app).get("/events/1").set("Authorization", "Bearer other"))
@@ -178,7 +286,18 @@ async function run() {
     .get("/event-occurrences?month=2026-02&limit=10")
     .set("Authorization", "Bearer owner");
   assert.strictEqual(occurrences.status, 200);
-  assert.strictEqual(occurrences.body.data[0].occurrenceDate, "2026-02-28");
+  assert.deepStrictEqual(occurrences.body, {
+    data: [{ ...expectedEvent, occurrenceDate: "2026-02-28" }],
+    meta: { limit: 10, hasNext: false, nextCursor: null },
+  });
+  const updated = await supertest(app)
+    .put("/events/1")
+    .set("Authorization", "Bearer owner")
+    .send(validInput);
+  assert.strictEqual(updated.status, 200);
+  assert.deepStrictEqual(updated.body, {
+    data: { ...expectedEvent, title: "Prime modifiée", amount: "12.30" },
+  });
 
   assert.strictEqual(
     (
@@ -196,6 +315,27 @@ async function run() {
     ).status,
     204
   );
+  const missing = await supertest(app)
+    .get("/events/1")
+    .set("Authorization", "Bearer owner");
+  assert.strictEqual(missing.status, 404);
+
+  repository.listByOwner = async () => {
+    throw new Error("private repository details");
+  };
+  const failed = await supertest(app)
+    .get("/events")
+    .set("Authorization", "Bearer owner");
+  assert.strictEqual(failed.status, 500);
+  assert.deepStrictEqual(failed.body, {
+    response: "error",
+    error: {
+      type: "UnknownError",
+      path: "/events",
+      statusCode: 500,
+      message: "Unknown Error",
+    },
+  });
 }
 
 run().catch((error) => {
