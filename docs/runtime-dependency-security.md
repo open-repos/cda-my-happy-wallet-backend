@@ -142,6 +142,56 @@ d'origine sont accessibles dans les rapports npm, notamment
 [Joi](https://github.com/advisories/GHSA-6h2x-m376-mqjq) et les
 [avis Nodemailer](https://github.com/nodemailer/nodemailer/security/advisories).
 
+## Contrôle bloquant en CI
+
+[#92](https://github.com/open-repos/cda-my-happy-wallet-backend/issues/92)
+ajoute deux étapes après `npm ci` dans
+[Backend quality](../.github/workflows/backend-quality.yml) :
+
+```bash
+npm audit --omit=dev --audit-level=low
+npm audit --include=dev --audit-level=low
+```
+
+Le premier contrôle les dépendances de production ; le second inclut
+explicitement celles de développement. Le
+[seuil npm](https://docs.npmjs.com/cli/v11/commands/npm-audit/)
+fait échouer la commande dès une alerte faible, modérée, haute ou critique.
+Ces audits consultent le registre et ne corrigent pas les versions. La sortie
+attendue sur le lockfile corrigé est `found 0 vulnerabilities`, code `0`.
+
+Les étapes sont bloquantes dans le check existant
+`Backend format, lint, migrations, tests and build`, sur les PR et les push
+vers `develop` et `main`. Elles n'ajoutent ni permission, secret, calendrier,
+ni déploiement. La protection du merge dépend toujours des
+[réglages de branche](delivery-automation.md#required-repository-settings)
+qui doivent exiger ce check. L'audit implicite de `npm ci` ne remplace pas
+ces étapes explicites.
+
+Si une étape échoue :
+
+1. Distinguer un rapport de vulnérabilité d'une erreur de registre/réseau.
+   Une commande interrompue n'est pas une preuve d'absence d'alertes. Pour une
+   panne transitoire, rétablir l'accès puis relancer les contrôles du même commit.
+2. Pour une alerte, reproduire avec `npm ci` puis les deux commandes ci-dessus.
+   Obtenir le détail avec `npm audit --include=dev --json` et suivre la chaîne
+   du paquet avec `npm explain <paquet>` ; ne pas publier de configuration
+   d'authentification au registre dans les preuves.
+3. Préparer une correction ciblée dans une PR, vérifier la compatibilité et
+   rejouer les suites complètes, notamment `test:runtime-dependencies` pour la
+   surcharge Prisma. Si aucun correctif n'existe, documenter le blocage dans
+   une issue et garder le contrôle en échec jusqu'à une solution revue.
+
+Ne pas utiliser `npm audit fix --force`, ignorer le code de sortie ou relever
+le seuil pour rendre un résultat vert. Les rapports peuvent évoluer à lockfile
+constant quand le registre publie un avis ; ils ne couvrent ni le code applicatif,
+ni le frontend, ni les paquets système de l'image. Ils ne vérifient pas les
+signatures des paquets et ne constituent pas une surveillance entre deux runs.
+
+Un retour arrière de #92 rétablit uniquement le workflow et les deux guides
+par un commit de revert revu. Il retire la protection CI, sans changer les
+versions corrigées par #37 ; les audits manuels restent nécessaires.
+
 ## Validation et retour arrière
 
 ```bash
