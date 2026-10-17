@@ -2,7 +2,11 @@
 
 ## Perimetre
 
-ESLint, son parseur TypeScript et Nodemon sont des outils de developpement. Ils
+Ce document conserve la migration et les mesures du 18 septembre 2026.
+La [mise a jour M08-04](runtime-dependency-security.md) du 17 octobre 2026
+retire Nodemon, utilise le watcher natif Node 22 et donne la nouvelle baseline.
+
+ESLint, son parseur TypeScript et l'ancien Nodemon sont des outils de developpement. Ils
 ne sont pas copies dans l'image d'execution finale du backend. Leur surface de
 confiance reste toutefois importante : ils analysent le depot et s'executent
 dans les postes de developpement et la CI, ou une dependance compromise pourrait
@@ -18,7 +22,7 @@ disponible de Node.js 22 et satisfont cette contrainte.
 - `@typescript-eslint/parser` passe de 8.64.0 a 8.70.0 et reste compatible avec
   TypeScript 5.9.
 - `globals` explicite l'environnement Node auparavant fourni par `env.node`.
-- Nodemon reste sur sa version courante 3.1.14. Le lockfile regenere remplace
+- Lors de cette migration, Nodemon reste en version 3.1.14. Le lockfile regenere remplace
   ses dependances transitives vulnerables sans introduire de version majeure
   fictive du paquet direct.
 - La configuration historique `.eslintrc.json` est remplacee par le flat config
