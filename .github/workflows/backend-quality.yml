@@ -140,6 +140,12 @@ jobs:
           npm run test:result-construction
           npm run test:repositories
           npm run test:api
+      - name: Rehearse backup and recovery twice on disposable MySQL
+        env:
+          BACKUP_DRILL_MYSQL_CONTAINER: ${{ job.services.mysql.id }}
+        run: |
+          node scripts/test-backup-recovery.cjs
+          node scripts/test-backup-recovery.cjs
       - name: Generate Prisma client
         run: npm run prisma:generate
       - name: Build backend
