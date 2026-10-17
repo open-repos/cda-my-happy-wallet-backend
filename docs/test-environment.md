@@ -143,6 +143,8 @@ docker run --rm --network mhw-docs-test \
   node:22-bookworm bash -euc '
   test ! -e .env
   npm ci
+  npm audit --omit=dev --audit-level=low
+  npm audit --include=dev --audit-level=low
   npm run prisma:generate
   npm run format
   npx --no-install prettier --check README.md docs/architecture.md docs/api-contracts.md docs/test-environment.md
@@ -221,7 +223,15 @@ En cas d'évolution, synchroniser ce bloc avec le
 client Prisma périmé après changement de branche ; celle de fin reproduit la
 vérification de CI. L'installation et le build écrivent dans le clone monté.
 
-Résultats attendus : format/lint sans échec, migrations appliquées (ou aucune
+Les deux audits reproduisent les étapes bloquantes ajoutées par
+[#92](https://github.com/open-repos/cda-my-happy-wallet-backend/issues/92) après
+l'installation en CI. Ils doivent sortir avec le code `0` ; une vulnérabilité
+de niveau faible ou supérieur, ou une erreur de registre, interrompt le parcours.
+Le [guide des dépendances](runtime-dependency-security.md#contrôle-bloquant-en-ci)
+décrit le diagnostic et la reprise. Ces étapes s'ajoutent aux 59 suites sans
+en changer la liste.
+
+Résultats attendus : audits et format/lint sans échec, migrations appliquées (ou aucune
 en attente à la seconde exécution), suites avec code `0`, client Prisma généré
 et `dist/index.js` compilé. Les tests de migrations contiennent des étapes de
 préparation/vérification qui manipulent des fixtures : ce n'est pas un parcours
