@@ -102,6 +102,7 @@ jobs:
           npm run test:delete-revenu-route
           npm run test:operations-domain
           npm run test:operations-migration
+          npm run test:operation-category-icon-migration
           npm run test:operations-schema
           npm run test:operations-use-cases
           npm run test:operations-repositories

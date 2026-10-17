@@ -123,7 +123,7 @@ const build = (today = "2026-10-11", closedMonth: string | null = null) => {
     {
       findById: async (id, ownerId) =>
         id === 3 && ownerId === OWNER
-          ? { id: 3, ownerId: OWNER, name: "Logement", color: null }
+          ? { id: 3, ownerId: OWNER, name: "Logement", color: null, icon: null }
           : null,
     },
     {

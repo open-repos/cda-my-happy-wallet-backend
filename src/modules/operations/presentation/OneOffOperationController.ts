@@ -101,6 +101,7 @@ export class OneOffOperationController {
     id: category.id,
     name: category.name,
     color: category.color,
+    icon: category.icon,
   });
 
   private readonly operationDto = (operation: OneOffOperation) => ({

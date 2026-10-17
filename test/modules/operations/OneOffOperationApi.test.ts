@@ -1,6 +1,7 @@
 /// <reference path="../../../src/utils/custom.d.ts" />
 
 import assert from "assert";
+import swagger from "../../../src/utils/swagger.def";
 import { NextFunction, Request, Response } from "express";
 import supertest from "supertest";
 import {
@@ -53,7 +54,7 @@ class ApiCategoryRepository implements OperationCategoryRepository {
     if (this.rows.some((row) => row.ownerId === input.ownerId && row.name === input.name)) {
       throw new OperationApplicationError("CATEGORY_NAME_CONFLICT");
     }
-    const row = { ...input, id: this.nextId++ };
+    const row = { ...input, icon: input.icon ?? null, id: this.nextId++ };
     this.rows = [...this.rows, row];
     return row;
   }
@@ -62,8 +63,13 @@ class ApiCategoryRepository implements OperationCategoryRepository {
     id: number,
     input: SaveOperationCategory
   ): Promise<OperationCategory | null> {
-    if ((await this.findById(id, input.ownerId)) == null) return null;
-    const row = { ...input, id };
+    const existing = await this.findById(id, input.ownerId);
+    if (existing == null) return null;
+    const row = {
+      ...input,
+      icon: input.icon === undefined ? existing.icon : input.icon,
+      id,
+    };
     this.rows = this.rows.map((item) =>
       item.id === id && item.ownerId === input.ownerId ? row : item
     );
@@ -212,8 +218,55 @@ async function run() {
     id: 1,
     name: "Courses",
     color: "#EA7C69",
+    icon: null,
   });
   assert.strictEqual(categoryResponse.body.data.ownerId, undefined);
+
+  for (const icon of ["brands:github", "solid:not-an-icon", "utensils", 42]) {
+    const invalidIcon = await supertest(app)
+      .post("/operation-categories")
+      .set("Authorization", "Bearer owner")
+      .send({ name: "Icône invalide", icon });
+    assert.strictEqual(invalidIcon.status, 422, `icon ${icon}`);
+    assert.strictEqual(invalidIcon.body.error.type, "ValidationFailed");
+    assert.strictEqual(
+      invalidIcon.body.error.details.code,
+      "INVALID_CATEGORY_ICON"
+    );
+  }
+
+  const iconResponse = await supertest(app)
+    .post("/operation-categories")
+    .set("Authorization", "Bearer owner")
+    .send({ name: "Restaurants", icon: "solid:utensils" });
+  assert.strictEqual(iconResponse.status, 201);
+  assert.deepStrictEqual(iconResponse.body.data, {
+    id: 2,
+    name: "Restaurants",
+    color: null,
+    icon: "solid:utensils",
+  });
+  const keptIcon = await supertest(app)
+    .put("/operation-categories/2")
+    .set("Authorization", "Bearer owner")
+    .send({ name: "Restaurants et cafés", color: "#336699" });
+  assert.strictEqual(keptIcon.status, 200);
+  assert.strictEqual(keptIcon.body.data.icon, "solid:utensils");
+  const foreignIcon = await supertest(app)
+    .put("/operation-categories/2")
+    .set("Authorization", "Bearer other")
+    .send({ name: "Intrusion", icon: "regular:heart" });
+  assert.strictEqual(foreignIcon.status, 404);
+  const clearedIcon = await supertest(app)
+    .put("/operation-categories/2")
+    .set("Authorization", "Bearer owner")
+    .send({ name: "Restaurants et cafés", icon: null });
+  assert.strictEqual(clearedIcon.status, 200);
+  assert.strictEqual(clearedIcon.body.data.icon, null);
+  const deletedIcon = await supertest(app)
+    .delete("/operation-categories/2")
+    .set("Authorization", "Bearer owner");
+  assert.strictEqual(deletedIcon.status, 204);
 
   const duplicate = await supertest(app)
     .post("/operation-categories")
@@ -307,6 +360,22 @@ async function run() {
         .set("Authorization", "Bearer owner")
     ).status,
     204
+  );
+
+  const categoryInput = (
+    swagger as unknown as {
+      components: {
+        schemas: Record<
+          string,
+          { properties: Record<string, Record<string, unknown>> }
+        >;
+      };
+    }
+  ).components.schemas.OperationCategoryInput;
+  assert.strictEqual(categoryInput.properties.icon?.nullable, true);
+  assert.strictEqual(
+    categoryInput.properties.icon?.pattern,
+    "^(solid|regular):[a-z0-9-]+$"
   );
 }
 

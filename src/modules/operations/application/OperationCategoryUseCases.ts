@@ -4,11 +4,13 @@ import {
   SaveOperationCategory,
 } from "./OperationCategoryRepository.interface";
 import { OperationApplicationError } from "./OperationApplicationError";
+import { isCategoryIcon } from "../domain";
 import { CursorPage, PaginationRequest } from "../../pagination";
 
 export type SaveOperationCategoryInput = Readonly<{
   name: string;
   color?: string | null;
+  icon?: string | null;
 }>;
 
 export class OperationCategoryUseCases {
@@ -67,6 +69,11 @@ export class OperationCategoryUseCases {
       throw new OperationApplicationError("INVALID_CATEGORY_COLOR");
     }
 
-    return { ownerId, name, color: color?.toUpperCase() ?? null };
+    const icon = input.icon;
+    if (icon !== undefined && icon !== null && !isCategoryIcon(icon)) {
+      throw new OperationApplicationError("INVALID_CATEGORY_ICON");
+    }
+
+    return { ownerId, name, color: color?.toUpperCase() ?? null, icon };
   }
 }
