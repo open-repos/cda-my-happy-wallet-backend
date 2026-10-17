@@ -152,6 +152,7 @@ docker run --rm --network mhw-docs-test \
   npm run db:deploy
   npm run type-check
   npm run test:runtime-dependencies
+  npm run test:request-logging
   npm run test:services
   npm run test:mailer
   npm run test:smtp-mailer
@@ -228,7 +229,7 @@ Les deux audits reproduisent les étapes bloquantes ajoutées par
 l'installation en CI. Ils doivent sortir avec le code `0` ; une vulnérabilité
 de niveau faible ou supérieur, ou une erreur de registre, interrompt le parcours.
 Le [guide des dépendances](runtime-dependency-security.md#contrôle-bloquant-en-ci)
-décrit le diagnostic et la reprise. Ces étapes s'ajoutent aux 59 suites sans
+décrit le diagnostic et la reprise. Ces étapes s'ajoutent aux 60 suites sans
 en changer la liste.
 
 Résultats attendus : audits et format/lint sans échec, migrations appliquées (ou aucune
@@ -238,6 +239,11 @@ préparation/vérification qui manipulent des fixtures : ce n'est pas un parcour
 de migration de production. Aucun SMTP distant n'est requis :
 `test:runtime-dependencies` utilise ses propres serveurs SMTP et HTTP locaux,
 tandis que `test:smtp-mailer` vérifie l'adaptateur avec un transport injecté.
+`test:request-logging` vérifie la
+[confidentialité du journal HTTP de développement](request-logging.md) sur
+des requêtes synthétiques et le vrai serveur dans trois processus isolés.
+Ces processus ne démarrent ni MySQL ni Redis et ne prouvent pas les contrôles
+de démarrage de production.
 
 `npm test` exécute seulement `type-check` et `test:operations-domain`.
 `lint` et `type-check` ciblent principalement `src/` ; `format` ne couvre pas
