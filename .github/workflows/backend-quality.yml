@@ -82,6 +82,7 @@ jobs:
         run: npm run type-check
       - name: Run service and API tests
         run: |
+          npm run test:runtime-dependencies
           npm run test:services
           npm run test:mailer
           npm run test:smtp-mailer

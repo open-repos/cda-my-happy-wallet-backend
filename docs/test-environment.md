@@ -149,6 +149,7 @@ docker run --rm --network mhw-docs-test \
   npm run lint
   npm run db:deploy
   npm run type-check
+  npm run test:runtime-dependencies
   npm run test:services
   npm run test:mailer
   npm run test:smtp-mailer
@@ -213,7 +214,8 @@ docker run --rm --network mhw-docs-test \
 ```
 
 Les suites correspondent à l'étape `Run service and API tests` du workflow
-GitHub au moment de #46. En cas d'évolution, synchroniser ce bloc avec le
+GitHub, avec le contrôle de compatibilité des dépendances ajouté par #37.
+En cas d'évolution, synchroniser ce bloc avec le
 [workflow](../.github/workflows/backend-quality.yml) et les scripts de
 [package.json](../package.json). La génération explicite avant typage évite un
 client Prisma périmé après changement de branche ; celle de fin reproduit la
@@ -223,8 +225,9 @@ Résultats attendus : format/lint sans échec, migrations appliquées (ou aucune
 en attente à la seconde exécution), suites avec code `0`, client Prisma généré
 et `dist/index.js` compilé. Les tests de migrations contiennent des étapes de
 préparation/vérification qui manipulent des fixtures : ce n'est pas un parcours
-de migration de production. Aucun SMTP distant n'est requis ; le test SMTP
-utilise son propre serveur local au processus de test.
+de migration de production. Aucun SMTP distant n'est requis :
+`test:runtime-dependencies` utilise ses propres serveurs SMTP et HTTP locaux,
+tandis que `test:smtp-mailer` vérifie l'adaptateur avec un transport injecté.
 
 `npm test` exécute seulement `type-check` et `test:operations-domain`.
 `lint` et `type-check` ciblent principalement `src/` ; `format` ne couvre pas
