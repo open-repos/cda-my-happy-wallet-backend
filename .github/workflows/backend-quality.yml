@@ -53,6 +53,8 @@ jobs:
       ACCESS_TOKEN: test-access-token-secret-at-least-32-characters
       REFRESH_TOKEN: test-refresh-token-secret-at-least-32-characters
       REGISTER_TOKEN: test-register-token-secret-at-least-32-characters
+      JWT_ISSUER: urn:myhappywallet:test:issuer
+      JWT_AUDIENCE: urn:myhappywallet:test
       MAILER_DRIVER: smtp
       SMTP_HOST: localhost
       SMTP_PORT: "1025"
@@ -96,12 +98,14 @@ jobs:
           npm run test:registration-confirmation-controller
           npm run test:token-service
           npm run test:security-config
+          npm run test:jwt-policy
           npm run test:auth-rate-limit
           npm run test:http-limits
           npm run test:cors
           npm run test:password-reset
           npm run test:refresh-sessions
           npm run test:refresh-session-service
+          npm run test:jwt-session-migration
           npm run test:native-session
           npm run test:renew-session
           npm run test:health

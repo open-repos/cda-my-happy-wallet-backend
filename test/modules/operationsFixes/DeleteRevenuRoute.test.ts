@@ -14,7 +14,7 @@ type OperationsFixesRoutesModule = typeof import("../../../src/routes/operations
 async function runDeleteRevenuRouteTest() {
   const express = require("express") as typeof import("express");
   const cookieParser = require("cookie-parser") as typeof import("cookie-parser");
-  const jwt = require("jsonwebtoken") as typeof import("jsonwebtoken");
+  const { JsonWebTokenService } = require("../../../src/modules/auth/token/JsonWebTokenService") as typeof import("../../../src/modules/auth/token/JsonWebTokenService");
   const deleteOperationFixeModule = require("../../../src/modules/operationsFixes/useCases/deleteOperationFixe") as DeleteControllerModule;
   const { operationFixeRouter } = require("../../../src/routes/operationsFixes") as OperationsFixesRoutesModule;
 
@@ -38,7 +38,7 @@ async function runDeleteRevenuRouteTest() {
   app.use(cookieParser());
   app.use("/operations-fixes", operationFixeRouter);
 
-  const token = jwt.sign({ id: 42 }, process.env.ACCESS_TOKEN as string);
+  const token = new JsonWebTokenService().sign({ id: 42 }, process.env.ACCESS_TOKEN as string);
   const response = await supertest(app)
     .delete("/operations-fixes/revenus/7")
     .set("Authorization", `Bearer ${token}`)

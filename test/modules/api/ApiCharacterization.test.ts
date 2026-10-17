@@ -25,7 +25,8 @@ type AccessTokenRenewModule = typeof import("../../../src/modules/auth/accessTok
 
 const express = require("express") as typeof import("express");
 const cookieParser = require("cookie-parser") as typeof import("cookie-parser");
-const jwt = require("jsonwebtoken") as typeof import("jsonwebtoken");
+const { JsonWebTokenService } = require("../../../src/modules/auth/token/JsonWebTokenService") as typeof import("../../../src/modules/auth/token/JsonWebTokenService");
+const tokenService = new JsonWebTokenService();
 const { loginController } = require("../../../src/modules/user/useCases/login") as LoginModule;
 const {
   createOperationFixeController,
@@ -74,7 +75,7 @@ function createApp() {
 }
 
 function createAccessToken(userId: number) {
-  return jwt.sign({ id: userId }, process.env.ACCESS_TOKEN as string);
+  return tokenService.sign({ id: userId }, process.env.ACCESS_TOKEN as string);
 }
 
 function getSetCookies(response: supertest.Response): string[] {
@@ -365,7 +366,7 @@ async function runApiCharacterizationTests() {
     "Unauthorized"
   );
 
-  const missingUserIdToken = jwt.sign(
+  const missingUserIdToken = tokenService.sign(
     { email: authenticatedUser.email },
     process.env.ACCESS_TOKEN as string
   );

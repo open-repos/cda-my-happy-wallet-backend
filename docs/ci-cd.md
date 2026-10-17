@@ -78,6 +78,8 @@ DATABASE_URL=<production-database-url>
 ACCESS_TOKEN=<random-secret-at-least-32-characters>
 REFRESH_TOKEN=<different-random-secret-at-least-32-characters>
 REGISTER_TOKEN=<third-random-secret-at-least-32-characters>
+JWT_ISSUER=https://api.myhappywallet.andriacapai.com
+JWT_AUDIENCE=urn:myhappywallet:production
 MAILER_DRIVER=sendgrid
 SENDGRID_API_KEY=<secret>
 EMAIL_SENDER=<verified-sender>
@@ -87,6 +89,14 @@ Les trois secrets JWT doivent etre distincts. Le wrapper de deploiement charge
 la configuration depuis l'image candidate avant les migrations et interrompt
 le deploiement si une valeur est absente, trop courte ou dupliquee. Il
 n'affiche jamais les valeurs.
+
+`JWT_ISSUER` et `JWT_AUDIENCE` sont aussi obligatoires en production : utiliser
+des valeurs distinctes de celles du test/staging. Pour la premiere release #35,
+suivre la [bascule JWT avec reconnexion](jwt-issuer-audience.md#bascule-et-retour-arrière)
+avant le wrapper habituel : arreter tous les anciens replicas et maintenir
+l'acces public ferme pendant la migration. Le wrapper applique une migration
+de donnees qui revoque les sessions existantes ; revenir a l'image precedente
+ne les reactive pas. Ne pas faire de rolling deploy pour cette bascule.
 
 Ne pas copier le fichier `.env` dans l'image. Sur le VPS actuel, MySQL tourne
 sur l'hote : utiliser `host.docker.internal` dans `DATABASE_URL`. Le reseau
@@ -102,7 +112,7 @@ Creer un Deploy Token GitLab limite a `read_registry`, puis authentifier root
 interactivement pour ne pas placer le token dans l'historique du shell :
 
 ```bash
-sudo docker login registry.gitlab.com --username <deploy-token-user>
+sudo docker login registry.gitlab.com --username '<deploy-token-user>'
 sudo chmod 600 /root/.docker/config.json
 ```
 
