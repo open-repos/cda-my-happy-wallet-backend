@@ -4,6 +4,7 @@ import {
   FinancialGoalError,
   FinancialGoalProps,
 } from "../../../src/modules/financialGoals/domain";
+import { civilDateIn } from "../../../src/utils/civilDateClock";
 
 const goal = (overrides: Partial<FinancialGoalProps> = {}) =>
   FinancialGoal.create({
@@ -89,3 +90,129 @@ assert.throws(
     error instanceof FinancialGoalError &&
     error.code === "INVALID_REFERENCE_DATE"
 );
+
+// Un centime change le nombre de versements et le statut à la date limite.
+for (const [
+  monthlyContribution,
+  contributionsNeeded,
+  estimatedReachMonth,
+  status,
+] of [
+  ["900.00", 1, "2026-11", "ON_TRACK"],
+  ["899.99", 2, "2026-12", "BEHIND"],
+  ["0.00", null, null, "BEHIND"],
+] as const) {
+  const nextMonth = goal({ monthlyContribution, targetDate: "2026-11-01" });
+  const expected = {
+    referenceMonth: "2026-10",
+    remainingMinorUnits: 90000,
+    contributionsNeeded,
+    estimatedReachMonth,
+    status,
+    requiredMonthlyMinorUnits: 90000,
+  };
+  assert.deepStrictEqual(nextMonth.forecast("2026-10-01"), expected);
+  assert.deepStrictEqual(nextMonth.forecast("2026-10-31"), expected);
+}
+
+// Le calcul porte sur le mois, sans confondre une date passée et un objectif atteint.
+assert.strictEqual(
+  goal({ targetDate: "2026-09-30" }).forecast("2026-10-01").status,
+  "MISSED"
+);
+assert.deepStrictEqual(
+  goal({
+    savedAmount: "1200.00",
+    monthlyContribution: 0,
+    targetDate: "2026-09-30",
+  }).forecast("2026-10-01"),
+  {
+    referenceMonth: "2026-10",
+    remainingMinorUnits: 0,
+    status: "REACHED",
+    contributionsNeeded: 0,
+    estimatedReachMonth: "2026-10",
+    requiredMonthlyMinorUnits: null,
+  }
+);
+assert.deepStrictEqual(goal({ targetDate: null }).forecast("2026-10-01"), {
+  referenceMonth: "2026-10",
+  remainingMinorUnits: 90000,
+  status: "NO_DEADLINE",
+  contributionsNeeded: 6,
+  estimatedReachMonth: "2027-04",
+  requiredMonthlyMinorUnits: null,
+});
+
+// La borne de 100 ans est inclusive : 1 200 mois affichables, 1 201 non affichables.
+for (const [targetAmount, contributionsNeeded, estimatedReachMonth] of [
+  ["12.00", 1200, "2126-12"],
+  ["12.01", 1201, null],
+] as const) {
+  const forecast = goal({
+    targetAmount,
+    savedAmount: 0,
+    monthlyContribution: "0.01",
+  }).forecast("2026-12-31");
+  assert.strictEqual(forecast.contributionsNeeded, contributionsNeeded);
+  assert.strictEqual(forecast.estimatedReachMonth, estimatedReachMonth);
+}
+
+for (const date of [
+  "1900-02-29",
+  "2100-02-29",
+  "2027-02-29",
+  "2026-04-31",
+  "2026-00-15",
+  "2026-01-00",
+  "2026-1-01",
+  "2026-01-01T00:00:00Z",
+]) {
+  rejects({ targetDate: date }, "INVALID_TARGET_DATE");
+  assert.throws(
+    () => vacation.forecast(date),
+    (error: unknown) =>
+      error instanceof FinancialGoalError &&
+      error.code === "INVALID_REFERENCE_DATE",
+    date
+  );
+}
+for (const date of ["2000-02-29", "2028-02-29"]) {
+  assert.strictEqual(goal({ targetDate: date }).targetDate, date);
+  assert.strictEqual(vacation.forecast(date).referenceMonth, date.slice(0, 7));
+}
+
+// Instants fixes autour des sauts d'heure, de minuit et du changement d'année à Paris.
+const parisDates = [
+  ["2026-03-28T22:59:59.000Z", "2026-03-28"],
+  ["2026-03-28T23:00:00.000Z", "2026-03-29"],
+  ["2026-03-29T00:59:59.000Z", "2026-03-29"],
+  ["2026-03-29T01:00:00.000Z", "2026-03-29"],
+  ["2026-03-29T21:59:59.000Z", "2026-03-29"],
+  ["2026-03-29T22:00:00.000Z", "2026-03-30"],
+  ["2026-10-24T21:59:59.000Z", "2026-10-24"],
+  ["2026-10-24T22:00:00.000Z", "2026-10-25"],
+  ["2026-10-25T00:59:59.000Z", "2026-10-25"],
+  ["2026-10-25T01:00:00.000Z", "2026-10-25"],
+  ["2026-10-25T22:59:59.000Z", "2026-10-25"],
+  ["2026-10-25T23:00:00.000Z", "2026-10-26"],
+  ["2026-12-31T22:59:59.000Z", "2026-12-31"],
+  ["2026-12-31T23:00:00.000Z", "2027-01-01"],
+] as const;
+const originalTimeZone = process.env.TZ;
+try {
+  for (const timeZone of ["UTC", "Pacific/Kiritimati", "America/Los_Angeles"]) {
+    process.env.TZ = timeZone;
+    for (const [instant, expected] of parisDates) {
+      const civilDate = civilDateIn("Europe/Paris", new Date(instant));
+      assert.strictEqual(civilDate, expected, `${timeZone} / ${instant}`);
+      assert.strictEqual(
+        vacation.forecast(civilDate).referenceMonth,
+        expected.slice(0, 7)
+      );
+    }
+  }
+} finally {
+  if (originalTimeZone === undefined) delete process.env.TZ;
+  else process.env.TZ = originalTimeZone;
+}
