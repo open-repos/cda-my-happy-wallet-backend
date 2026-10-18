@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 // Prepares a release from changes/unreleased fragments and prints release notes.
+// The technical notes go to CHANGELOG.md; the optional French `user:` lines of
+// the fragments go to changes/releases/<version>.md for end users.
 // Usage:
 //   node scripts/release.cjs prepare [--bump major|minor|patch | --version x.y.z] [--date YYYY-MM-DD] [--dry-run]
 //   node scripts/release.cjs notes <version>
@@ -16,6 +18,15 @@ const SECTIONS = [
   ["security", "Security"],
 ];
 const TYPES = new Set(SECTIONS.map(([type]) => type));
+const USER_SECTIONS = [
+  [["added"], "Nouveautés"],
+  [["changed"], "Améliorations"],
+  [["fixed"], "Corrections"],
+  [["security"], "Sécurité"],
+  [["deprecated", "removed"], "À savoir"],
+];
+const NO_USER_CHANGE =
+  "Aucun changement visible pour les utilisateurs dans cette version.";
 const BUMPS = ["patch", "minor", "major"];
 const SEMVER = /^(\d+)\.(\d+)\.(\d+)$/;
 
@@ -37,11 +48,55 @@ function parseFragment(content, name) {
   }
   const text = match[2].trim().replace(/\s*\r?\n\s*/g, " ");
   if (!text) throw new Error(`${name}: empty description`);
+  let user = null;
+  if (fields.user !== undefined) {
+    user = fields.user.replace(/^(["'])(.*)\1$/, "$2").trim();
+    if (!user) throw new Error(`${name}: empty user line`);
+  }
   return {
     type: fields.type,
     issue: fields.issue ? Number(fields.issue) : null,
     text,
+    user,
   };
+}
+
+function renderUserNotes(fragments) {
+  const visible = fragments
+    .filter((fragment) => fragment.user)
+    .sort(
+      (left, right) => (left.issue ?? Infinity) - (right.issue ?? Infinity)
+    );
+  if (visible.length === 0) return NO_USER_CHANGE;
+  return USER_SECTIONS.flatMap(([types, title]) => {
+    const entries = visible.filter((fragment) => types.includes(fragment.type));
+    if (entries.length === 0) return [];
+    return [`### ${title}`, "", ...entries.map(({ user }) => `- ${user}`), ""];
+  })
+    .join("\n")
+    .trimEnd();
+}
+
+function composeNotes(technical, userNotes) {
+  if (userNotes === null) return technical;
+  return [
+    "## Pour les utilisateurs",
+    "",
+    userNotes.trim(),
+    "",
+    "## Détail technique",
+    "",
+    technical,
+  ].join("\n");
+}
+
+function userNotesFile(root, version) {
+  return path.join(root, "changes", "releases", `${version}.md`);
+}
+
+function readUserNotes(root, version) {
+  const file = userNotesFile(root, version);
+  return fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
 }
 
 function requiredBump(fragments) {
@@ -137,6 +192,29 @@ function insertRelease(changelog, version, date, body) {
   return lines.join(eol);
 }
 
+// Moves the "[Unreleased]: <base>/compare/v<previous>...<branch>" link to the
+// new version and adds "[<version>]: <base>/compare/v<previous>...v<version>".
+// Changelogs without that link are returned unchanged.
+function updateLinks(changelog, previous, version) {
+  const eol = changelog.includes("\r\n") ? "\r\n" : "\n";
+  const lines = changelog.split(/\r?\n/);
+  const escaped = previous.replace(/\./g, "\\.");
+  const pattern = new RegExp(
+    `^\\[Unreleased\\]:\\s*(\\S+/compare/)v${escaped}\\.\\.\\.(\\S+)$`,
+    "i"
+  );
+  const index = lines.findIndex((line) => pattern.test(line));
+  if (index === -1) return changelog;
+  const [, base, branch] = lines[index].match(pattern);
+  lines.splice(
+    index,
+    1,
+    `[Unreleased]: ${base}v${version}...${branch}`,
+    `[${version}]: ${base}v${previous}...v${version}`
+  );
+  return lines.join(eol);
+}
+
 function extractNotes(changelog, version) {
   const lines = changelog.split(/\r?\n/);
   const escaped = version.replace(/\./g, "\\.");
@@ -221,17 +299,22 @@ function prepare(root, args) {
 
   const date = options.date ?? new Date().toISOString().slice(0, 10);
   const body = renderBody(fragments);
-  const changelog = insertRelease(
-    fs.readFileSync(changelogFile, "utf8"),
-    version,
-    date,
-    body
+  const changelog = updateLinks(
+    insertRelease(fs.readFileSync(changelogFile, "utf8"), version, date, body),
+    current,
+    version
   );
+
+  const userNotes = `${renderUserNotes(fragments)}\n`;
+  const notesFile = userNotesFile(root, version);
+  if (fs.existsSync(notesFile)) {
+    throw new Error(`${path.relative(root, notesFile)} already exists`);
+  }
 
   console.log(
     `Release ${current} -> ${version} (${fragments.length} fragments)\n`
   );
-  console.log(extractNotes(changelog, version));
+  console.log(composeNotes(extractNotes(changelog, version), userNotes));
   if (options.dryRun) return;
 
   // npm version runs first so a failure leaves every file untouched.
@@ -242,6 +325,8 @@ function prepare(root, args) {
   );
   if (npm.status !== 0) throw new Error("npm version failed");
   fs.writeFileSync(changelogFile, changelog);
+  fs.mkdirSync(path.dirname(notesFile), { recursive: true });
+  fs.writeFileSync(notesFile, userNotes);
   for (const fragment of fragments) fs.unlinkSync(fragment.file);
 }
 
@@ -251,7 +336,12 @@ function main() {
   if (command === "prepare") return prepare(root, args);
   if (command === "notes" && args.length === 1) {
     const changelog = fs.readFileSync(path.join(root, "CHANGELOG.md"), "utf8");
-    return console.log(extractNotes(changelog, args[0]));
+    return console.log(
+      composeNotes(
+        extractNotes(changelog, args[0]),
+        readUserNotes(root, args[0])
+      )
+    );
   }
   throw new Error(
     "Usage: release.cjs prepare [--bump major|minor|patch | --version x.y.z] [--date YYYY-MM-DD] [--dry-run] | notes <version>"
@@ -269,9 +359,12 @@ if (require.main === module) {
 
 module.exports = {
   bumpVersion,
+  composeNotes,
   extractNotes,
   insertRelease,
   parseFragment,
   renderBody,
+  renderUserNotes,
   requiredBump,
+  updateLinks,
 };

@@ -113,7 +113,7 @@ GitHub Actions and Codex Cloud may run these commands directly in their isolated
 
 ## Changes and pull requests
 
-- Add a Markdown fragment under `changes/unreleased/` for every user-visible or public API change. Follow `changes/README.md`.
+- Add a Markdown fragment under `changes/unreleased/` for every user-visible or public API change. Follow `changes/README.md`, including its French `user:` line when users will notice the change.
 - Link every pull request to its GitHub Issue with `Refs #<number>`. Use additional `Refs #<number>` lines for related issues that the pull request does not complete.
 - GitHub only applies `Closes #<number>` automatically when a pull request reaches the default branch, currently `main`. For pull requests to `develop`, declare exactly one completed `Primary issue: Refs #<number>`; automation closes it after a successful merge and leaves related Issues open.
 - Use `Closes #<number>` in a pull request only when it targets the default branch and directly completes that issue.
