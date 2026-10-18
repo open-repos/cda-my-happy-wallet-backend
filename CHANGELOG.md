@@ -2,6 +2,37 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.2.0 (2026-10-18)
+
+### Added
+
+- Added authenticated financial goals with saved amount, monthly contribution and a calculated reach forecast to the public API (#21).
+- Added authenticated monthly-event rules and paginated calendar occurrences to the public API (#23).
+- Added monthly budget summaries with forecast, closed-period history, a pending event queue, occurrence realize/cancel commands and date/currency filters on the operation list to the public API (#29).
+- Added `GET /v1/analytics/operations`, a bounded aggregate of real operations grouped by day, ISO week, month, year, category or kind, optionally split by category or kind, for configurable charts (#78).
+- Added an optional Font Awesome Free icon to operation categories, validated against the icons available on both Web and mobile (#84).
+
+### Changed
+
+- Added a documented GitHub collaboration process and automated backend quality checks (#7).
+- Replaced the API root's plain text response with a stable JSON service identity and public health route links (#53).
+- Recalculated closed monthly balances and the following carries after an operation is added, edited or deleted in a past month, and exposed `revision` and `correctedAt` on summaries and history (#72).
+- Carried each closed month's real remaining balance, positive or negative, into the next month and exposed `carryIn`, `carryFromMonth` and `monthResult` in budget summaries and history (#75).
+
+### Fixed
+
+- Redirected browser confirmation failures to safe frontend messages while preserving JSON API error statuses (#56).
+- Retried concurrent recalculations of the same closed month up to five times with a short random backoff instead of failing intermittently with a server error (#80).
+
+### Security
+
+- Shared authentication rate limits across backend replicas instead of resetting counters per process (#33).
+- Required the configured JWT issuer and purpose audience, revoked existing refresh sessions at cutover, and required users to sign in again or request a new pending registration link (#35).
+- Updated backend dependencies to address the reported HTTP parsing, proxy address, mail transport and configuration vulnerabilities while preserving existing API contracts (#37).
+- Rejected reused registration links and links whose signed email does not match the account being confirmed (#54).
+- Stopped development HTTP access logs from recording tokens, concrete identifiers and private request values while preserving existing API responses (#94).
+- Marked every API response, including authentication and error responses, as `Cache-Control: private, no-store` and stopped conditional `304` reuse, so browsers, proxies and service workers never store private data (#98).
+
 ## 1.1.0 (2026-07-20)
 
 ### Added
