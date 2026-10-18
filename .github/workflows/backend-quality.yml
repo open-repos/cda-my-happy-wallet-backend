@@ -1,0 +1,164 @@
+name: Backend quality
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Backend format, lint, migrations, tests and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: myhappywallet_test
+          MYSQL_USER: myhappywallet_test
+          MYSQL_PASSWORD: test-password
+          MYSQL_ROOT_PASSWORD: test-root-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --protocol=tcp -h 127.0.0.1 -uroot -ptest-root-password --silent"
+          --health-interval=2s
+          --health-timeout=5s
+          --health-retries=30
+      redis:
+        image: redis:8.2.1-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=2s
+          --health-timeout=5s
+          --health-retries=30
+    env:
+      NODE_ENV: test
+      DATABASE_URL: mysql://myhappywallet_test:test-password@my-happy-wallet-mysql-test:3306/myhappywallet_test
+      SHADOW_DATABASE_URL: mysql://myhappywallet_test:test-password@my-happy-wallet-mysql-test:3306/myhappywallet_test_shadow
+      ACCESS_TOKEN: test-access-token-secret-at-least-32-characters
+      REFRESH_TOKEN: test-refresh-token-secret-at-least-32-characters
+      REGISTER_TOKEN: test-register-token-secret-at-least-32-characters
+      JWT_ISSUER: urn:myhappywallet:test:issuer
+      JWT_AUDIENCE: urn:myhappywallet:test
+      MAILER_DRIVER: smtp
+      SMTP_HOST: localhost
+      SMTP_PORT: "1025"
+      SMTP_SECURE: "false"
+      EMAIL_SENDER: no-reply@myhappywallet.local
+      REDIS_URL: redis://127.0.0.1:6379
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=low
+      - name: Audit all dependencies including development
+        run: npm audit --include=dev --audit-level=low
+      - name: Map the guarded test database hostname
+        run: echo "127.0.0.1 my-happy-wallet-mysql-test" | sudo tee -a /etc/hosts
+      - name: Check formatting
+        run: npm run format
+      - name: Lint
+        run: npm run lint
+      - name: Apply test database migrations
+        run: npm run db:deploy
+      - name: Type-check
+        run: npm run type-check
+      - name: Run service and API tests
+        run: |
+          npm run test:runtime-dependencies
+          npm run test:request-logging
+          npm run test:services
+          npm run test:mailer
+          npm run test:smtp-mailer
+          npm run test:create-user
+          npm run test:registration-confirmation
+          npm run test:registration-confirmation-controller
+          npm run test:token-service
+          npm run test:security-config
+          npm run test:jwt-policy
+          npm run test:auth-rate-limit
+          npm run test:http-limits
+          npm run test:cors
+          npm run test:private-api-cache
+          npm run test:password-reset
+          npm run test:refresh-sessions
+          npm run test:refresh-session-service
+          npm run test:jwt-session-migration
+          npm run test:native-session
+          npm run test:renew-session
+          npm run test:health
+          npm run test:delete-revenu-route
+          npm run test:operations-domain
+          npm run test:operations-migration
+          npm run test:operation-category-icon-migration
+          npm run test:operations-schema
+          npm run test:operations-use-cases
+          npm run test:operations-repositories
+          npm run test:operations-api
+          npm run test:monthly-events-domain
+          npm run test:monthly-events-api
+          npm run test:monthly-events-persistence
+          npm run test:monthly-events-migration
+          npm run test:financial-goals-domain
+          npm run test:financial-goals-api
+          npm run test:financial-goals-persistence
+          npm run test:financial-goals-migration
+          npm run test:budget-api-integration
+          npm run test:budget-period-domain
+          npm run test:budget-period-persistence
+          npm run test:budget-period-migration
+          npm run test:budget-forecast-domain
+          npm run test:event-occurrences-use-cases
+          npm run test:event-occurrences-persistence
+          npm run test:event-occurrences-migration
+          npm run test:budget-projection-api
+          npm run test:budget-edge-cases
+          npm run test:budget-bounded-scan
+          npm run test:budget-carry-over
+          npm run test:budget-carry-over-migration
+          npm run test:budget-corrections
+          npm run test:budget-recalculation-retry
+          npm run test:analytics-domain
+          npm run test:analytics-api
+          npm run test:pagination
+          npm run test:pagination-openapi
+          npm run test:pagination-schema
+          npm run test:pagination-integration
+          npm run test:prisma-errors
+          npm run test:result-construction
+          npm run test:repositories
+          npm run test:api
+          npm run test:release
+      - name: Rehearse backup and recovery twice on disposable MySQL
+        env:
+          BACKUP_DRILL_MYSQL_CONTAINER: ${{ job.services.mysql.id }}
+        run: |
+          node scripts/test-backup-recovery.cjs
+          node scripts/test-backup-recovery.cjs
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+      - name: Build backend
+        run: npm run build

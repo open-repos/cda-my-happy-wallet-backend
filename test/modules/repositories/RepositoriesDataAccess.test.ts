@@ -106,6 +106,15 @@ async function runRepositoryDataAccessTests() {
     () => userRepo.newPassword("expired-password", expiredResetToken),
     (error: ErrorException) => error.name === ErrorCode.Unauthorized
   );
+
+  assert.strictEqual(
+    await userRepo.confirmRegistration(String(user.id), user.email),
+    true
+  );
+  assert.strictEqual(
+    await userRepo.confirmRegistration(String(user.id), user.email),
+    false
+  );
 }
 
 runRepositoryDataAccessTests()

@@ -1,0 +1,324 @@
+/// <reference path="../../../src/utils/custom.d.ts" />
+
+import assert from "assert";
+import { NextFunction, Request, Response } from "express";
+import supertest from "supertest";
+import { errorHandler } from "../../../src/middlewares/errorHandler.middleware";
+import {
+  FinancialGoalRepository,
+  FinancialGoalUseCases,
+} from "../../../src/modules/financialGoals/application";
+import { FinancialGoal } from "../../../src/modules/financialGoals/domain";
+import { FinancialGoalController } from "../../../src/modules/financialGoals/presentation";
+import { CursorPage, PaginationRequest } from "../../../src/modules/pagination";
+import { createFinancialGoalRouter } from "../../../src/routes/financialGoals";
+import { ErrorCode, ErrorException } from "../../../src/utils/errors";
+
+const express = require("express") as typeof import("express");
+
+class FakeRepository implements FinancialGoalRepository {
+  public rows: FinancialGoal[] = [];
+  private nextId = 1;
+
+  public async listByOwner(
+    ownerId: number,
+    page: PaginationRequest
+  ): Promise<CursorPage<FinancialGoal>> {
+    return {
+      data: this.rows
+        .filter((row) => row.ownerId === ownerId)
+        .slice(0, page.limit),
+      meta: { limit: page.limit, hasNext: false, nextCursor: null },
+    };
+  }
+  public async findById(
+    id: number,
+    ownerId: number
+  ): Promise<FinancialGoal | null> {
+    return (
+      this.rows.find((row) => row.id === id && row.ownerId === ownerId) ?? null
+    );
+  }
+  public async create(goal: FinancialGoal): Promise<FinancialGoal> {
+    const row = FinancialGoal.create({
+      id: this.nextId++,
+      ownerId: goal.ownerId,
+      title: goal.title,
+      targetAmount: (goal.targetMinorUnits / 100).toFixed(2),
+      savedAmount: (goal.savedMinorUnits / 100).toFixed(2),
+      monthlyContribution: (goal.monthlyContributionMinorUnits / 100).toFixed(
+        2
+      ),
+      currency: goal.currency,
+      targetDate: goal.targetDate,
+    });
+    this.rows.push(row);
+    return row;
+  }
+  public async update(goal: FinancialGoal): Promise<FinancialGoal | null> {
+    if (goal.id == null || (await this.findById(goal.id, goal.ownerId)) == null)
+      return null;
+    this.rows = this.rows.map((row) => (row.id === goal.id ? goal : row));
+    return goal;
+  }
+  public async delete(id: number, ownerId: number): Promise<boolean> {
+    const before = this.rows.length;
+    this.rows = this.rows.filter(
+      (row) => row.id !== id || row.ownerId !== ownerId
+    );
+    return before !== this.rows.length;
+  }
+}
+
+const authenticate = (req: Request, _: Response, next: NextFunction) => {
+  if (req.headers.authorization === "Bearer owner") req.user = { id: 7 };
+  else if (req.headers.authorization === "Bearer other") req.user = { id: 8 };
+  else return next(new ErrorException(ErrorCode.Unauthorized));
+  next();
+};
+
+async function run() {
+  let today = "2026-10-11";
+  let clockReads = 0;
+  const repository = new FakeRepository();
+  const app = express();
+  app.use(express.json());
+  app.use(
+    createFinancialGoalRouter(
+      new FinancialGoalController(
+        new FinancialGoalUseCases(repository, () => {
+          clockReads += 1;
+          return today;
+        })
+      ),
+      authenticate
+    )
+  );
+  app.use(errorHandler);
+  const owner = (request: supertest.Test) =>
+    request.set("Authorization", "Bearer owner");
+
+  for (const [method, path] of [
+    ["get", "/goals"],
+    ["post", "/goals"],
+    ["get", "/goals/1"],
+    ["put", "/goals/1"],
+    ["delete", "/goals/1"],
+  ] as const) {
+    const response = await supertest(app)[method](path).send({});
+    assert.strictEqual(response.status, 401, `${method} ${path}`);
+    assert.deepStrictEqual(response.body, {
+      response: "error",
+      error: {
+        type: "Unauthorized",
+        path,
+        statusCode: 401,
+        message: "User Unauthorized",
+      },
+    });
+  }
+  assert.strictEqual(
+    (await owner(supertest(app).get("/goals?limit=0"))).status,
+    422
+  );
+
+  const invalid = await owner(supertest(app).post("/goals")).send({
+    title: "Vacances",
+    targetAmount: "1200.00",
+    currency: "EUR",
+    ownerId: 8,
+  });
+  assert.strictEqual(invalid.status, 422);
+  const impossibleDate = await owner(supertest(app).post("/goals")).send({
+    title: "Vacances",
+    targetAmount: "1200.00",
+    currency: "EUR",
+    targetDate: "2027-02-30",
+  });
+  assert.strictEqual(impossibleDate.status, 422);
+  assert.deepStrictEqual(impossibleDate.body, {
+    response: "error",
+    error: {
+      type: "ValidationFailed",
+      path: "/goals",
+      statusCode: 422,
+      message: "Financial goal data is invalid",
+      details: { code: "INVALID_TARGET_DATE" },
+    },
+  });
+
+  const created = await owner(supertest(app).post("/goals")).send({
+    title: "Vacances",
+    targetAmount: 1200,
+    savedAmount: "300",
+    monthlyContribution: "150.00",
+    currency: "eur",
+    targetDate: "2027-03-15",
+  });
+  assert.strictEqual(created.status, 201);
+  assert.match(created.headers["content-type"], /^application\/json\b/);
+  assert.strictEqual(created.headers.location, "/goals/1");
+  assert.deepStrictEqual(Object.keys(created.body), ["data"]);
+  assert.deepStrictEqual(created.body.data, {
+    id: 1,
+    title: "Vacances",
+    targetAmount: "1200.00",
+    savedAmount: "300.00",
+    monthlyContribution: "150.00",
+    currency: "EUR",
+    targetDate: "2027-03-15",
+    forecast: {
+      referenceMonth: "2026-10",
+      status: "BEHIND",
+      remainingAmount: "900.00",
+      contributionsNeeded: 6,
+      estimatedReachMonth: "2027-04",
+      requiredMonthlyContribution: "180.00",
+    },
+  });
+
+  const validInput = {
+    title: "Vacances",
+    targetAmount: "1200.00",
+    currency: "EUR",
+  };
+  for (const overrides of [
+    { ownerId: 8 },
+    { targetAmount: "0.00" },
+    { monthlyContribution: "1.234" },
+    { savedAmount: "-1.00" },
+  ]) {
+    const response = await owner(supertest(app).put("/goals/1")).send({
+      ...validInput,
+      ...overrides,
+    });
+    assert.strictEqual(response.status, 422);
+    assert.strictEqual(response.body.error.type, "ValidationFailed");
+    assert.strictEqual(response.body.error.path, "/goals/1");
+    assert.strictEqual(response.body.error.statusCode, 422);
+  }
+  assert.strictEqual(repository.rows.length, 1);
+  assert.strictEqual(repository.rows[0].savedMinorUnits, 30000);
+  for (const method of ["get", "put", "delete"] as const) {
+    const response = await owner(supertest(app)[method]("/goals/0")).send(
+      validInput
+    );
+    assert.strictEqual(response.status, 400, method);
+    assert.strictEqual(response.body.error.type, "WrongParamsID");
+  }
+
+  const defaults = await owner(supertest(app).post("/goals")).send({
+    title: "Fonds d'urgence",
+    targetAmount: "3000",
+    currency: "EUR",
+  });
+  assert.strictEqual(defaults.status, 201);
+  assert.strictEqual(defaults.body.data.savedAmount, "0.00");
+  assert.strictEqual(defaults.body.data.forecast.status, "NO_DEADLINE");
+
+  // Une nouvelle lecture franchissant minuit doit recalculer la prévision.
+  // Les objectifs d'une même page partagent une seule lecture de l'horloge.
+  for (const [
+    date,
+    referenceMonth,
+    estimatedReachMonth,
+    requiredMonthlyContribution,
+  ] of [
+    ["2026-10-31", "2026-10", "2027-04", "180.00"],
+    ["2026-11-01", "2026-11", "2027-05", "225.00"],
+  ]) {
+    today = date;
+    const expected = {
+      referenceMonth,
+      status: "BEHIND",
+      remainingAmount: "900.00",
+      contributionsNeeded: 6,
+      estimatedReachMonth,
+      requiredMonthlyContribution,
+    };
+    const read = await owner(supertest(app).get("/goals/1"));
+    assert.strictEqual(read.status, 200);
+    assert.deepStrictEqual(read.body.data.forecast, expected);
+
+    clockReads = 0;
+    const page = await owner(supertest(app).get("/goals"));
+    assert.strictEqual(page.status, 200);
+    assert.strictEqual(clockReads, 1);
+    assert.deepStrictEqual(page.body.data[0].forecast, expected);
+    assert.strictEqual(
+      page.body.data[1].forecast.referenceMonth,
+      referenceMonth
+    );
+  }
+
+  const other = (request: supertest.Test) =>
+    request.set("Authorization", "Bearer other");
+  assert.strictEqual((await other(supertest(app).get("/goals/1"))).status, 404);
+  assert.deepStrictEqual(
+    (await other(supertest(app).get("/goals"))).body.data,
+    []
+  );
+  assert.strictEqual(
+    (
+      await other(supertest(app).put("/goals/1")).send({
+        title: "Détourné",
+        targetAmount: "1",
+        currency: "EUR",
+      })
+    ).status,
+    404
+  );
+  assert.strictEqual(
+    (await owner(supertest(app).get("/goals/abc"))).status,
+    400
+  );
+
+  const updated = await owner(supertest(app).put("/goals/1")).send({
+    title: "Vacances",
+    targetAmount: "1200.00",
+    savedAmount: "1200.00",
+    monthlyContribution: "150.00",
+    currency: "EUR",
+    targetDate: null,
+  });
+  assert.strictEqual(updated.status, 200);
+  assert.strictEqual(updated.body.data.forecast.status, "REACHED");
+
+  const list = await owner(supertest(app).get("/goals"));
+  assert.strictEqual(list.status, 200);
+  assert.strictEqual(list.body.data.length, 2);
+  assert.deepStrictEqual(list.body.meta, {
+    limit: 50,
+    hasNext: false,
+    nextCursor: null,
+  });
+
+  assert.strictEqual(
+    (await other(supertest(app).delete("/goals/1"))).status,
+    404
+  );
+  assert.strictEqual(
+    (await owner(supertest(app).delete("/goals/1"))).status,
+    204
+  );
+  assert.strictEqual((await owner(supertest(app).get("/goals/1"))).status, 404);
+
+  repository.listByOwner = async () => {
+    throw new Error("private repository details");
+  };
+  const failed = await owner(supertest(app).get("/goals"));
+  assert.strictEqual(failed.status, 500);
+  assert.deepStrictEqual(failed.body, {
+    response: "error",
+    error: {
+      type: "UnknownError",
+      path: "/goals",
+      statusCode: 500,
+      message: "Unknown Error",
+    },
+  });
+}
+
+run().catch((error) => {
+  throw error;
+});

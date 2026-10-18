@@ -70,6 +70,43 @@ async function run() {
     expectsApplicationError("CATEGORY_NAME_CONFLICT")
   );
 
+  // Catégories existantes et nouvelles sans icône : `null`.
+  assert.ok(
+    (await categories.list(firstUser.id, firstPage)).data.every(
+      (row) => row.icon === null
+    )
+  );
+  const withIcon = await categories.create(firstUser.id, {
+    name: "Restaurants",
+    icon: "solid:utensils",
+  });
+  assert.strictEqual(
+    (await categoryRepository.findById(withIcon.id, firstUser.id))?.icon,
+    "solid:utensils"
+  );
+  const renamed = await categories.update(firstUser.id, withIcon.id, {
+    name: "Restaurants et cafés",
+  });
+  assert.strictEqual(renamed.icon, "solid:utensils");
+  await assert.rejects(
+    () =>
+      categories.update(secondUser.id, withIcon.id, {
+        name: "Intrusion",
+        icon: "regular:heart",
+      }),
+    expectsApplicationError("CATEGORY_NOT_FOUND")
+  );
+  assert.strictEqual(
+    (await categoryRepository.findById(withIcon.id, firstUser.id))?.icon,
+    "solid:utensils"
+  );
+  const cleared = await categories.update(firstUser.id, withIcon.id, {
+    name: "Restaurants et cafés",
+    icon: null,
+  });
+  assert.strictEqual(cleared.icon, null);
+  await categories.delete(firstUser.id, withIcon.id);
+
   const created = await operations.create(firstUser.id, {
     title: "Billet de train",
     amount: "78.40",

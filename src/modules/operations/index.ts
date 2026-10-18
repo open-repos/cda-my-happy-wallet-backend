@@ -8,12 +8,23 @@ import {
   PrismaOperationCategoryRepository,
 } from "./infrastructure";
 import { OneOffOperationController } from "./presentation";
+import {
+  BudgetCorrectionService,
+  BudgetPeriodEngine,
+} from "../budgetPeriods/application";
+import { PrismaBudgetPeriodRepository } from "../budgetPeriods/infrastructure";
 
 const categoryRepository = new PrismaOperationCategoryRepository(prisma);
 const operationRepository = new PrismaOneOffOperationRepository(prisma);
 
 export const oneOffOperationController = new OneOffOperationController(
-  new OneOffOperationUseCases(operationRepository, categoryRepository),
+  new OneOffOperationUseCases(
+    operationRepository,
+    categoryRepository,
+    new BudgetCorrectionService(
+      new BudgetPeriodEngine(new PrismaBudgetPeriodRepository(prisma))
+    )
+  ),
   new OperationCategoryUseCases(categoryRepository)
 );
 

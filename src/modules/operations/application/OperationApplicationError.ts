@@ -4,7 +4,8 @@ export type OperationApplicationErrorCode =
   | "CATEGORY_NAME_CONFLICT"
   | "CATEGORY_IN_USE"
   | "INVALID_CATEGORY_NAME"
-  | "INVALID_CATEGORY_COLOR";
+  | "INVALID_CATEGORY_COLOR"
+  | "INVALID_CATEGORY_ICON";
 
 export class OperationApplicationError extends Error {
   public constructor(public readonly code: OperationApplicationErrorCode) {

@@ -2,31 +2,34 @@ import { errorHandler } from './middlewares/errorHandler.middleware';
 
 import express, { Request, Response } from 'express'
 //import { Request, Response, NextFunction ,ErrorRequestHandler} from 'express'
-// import morgan from 'morgan'
 import cookieParser from "cookie-parser"
 import {mainRouter} from './router'
 import { API_DOCS_ENABLED,APP_BASE_URL,NODE_ENV } from './config/config';
 import { notFoundRouter } from './routes/notFound';
-import morgan from 'morgan'
+import { createDevelopmentRequestLogger } from './middlewares/requestLogger.middleware';
 import swaggerUI from 'swagger-ui-express'
 import swDocument from './utils/swagger.def'
 import { prisma } from './database'
 import { securityHeaders } from './middlewares/securityHeaders.middleware';
+import { privateApiCache } from './middlewares/privateApiCache.middleware';
 import {
   jsonBodyParser,
   urlEncodedBodyParser,
 } from './middlewares/requestBody.middleware';
 import { corsMiddleware } from './middlewares/cors.middleware';
+import { checkRateLimitStore } from './infrastructure/rateLimit/redisRateLimitStore';
 
 type ServerDependencies = {
   checkDatabase: () => Promise<void>;
   apiDocsEnabled?: boolean;
+  checkRateLimitStore?: () => Promise<void>;
 };
 
 const defaultDependencies: ServerDependencies = {
   checkDatabase: async () => {
     await prisma.$queryRaw`SELECT 1`;
   },
+  checkRateLimitStore,
 };
 
 export const createServer = async (
@@ -39,7 +42,11 @@ export const createServer = async (
       server.set('trust proxy', 1);
     }
 
+    // Aucune réponse n'est réutilisable par validation conditionnelle (#98).
+    server.set('etag', false);
+
     server.use(securityHeaders);
+    server.use(APP_BASE_URL as string, privateApiCache);
     
     server.use(urlEncodedBodyParser)
     server.use(jsonBodyParser)
@@ -49,6 +56,7 @@ export const createServer = async (
     server.get('/health/ready', async (_: Request, res: Response) => {
       try {
         await dependencies.checkDatabase();
+        await dependencies.checkRateLimitStore?.();
         res.set('Cache-Control', 'no-store').status(200).json({ status: 'ok' });
       } catch {
         res
@@ -70,7 +78,7 @@ export const createServer = async (
 
         
     if (NODE_ENV === 'development') {
-        server.use(morgan('dev'));
+        server.use(createDevelopmentRequestLogger());
       }
     if (apiDocsEnabled) {
       server.get("/",(_: Request,res: Response) => {

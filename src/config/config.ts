@@ -1,6 +1,7 @@
 // Libraire path natif en nodejs
 import dotenv from 'dotenv';
 import { validateSecuritySecrets } from "./securityConfig";
+import { validateJwtConfiguration } from "./jwtConfig";
 // import path from 'path';
 // https://kinsta.com/fr/blog/codes-statut-http/
 
@@ -8,6 +9,7 @@ import { validateSecuritySecrets } from "./securityConfig";
 // dotenv.config({ path: envPath + '.env'});
 dotenv.config();
 const securitySecrets = validateSecuritySecrets(process.env);
+export const JWT_CONFIGURATION = validateJwtConfiguration(process.env);
 export const PORT=process.env.PORT 
 export const NODE_ENV=process.env.NODE_ENV
 export const API_DOCS_ENABLED=process.env.API_DOCS_ENABLED == null

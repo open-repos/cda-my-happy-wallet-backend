@@ -162,9 +162,28 @@ export const swOneOffOperationRouter = {
   "/operations": {
     get: {
       tags: ["Operations"],
-      summary: "List personal one-off operations",
+      summary: "List personal one-off operations, newest first",
       security: [{ accessToken_auth: [] }],
-      parameters: paginationParameters,
+      parameters: [
+        {
+          name: "from",
+          in: "query",
+          description: "Inclusive first civil date",
+          schema: { type: "string", format: "date" },
+        },
+        {
+          name: "to",
+          in: "query",
+          description: "Inclusive last civil date; use from=to for one day",
+          schema: { type: "string", format: "date" },
+        },
+        {
+          name: "currency",
+          in: "query",
+          schema: { type: "string", minLength: 3, maxLength: 3 },
+        },
+        ...paginationParameters,
+      ],
       responses: {
         "200": paginatedCollectionResponse("Paginated operation collection"),
         ...securedResponses,

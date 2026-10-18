@@ -17,7 +17,7 @@ de template, ni identifiant de migration historique.
 | --- | --- | --- | --- |
 | `GET` | `/operation-categories` | `200` | Lister les catégories personnelles |
 | `POST` | `/operation-categories` | `201` | Créer une catégorie |
-| `PUT` | `/operation-categories/:id` | `200` | Remplacer nom et couleur |
+| `PUT` | `/operation-categories/:id` | `200` | Remplacer nom et couleur; icône conservée si absente |
 | `DELETE` | `/operation-categories/:id` | `204` | Supprimer une catégorie inutilisée |
 | `GET` | `/operations` | `200` | Lister les opérations ponctuelles |
 | `POST` | `/operations` | `201` | Créer une opération |
@@ -32,13 +32,18 @@ routes de collection acceptent `limit` et `cursor`, et retournent l'enveloppe
 décimale à deux chiffres afin de préserver sa représentation exacte. Le type
 vaut `DEPENSE` ou `ENTREE`; la date reste une date civile `YYYY-MM-DD`.
 
+Une catégorie expose `{ id, name, color, icon }`. `icon` est une icône Font
+Awesome 6 Free facultative (`solid:utensils`, `regular:heart`) ou `null`; voir
+[`operation-category-icons.md`](./operation-category-icons.md).
+
 ## Erreurs
 
 - `400` : identifiant de chemin invalide ;
 - `401` : token absent, invalide ou expiré ;
 - `404` : ressource absente du compte authentifié ;
 - `409` : nom de catégorie déjà utilisé ou catégorie encore référencée ;
-- `422` : corps, règle de domaine ou pagination invalide ;
+- `422` : corps, règle de domaine ou pagination invalide; une icône hors liste
+  répond `details.code = INVALID_CATEGORY_ICON` ;
 - `500` : erreur inattendue, sans détail interne dans la réponse.
 
 La documentation OpenAPI décrit les neuf opérations, leurs schémas fermés,

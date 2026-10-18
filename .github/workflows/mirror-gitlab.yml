@@ -1,0 +1,60 @@
+name: Mirror validated branches to GitLab
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mirror-gitlab-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    name: Push branch to GitLab
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITLAB_DEPLOY_KEY: ${{ secrets.GITLAB_DEPLOY_KEY }}
+      GITLAB_KNOWN_HOSTS: ${{ secrets.GITLAB_KNOWN_HOSTS }}
+    steps:
+      - name: Check mirror configuration
+        id: mirror
+        run: |
+          if [[ -z "$GITLAB_DEPLOY_KEY" || -z "$GITLAB_KNOWN_HOSTS" ]]; then
+            echo 'configured=false' >> "$GITHUB_OUTPUT"
+            echo 'GitLab mirror is disabled until both repository secrets are configured.'
+          else
+            echo 'configured=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out complete history
+        if: steps.mirror.outputs.configured == 'true'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Configure GitLab SSH identity
+        if: steps.mirror.outputs.configured == 'true'
+        run: |
+          install -d -m 700 "$RUNNER_TEMP/gitlab-ssh"
+          printf '%s\n' "$GITLAB_DEPLOY_KEY" > "$RUNNER_TEMP/gitlab-ssh/id_ed25519"
+          printf '%s\n' "$GITLAB_KNOWN_HOSTS" > "$RUNNER_TEMP/gitlab-ssh/known_hosts"
+          chmod 600 "$RUNNER_TEMP/gitlab-ssh/id_ed25519" "$RUNNER_TEMP/gitlab-ssh/known_hosts"
+
+      - name: Mirror current branch
+        if: steps.mirror.outputs.configured == 'true'
+        env:
+          GIT_SSH_COMMAND: >-
+            ssh -i ${{ runner.temp }}/gitlab-ssh/id_ed25519
+            -o IdentitiesOnly=yes
+            -o UserKnownHostsFile=${{ runner.temp }}/gitlab-ssh/known_hosts
+            -o StrictHostKeyChecking=yes
+        run: |
+          git push \
+            git@gitlab.com:formation-cda1/projet-chef-oeuvre-rapport/projet-00-myhappywallet-backend.git \
+            "HEAD:refs/heads/$GITHUB_REF_NAME"

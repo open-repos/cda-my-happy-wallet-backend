@@ -9,6 +9,11 @@ import { swUserRouter } from "../routes/user";
 import { swOperationFixeRouter } from '../routes/operationsFixes';
 import { swNativeSessionRouter } from '../routes/nativeSession';
 import { swOneOffOperationRouter } from '../routes/oneOffOperations';
+import { swMonthlyEventRouter } from '../routes/monthlyEvents';
+import { swFinancialGoalRouter } from '../routes/financialGoals';
+import { swBudgetPeriodRouter } from '../routes/budgetPeriods';
+import { swAnalyticsRouter } from '../routes/analytics';
+import { swEventOccurrenceRouter } from '../routes/eventOccurrences';
 
 const swagger = {
   openapi: "3.0.0",
@@ -69,7 +74,12 @@ const swagger = {
     ...swRenewTokenRouter,
     ...swNativeSessionRouter,
     ...swOperationFixeRouter,
-    ...swOneOffOperationRouter
+    ...swOneOffOperationRouter,
+    ...swMonthlyEventRouter,
+    ...swFinancialGoalRouter,
+    ...swBudgetPeriodRouter,
+    ...swAnalyticsRouter,
+    ...swEventOccurrenceRouter
   },
   components: {
     parameters: {
@@ -126,6 +136,15 @@ const swagger = {
             nullable: true,
             pattern: "^#[0-9A-Fa-f]{6}$",
           },
+          icon: {
+            type: "string",
+            nullable: true,
+            maxLength: 64,
+            pattern: "^(solid|regular):[a-z0-9-]+$",
+            example: "solid:utensils",
+            description:
+              "Font Awesome 6 Free icon allowed on Web and mobile (see docs/operation-category-icons.md). Omitted on PUT: unchanged; null: color dot. Any other value: 422 INVALID_CATEGORY_ICON.",
+          },
         },
       },
       OneOffOperationInput: {
@@ -151,6 +170,56 @@ const swagger = {
           kind: { type: "string", enum: ["DEPENSE", "ENTREE"] },
           operationDate: { type: "string", format: "date" },
           categoryId: { type: "integer", minimum: 1 },
+        },
+      },
+      MonthlyEventInput: {
+        type: "object",
+        required: ["title", "amount", "currency", "kind", "startDate", "recurrence"],
+        additionalProperties: false,
+        properties: {
+          title: { type: "string", minLength: 2, maxLength: 50 },
+          amount: { oneOf: [{ type: "number", minimum: 0.01, maximum: 99999999.99 }, { type: "string", pattern: "^(0|[1-9]\\d{0,7})(?:\\.\\d{1,2})?$" }] },
+          currency: { type: "string", minLength: 3, maxLength: 3 },
+          kind: { type: "string", enum: ["DEPENSE", "ENTREE"] },
+          startDate: { type: "string", format: "date" },
+          recurrence: { type: "string", enum: ["AUCUNE", "MENSUELLE"] },
+          endDate: { type: "string", format: "date", nullable: true },
+        },
+      },
+      FinancialGoalInput: {
+        type: "object",
+        required: ["title", "targetAmount", "currency"],
+        additionalProperties: false,
+        properties: {
+          title: { type: "string", minLength: 2, maxLength: 50 },
+          targetAmount: { oneOf: [{ type: "number", minimum: 0.01, maximum: 99999999.99 }, { type: "string", pattern: "^(0|[1-9]\\d{0,7})(?:\\.\\d{1,2})?$" }] },
+          savedAmount: { oneOf: [{ type: "number", minimum: 0, maximum: 99999999.99 }, { type: "string", pattern: "^(0|[1-9]\\d{0,7})(?:\\.\\d{1,2})?$" }] },
+          monthlyContribution: { oneOf: [{ type: "number", minimum: 0, maximum: 99999999.99 }, { type: "string", pattern: "^(0|[1-9]\\d{0,7})(?:\\.\\d{1,2})?$" }] },
+          currency: { type: "string", minLength: 3, maxLength: 3 },
+          targetDate: { type: "string", format: "date", nullable: true },
+        },
+      },
+      FinancialGoal: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          title: { type: "string" },
+          targetAmount: { type: "string", example: "1200.00" },
+          savedAmount: { type: "string", example: "300.00" },
+          monthlyContribution: { type: "string", example: "150.00" },
+          currency: { type: "string", example: "EUR" },
+          targetDate: { type: "string", format: "date", nullable: true },
+          forecast: {
+            type: "object",
+            properties: {
+              referenceMonth: { type: "string", example: "2026-10" },
+              status: { type: "string", enum: ["REACHED", "NO_DEADLINE", "ON_TRACK", "BEHIND", "MISSED"] },
+              remainingAmount: { type: "string", example: "900.00" },
+              contributionsNeeded: { type: "integer", nullable: true },
+              estimatedReachMonth: { type: "string", nullable: true, example: "2027-04" },
+              requiredMonthlyContribution: { type: "string", nullable: true },
+            },
+          },
         },
       }
     },

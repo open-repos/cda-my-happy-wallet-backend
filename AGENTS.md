@@ -12,6 +12,7 @@ These instructions apply to the whole backend repository.
 - A trusted same-repository pull request to `develop` may opt into native auto-merge when every changed file is low risk and all required checks pass. Follow `docs/delivery-automation.md`.
 - CI, dependencies, authentication, sessions, security, database access, migrations, API contracts and financial logic always require owner review.
 - Do not merge a release pull request, create a tag or release, configure credentials, or trigger a deployment without explicit user authorization.
+- When asked to prepare a release, follow `docs/release-process.md`: the agent may push a `release/x.y.z` branch and open its pull request to `main`; only the owner merges it, and the `publish-release` workflow then creates the tag and release.
 - Keep commits focused. Explain the behavior delivered and the reason for the change in each commit message.
 
 ## Planning and Issue selection
@@ -65,6 +66,8 @@ npm run test:services
 npm run test:mailer
 npm run test:smtp-mailer
 npm run test:create-user
+npm run test:registration-confirmation
+npm run test:registration-confirmation-controller
 npm run test:token-service
 npm run test:security-config
 npm run test:auth-rate-limit
@@ -83,7 +86,16 @@ npm run test:operations-schema
 npm run test:operations-use-cases
 npm run test:operations-repositories
 npm run test:operations-api
+npm run test:monthly-events-domain
+npm run test:monthly-events-api
+npm run test:monthly-events-persistence
+npm run test:monthly-events-migration
 npm run test:budget-api-integration
+npm run test:budget-period-domain
+npm run test:analytics-domain
+npm run test:analytics-api
+npm run test:budget-period-persistence
+npm run test:budget-period-migration
 npm run test:pagination
 npm run test:pagination-openapi
 npm run test:pagination-schema
@@ -92,6 +104,7 @@ npm run test:prisma-errors
 npm run test:result-construction
 npm run test:repositories
 npm run test:api
+npm run test:release
 npm run prisma:generate
 npm run build
 ```
@@ -100,7 +113,7 @@ GitHub Actions and Codex Cloud may run these commands directly in their isolated
 
 ## Changes and pull requests
 
-- Add a Markdown fragment under `changes/unreleased/` for every user-visible or public API change. Follow `changes/README.md`.
+- Add a Markdown fragment under `changes/unreleased/` for every user-visible or public API change. Follow `changes/README.md`, including its French `user:` line when users will notice the change.
 - Link every pull request to its GitHub Issue with `Refs #<number>`. Use additional `Refs #<number>` lines for related issues that the pull request does not complete.
 - GitHub only applies `Closes #<number>` automatically when a pull request reaches the default branch, currently `main`. For pull requests to `develop`, declare exactly one completed `Primary issue: Refs #<number>`; automation closes it after a successful merge and leaves related Issues open.
 - Use `Closes #<number>` in a pull request only when it targets the default branch and directly completes that issue.

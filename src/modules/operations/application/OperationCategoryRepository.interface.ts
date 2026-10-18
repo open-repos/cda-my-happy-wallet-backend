@@ -3,12 +3,15 @@ export type OperationCategory = Readonly<{
   ownerId: number;
   name: string;
   color: string | null;
+  icon: string | null;
 }>;
 
 export type SaveOperationCategory = Readonly<{
   ownerId: number;
   name: string;
   color: string | null;
+  /** `undefined` à la mise à jour : icône existante conservée. */
+  icon?: string | null;
 }>;
 
 export interface OperationCategoryRepository {

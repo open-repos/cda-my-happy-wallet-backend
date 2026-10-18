@@ -178,9 +178,9 @@ class FakeUserRepository implements IUserRepository {
     return { count: 1 };
   }
 
-  public async confirmRegistration(_id: string): Promise<any> {
+  public async confirmRegistration(_id: string, _email: string): Promise<boolean> {
     this.calls.push("confirmRegistration");
-    return { id: userFixtures.id, verified: true };
+    return true;
   }
 
   public async exists(_email: string): Promise<boolean> {
@@ -195,7 +195,7 @@ class FakeUserRepository implements IUserRepository {
 
   public async getUserById(_id: number): Promise<any> {
     this.calls.push("getUserById");
-    return { id: userFixtures.id };
+    return { id: userFixtures.id, email: userFixtures.email };
   }
 
   public async hasValidResetToken(_resetToken: string): Promise<boolean> {
@@ -333,7 +333,7 @@ async function runUserResultTests() {
 
   const confirmResult = await new ConfirmRegistrationUser(
     repository,
-    new FakeTokenService({ id: userFixtures.id })
+    new FakeTokenService({ email: userFixtures.email })
   ).execute(userFixtures.idAsString, "fake-register-token");
   assert.deepStrictEqual(confirmResult, {
     success: true,

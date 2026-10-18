@@ -9,7 +9,7 @@ export interface IUserRepository {
     resetTokenExpiration: Date
   ): Promise<any>;
   newPassword(newpassword: string, resetToken: string): Promise<any>;
-  confirmRegistration(id: string): Promise<any>;
+  confirmRegistration(id: string, email: string): Promise<boolean>;
   exists(email: string): Promise<boolean>;
   getUserByEmail(email: string): Promise<any>;
   getUserById(id: number): Promise<any>;

@@ -46,7 +46,7 @@ class FakeCategoryRepository implements OperationCategoryRepository {
   public async create(
     category: SaveOperationCategory
   ): Promise<OperationCategory> {
-    const saved = { ...category, id: this.nextId++ };
+    const saved = { ...category, icon: category.icon ?? null, id: this.nextId++ };
     this.categories = [...this.categories, saved];
     return saved;
   }
@@ -57,7 +57,11 @@ class FakeCategoryRepository implements OperationCategoryRepository {
   ): Promise<OperationCategory | null> {
     const existing = await this.findById(id, category.ownerId);
     if (existing == null) return null;
-    const saved = { ...category, id };
+    const saved = {
+      ...category,
+      icon: category.icon === undefined ? existing.icon : category.icon,
+      id,
+    };
     this.categories = this.categories.map((item) =>
       item.id === id && item.ownerId === category.ownerId ? saved : item
     );
@@ -168,7 +172,60 @@ async function run() {
     ownerId: 7,
     name: "Courses",
     color: "#EA7C69",
+    icon: null,
   });
+
+  const iconCategory = await categories.create(7, {
+    name: "Restaurants",
+    icon: "solid:utensils",
+  });
+  assert.strictEqual(iconCategory.icon, "solid:utensils");
+  for (const icon of [
+    "utensils",
+    "brands:github",
+    "solid:not-an-icon",
+    "regular:utensils",
+    "Solid:utensils",
+    "solid:Utensils",
+    " solid:utensils",
+    "",
+    42,
+    {},
+  ]) {
+    await assert.rejects(
+      () =>
+        categories.create(7, {
+          name: "Icône invalide",
+          icon: icon as unknown as string,
+        }),
+      expectsApplicationError("INVALID_CATEGORY_ICON"),
+      `icon ${JSON.stringify(icon)} must be rejected`
+    );
+  }
+  // Un PUT sans `icon` conserve l'icône; `null` revient à la pastille.
+  const renamed = await categories.update(7, iconCategory.id, {
+    name: "Restaurants et cafés",
+  });
+  assert.strictEqual(renamed.icon, "solid:utensils");
+  const regularIcon = await categories.update(7, iconCategory.id, {
+    name: "Restaurants et cafés",
+    icon: "regular:heart",
+  });
+  assert.strictEqual(regularIcon.icon, "regular:heart");
+  const cleared = await categories.update(7, iconCategory.id, {
+    name: "Restaurants et cafés",
+    icon: null,
+  });
+  assert.strictEqual(cleared.icon, null);
+  await assert.rejects(
+    () =>
+      categories.update(8, iconCategory.id, {
+        name: "Autre propriétaire",
+        icon: "solid:house",
+      }),
+    expectsApplicationError("CATEGORY_NOT_FOUND")
+  );
+  await categories.delete(7, iconCategory.id);
 
   await assert.rejects(
     () => categories.create(7, { name: "x" }),

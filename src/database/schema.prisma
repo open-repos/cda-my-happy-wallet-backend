@@ -36,16 +36,30 @@ model OperationFixe {
 }
 
 model EvenementMensuel {
-  // idListEventObject  Int       @id
-  // idEvenementMensuel Int
-  id Int  @id @default(autoincrement())
-  titre             String  @db.VarChar(50)
-  montant           Decimal @db.Decimal(10, 2)
-  devise            String  @db.VarChar(3)
-  created_at         DateTime @default(now()) @db.Timestamp(0)
-  updated_at         DateTime @default(now()) @db.DateTime(0)
-  Utilisateur Utilisateur @relation(fields:[userId], references:[id])
-  userId Int
+  id         Int                    @id @default(autoincrement())
+  title      String                 @map("titre") @db.VarChar(50)
+  amount     Decimal                @map("montant") @db.Decimal(10, 2)
+  currency   String                 @map("devise") @db.VarChar(3)
+  kind       MonthlyEventKind       @default(DEPENSE)
+  startDate  DateTime               @default(dbgenerated("(curdate())")) @db.Date
+  recurrence MonthlyEventRecurrence @default(AUCUNE)
+  endDate    DateTime?              @db.Date
+  createdAt  DateTime               @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime               @updatedAt @map("updated_at") @db.DateTime(0)
+  user       Utilisateur            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+
+  @@index([userId, startDate, id])
+}
+
+enum MonthlyEventKind {
+  DEPENSE
+  ENTREE
+}
+
+enum MonthlyEventRecurrence {
+  AUCUNE
+  MENSUELLE
 }
 
 
@@ -69,8 +83,72 @@ model Utilisateur {
   refreshSessions RefreshSession[]
   operationCategories OperationCategory[]
   oneOffOperations OneOffOperationRecord[] @relation("OneOffOperationOwner")
+  budgetPeriods BudgetPeriod[]
+  occurrenceResolutions EventOccurrenceResolution[]
   created_at  DateTime @default(now()) @db.Timestamp(0)
   updated_at  DateTime @default(now()) @db.DateTime(0)
+}
+
+model BudgetPeriod {
+  id               Int                @id @default(autoincrement())
+  periodStart      DateTime           @db.Date
+  currency         String             @db.Char(3)
+  status           BudgetPeriodStatus @default(OPEN)
+  fixedIncome      Decimal            @db.Decimal(10, 2)
+  fixedExpense     Decimal            @db.Decimal(10, 2)
+  baseAmount       Decimal            @db.Decimal(10, 2)
+  actualIncome     Decimal            @default(0) @db.Decimal(10, 2)
+  actualExpense    Decimal            @default(0) @db.Decimal(10, 2)
+  realRemaining    Decimal            @default(0) @db.Decimal(10, 2)
+  /// Reste réel signé du mois précédent clôturé, reporté sur cette période.
+  carryIn          Decimal            @default(0) @db.Decimal(10, 2)
+  unresolvedEvents Int                @default(0)
+  revision         Int                @default(1)
+  closedAt         DateTime?          @db.DateTime(3)
+  /// Dernier recalcul d'un bilan clôturé après une correction d'opération.
+  correctedAt      DateTime?          @db.DateTime(3)
+  createdAt        DateTime           @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime           @updatedAt @db.DateTime(0)
+  userId           Int
+  user             Utilisateur        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, periodStart, currency])
+  @@index([userId, currency, periodStart, id])
+}
+
+enum BudgetPeriodStatus {
+  OPEN
+  CLOSED
+}
+
+/// Décision durable sur une occurrence datée; l'absence de ligne signifie PLANNED.
+model EventOccurrenceResolution {
+  id             Int                        @id @default(autoincrement())
+  /// Référence historique à la règle, sans cascade : la décision survit à la suppression de la règle.
+  sourceEventId  Int
+  occurrenceDate DateTime                   @db.Date
+  status         OccurrenceResolutionStatus
+  title          String                     @db.VarChar(50)
+  amount         Decimal                    @db.Decimal(10, 2)
+  currency       String                     @db.Char(3)
+  kind           MonthlyEventKind
+  /// Opération créée par la réalisation; repasse à null si l'opération est supprimée ensuite.
+  operationId    Int?                       @unique
+  operation      OneOffOperationRecord?     @relation(fields: [operationId], references: [id], onDelete: SetNull)
+  resolvedAt     DateTime                   @default(now()) @db.DateTime(3)
+  createdAt      DateTime                   @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime                   @updatedAt @db.DateTime(0)
+  userId         Int
+  user           Utilisateur                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sourceEventId, occurrenceDate])
+  @@index([userId, occurrenceDate, status, id])
+  @@index([userId, currency, occurrenceDate, id])
+}
+
+enum OccurrenceResolutionStatus {
+  REALIZED
+  CANCELED
 }
 
 model RefreshSession {
@@ -96,15 +174,19 @@ model Notification {
 }
 
 model ObjectifFinancier {
-  id   Int       @id @default(autoincrement())
-  titre             String  @db.VarChar(50)
-  montant           Decimal @db.Decimal(10, 2)
-  devise            String  @db.VarChar(3)
-  dateObjectifAtteint DateTime? @db.Date
-  created_at          DateTime @default(now()) @db.Timestamp(0)
-  updated_at          DateTime @default(now()) @db.DateTime(0)
-  Utilisateur Utilisateur @relation(fields:[userId], references:[id])
-  userId Int
+  id                  Int         @id @default(autoincrement())
+  title               String      @map("titre") @db.VarChar(50)
+  targetAmount        Decimal     @map("montant") @db.Decimal(10, 2)
+  savedAmount         Decimal     @default(0) @db.Decimal(10, 2)
+  monthlyContribution Decimal     @default(0) @db.Decimal(10, 2)
+  currency            String      @map("devise") @db.VarChar(3)
+  targetDate          DateTime?   @map("dateObjectifAtteint") @db.Date
+  created_at          DateTime    @default(now()) @db.Timestamp(0)
+  updated_at          DateTime    @default(now()) @updatedAt @db.DateTime(0)
+  Utilisateur         Utilisateur @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId              Int
+
+  @@index([userId, id])
 }
 
 model OperationCategoryTemplate {
@@ -123,6 +205,7 @@ model OperationCategory {
   id         Int                        @id @default(autoincrement())
   name       String                     @db.VarChar(50)
   color      String?                    @db.Char(7)
+  icon       String?                    @db.VarChar(64)
   userId     Int
   templateId Int?
   user       Utilisateur                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -149,11 +232,13 @@ model OneOffOperationRecord {
   categoryId        Int
   owner             Utilisateur       @relation("OneOffOperationOwner", fields: [userId], references: [id], onDelete: Cascade)
   category          OperationCategory @relation(fields: [categoryId, userId], references: [id, userId], onDelete: Restrict)
+  resolution        EventOccurrenceResolution?
   createdAt         DateTime          @default(now()) @db.Timestamp(0)
   updatedAt         DateTime          @updatedAt @db.DateTime(0)
 
   @@index([userId, operationDate])
   @@index([userId, operationDate, id])
+  @@index([userId, currency, operationDate, id])
   @@index([categoryId, userId])
 }
 

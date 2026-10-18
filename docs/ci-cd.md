@@ -17,16 +17,20 @@ sonde de disponibilite et restaure l'image precedente si la sonde echoue. Les
 migrations SQL ne sont pas annulees automatiquement : elles doivent rester
 compatibles avec la version precedente de l'application.
 
+Les compteurs des routes d'authentification sont partages par Redis. La
+[politique de rate limiting distribue](distributed-rate-limiting.md) decrit le
+modele de menace, le comportement en panne et le retour arriere.
+
 ## Variables GitLab
 
 Configurer ces variables avec la portee `production` et l'option `Protected` :
 
-| Variable          | Type     | Usage                                    |
-| ----------------- | -------- | ---------------------------------------- |
-| `SSH_PRIVATE_KEY` | File     | Cle privee du compte `mhw-backend`       |
-| `SSH_KNOWN_HOSTS` | File     | Cle d'hote verifiee hors de la CI        |
-| `SERVER_IP`       | Variable | Hote SSH cible                           |
-| `SERVER_USER`     | Variable | `mhw-backend`                            |
+| Variable          | Type     | Usage                              |
+| ----------------- | -------- | ---------------------------------- |
+| `SSH_PRIVATE_KEY` | File     | Cle privee du compte `mhw-backend` |
+| `SSH_KNOWN_HOSTS` | File     | Cle d'hote verifiee hors de la CI  |
+| `SERVER_IP`       | Variable | Hote SSH cible                     |
+| `SERVER_USER`     | Variable | `mhw-backend`                      |
 
 Le registre utilise les variables GitLab predefinies `CI_REGISTRY*`. Aucun
 secret applicatif ni jeton du registre ne doit etre stocke dans le depot.
@@ -69,10 +73,13 @@ APP_BASE_URL=/v1
 API_PUBLIC_URL=https://api.myhappywallet.andriacapai.com
 FRONTEND_URL=https://myhappywallet.andriacapai.com
 CORS_ORIGINS=https://myhappywallet.andriacapai.com
+REDIS_URL=redis://rate-limit-redis:6379
 DATABASE_URL=<production-database-url>
 ACCESS_TOKEN=<random-secret-at-least-32-characters>
 REFRESH_TOKEN=<different-random-secret-at-least-32-characters>
 REGISTER_TOKEN=<third-random-secret-at-least-32-characters>
+JWT_ISSUER=https://api.myhappywallet.andriacapai.com
+JWT_AUDIENCE=urn:myhappywallet:production
 MAILER_DRIVER=sendgrid
 SENDGRID_API_KEY=<secret>
 EMAIL_SENDER=<verified-sender>
@@ -82,6 +89,14 @@ Les trois secrets JWT doivent etre distincts. Le wrapper de deploiement charge
 la configuration depuis l'image candidate avant les migrations et interrompt
 le deploiement si une valeur est absente, trop courte ou dupliquee. Il
 n'affiche jamais les valeurs.
+
+`JWT_ISSUER` et `JWT_AUDIENCE` sont aussi obligatoires en production : utiliser
+des valeurs distinctes de celles du test/staging. Pour la premiere release #35,
+suivre la [bascule JWT avec reconnexion](jwt-issuer-audience.md#bascule-et-retour-arrière)
+avant le wrapper habituel : arreter tous les anciens replicas et maintenir
+l'acces public ferme pendant la migration. Le wrapper applique une migration
+de donnees qui revoque les sessions existantes ; revenir a l'image precedente
+ne les reactive pas. Ne pas faire de rolling deploy pour cette bascule.
 
 Ne pas copier le fichier `.env` dans l'image. Sur le VPS actuel, MySQL tourne
 sur l'hote : utiliser `host.docker.internal` dans `DATABASE_URL`. Le reseau
@@ -97,7 +112,7 @@ Creer un Deploy Token GitLab limite a `read_registry`, puis authentifier root
 interactivement pour ne pas placer le token dans l'historique du shell :
 
 ```bash
-sudo docker login registry.gitlab.com --username <deploy-token-user>
+sudo docker login registry.gitlab.com --username '<deploy-token-user>'
 sudo chmod 600 /root/.docker/config.json
 ```
 
@@ -137,3 +152,8 @@ Nginx continue de proxifier `127.0.0.1:4201`; aucun port du conteneur n'est
 expose publiquement. Activer `Prevent outdated deployment jobs`, proteger
 `main` et l'environnement `production`, et reserver le runner tague
 `server_runner` aux refs protegees.
+
+La sauvegarde chiffree, la restauration isolee, l'invalidation des sessions et
+le retour arriere sont decrits dans
+[backup-and-restore.md](backup-and-restore.md). Une restauration n'est jamais
+declenchee automatiquement par la pipeline de deploiement.

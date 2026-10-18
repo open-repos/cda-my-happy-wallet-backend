@@ -117,7 +117,7 @@ Les erreurs applicatives stables préparent le contrat HTTP sans le coupler :
 - `OPERATION_NOT_FOUND` et `CATEGORY_NOT_FOUND` ;
 - `CATEGORY_NAME_CONFLICT` ;
 - `CATEGORY_IN_USE` ;
-- `INVALID_CATEGORY_NAME` et `INVALID_CATEGORY_COLOR`.
+- `INVALID_CATEGORY_NAME`, `INVALID_CATEGORY_COLOR` et `INVALID_CATEGORY_ICON`.
 
 La future couche HTTP de `M03-04` traduira ces codes et les erreurs du domaine
 en statuts publics. Les repositories ne connaissent ni Express ni les DTO HTTP.
