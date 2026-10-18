@@ -170,6 +170,7 @@ docker run --rm --network mhw-docs-test \
   npm run test:auth-rate-limit
   npm run test:http-limits
   npm run test:cors
+  npm run test:private-api-cache
   npm run test:password-reset
   npm run test:refresh-sessions
   npm run test:refresh-session-service

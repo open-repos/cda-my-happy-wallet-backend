@@ -40,6 +40,9 @@ The health contracts are unchanged:
 Both health routes retain `Cache-Control: no-store` and never return dependency
 error details.
 
+The JSON root, like every route under `APP_BASE_URL`, returns
+`Cache-Control: private, no-store` (see [private HTTP cache](private-http-cache.md)).
+
 ## Verification
 
 With the local backend running:
