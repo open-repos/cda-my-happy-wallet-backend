@@ -12,6 +12,7 @@ These instructions apply to the whole backend repository.
 - A trusted same-repository pull request to `develop` may opt into native auto-merge when every changed file is low risk and all required checks pass. Follow `docs/delivery-automation.md`.
 - CI, dependencies, authentication, sessions, security, database access, migrations, API contracts and financial logic always require owner review.
 - Do not merge a release pull request, create a tag or release, configure credentials, or trigger a deployment without explicit user authorization.
+- When asked to prepare a release, follow `docs/release-process.md`: the agent may push a `release/x.y.z` branch and open its pull request to `main`; only the owner merges it, and the `publish-release` workflow then creates the tag and release.
 - Keep commits focused. Explain the behavior delivered and the reason for the change in each commit message.
 
 ## Planning and Issue selection
@@ -103,6 +104,7 @@ npm run test:prisma-errors
 npm run test:result-construction
 npm run test:repositories
 npm run test:api
+npm run test:release
 npm run prisma:generate
 npm run build
 ```

@@ -1,0 +1,207 @@
+const assert = require("node:assert/strict");
+const { spawnSync } = require("node:child_process");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const {
+  bumpVersion,
+  extractNotes,
+  insertRelease,
+  parseFragment,
+  renderBody,
+  requiredBump,
+} = require("../../scripts/release.cjs");
+
+const fragment = (type, issue, text) =>
+  `---\ntype: ${type}\nissue: ${issue}\n---\n\n${text}\n`;
+
+// Fragment parsing
+assert.deepStrictEqual(
+  parseFragment(fragment("fixed", 12, "Fixed a\nwrapped line."), "12.md"),
+  { type: "fixed", issue: 12, text: "Fixed a wrapped line." }
+);
+assert.throws(() => parseFragment("no front matter", "x.md"), /front matter/);
+assert.throws(
+  () => parseFragment(fragment("improved", 1, "Text."), "x.md"),
+  /unknown type/
+);
+assert.throws(
+  () => parseFragment(fragment("added", "abc", "Text."), "x.md"),
+  /issue must be a number/
+);
+assert.throws(() => parseFragment(fragment("added", 1, ""), "x.md"), /empty/);
+
+// Version selection
+assert.equal(requiredBump([{ type: "fixed" }, { type: "security" }]), "patch");
+assert.equal(requiredBump([{ type: "fixed" }, { type: "added" }]), "minor");
+assert.equal(requiredBump([{ type: "added" }, { type: "removed" }]), "major");
+assert.equal(bumpVersion("1.1.0", "patch"), "1.1.1");
+assert.equal(bumpVersion("1.1.3", "minor"), "1.2.0");
+assert.equal(bumpVersion("1.1.3", "major"), "2.0.0");
+
+// Rendering groups by Keep a Changelog section and orders by issue
+const body = renderBody([
+  { type: "security", issue: 9, text: "Hardened sessions." },
+  { type: "added", issue: 21, text: "Added goals." },
+  { type: "added", issue: 3, text: "Added events" },
+  { type: "fixed", issue: null, text: "Fixed a typo." },
+]);
+assert.equal(
+  body,
+  [
+    "### Added",
+    "",
+    "- Added events (#3)",
+    "- Added goals (#21).",
+    "",
+    "### Fixed",
+    "",
+    "- Fixed a typo.",
+    "",
+    "### Security",
+    "",
+    "- Hardened sessions (#9).",
+  ].join("\n")
+);
+
+// Plain heading style (backend changelog)
+const plain =
+  "# Changelog\n\nIntro.\n\n## 1.1.0 (2026-07-20)\n\n### Added\n\n- Old.\n";
+const plainResult = insertRelease(
+  plain,
+  "1.2.0",
+  "2026-10-18",
+  "### Fixed\n\n- New."
+);
+assert.equal(
+  plainResult,
+  "# Changelog\n\nIntro.\n\n## 1.2.0 (2026-10-18)\n\n### Fixed\n\n- New.\n\n## 1.1.0 (2026-07-20)\n\n### Added\n\n- Old.\n"
+);
+assert.equal(extractNotes(plainResult, "1.2.0"), "### Fixed\n\n- New.");
+assert.equal(extractNotes(plainResult, "1.1.0"), "### Added\n\n- Old.");
+
+// Keep a Changelog style with an [Unreleased] heading (frontend changelog)
+const kac =
+  "# Changelog\n\n## [Unreleased]\n\n## [1.0.0] - 2026-07-19\n\n- Old.\n";
+const kacResult = insertRelease(
+  kac,
+  "1.1.0",
+  "2026-10-18",
+  "### Added\n\n- New."
+);
+assert.equal(
+  kacResult,
+  "# Changelog\n\n## [Unreleased]\n\n## [1.1.0] - 2026-10-18\n\n### Added\n\n- New.\n\n## [1.0.0] - 2026-07-19\n\n- Old.\n"
+);
+assert.equal(extractNotes(kacResult, "1.1.0"), "### Added\n\n- New.");
+assert.throws(() => extractNotes(kacResult, "9.9.9"), /not found/);
+assert.throws(() => extractNotes(kacResult, "1.1"), /not found/);
+
+// Manual entries under [Unreleased] are refused instead of being dropped
+assert.throws(
+  () =>
+    insertRelease(
+      "# Changelog\n\n## [Unreleased]\n\n### Fixed\n\n- Manual.\n\n## [1.0.0] - 2026-07-19\n",
+      "1.1.0",
+      "2026-10-18",
+      "### Added\n\n- New."
+    ),
+  /entries under \[Unreleased\]/
+);
+
+// First release keeps the trailing link references at the end
+assert.equal(
+  insertRelease(
+    "# Changelog\n\n## [Unreleased]\n\n[Unreleased]: https://example.test/compare\n",
+    "0.1.0",
+    "2026-10-18",
+    "### Added\n\n- New."
+  ),
+  "# Changelog\n\n## [Unreleased]\n\n## [0.1.0] - 2026-10-18\n\n### Added\n\n- New.\n\n[Unreleased]: https://example.test/compare\n"
+);
+
+// CRLF changelogs keep CRLF line endings
+const crlf = plain.replace(/\n/g, "\r\n");
+const crlfResult = insertRelease(
+  crlf,
+  "1.2.0",
+  "2026-10-18",
+  "### Fixed\n\n- New."
+);
+assert.equal(crlfResult, plainResult.replace(/\n/g, "\r\n"));
+assert.equal(extractNotes(crlfResult, "1.2.0"), "### Fixed\n\n- New.");
+
+// End-to-end runs against a disposable fixture
+const root = fs.mkdtempSync(path.join(os.tmpdir(), "release-test-"));
+try {
+  fs.mkdirSync(path.join(root, "changes", "unreleased"), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, "package.json"),
+    JSON.stringify({ name: "fixture", version: "1.1.0" })
+  );
+  fs.writeFileSync(path.join(root, "CHANGELOG.md"), plain);
+  fs.writeFileSync(
+    path.join(root, "changes", "unreleased", "5-thing.md"),
+    fragment("added", 5, "Added a thing.")
+  );
+  const script = path.resolve(__dirname, "../../scripts/release.cjs");
+  const run = (...args) =>
+    spawnSync(process.execPath, [script, ...args], {
+      cwd: root,
+      encoding: "utf8",
+    });
+
+  const dryRun = run("prepare", "--dry-run", "--date", "2026-10-18");
+  assert.equal(dryRun.status, 0, dryRun.stderr);
+  assert.match(dryRun.stdout, /Release 1\.1\.0 -> 1\.2\.0 \(1 fragments\)/);
+  assert.match(dryRun.stdout, /- Added a thing \(#5\)\./);
+  assert.equal(fs.readFileSync(path.join(root, "CHANGELOG.md"), "utf8"), plain);
+  assert.ok(
+    fs.existsSync(path.join(root, "changes", "unreleased", "5-thing.md"))
+  );
+
+  const tooSmall = run("prepare", "--dry-run", "--bump", "patch");
+  assert.notEqual(tooSmall.status, 0);
+  assert.match(tooSmall.stderr, /at least a minor release/);
+
+  const notGreater = run("prepare", "--dry-run", "--version", "1.1.0");
+  assert.notEqual(notGreater.status, 0);
+  assert.match(notGreater.stderr, /must be greater/);
+
+  const missingValue = run("prepare", "--dry-run", "--bump");
+  assert.notEqual(missingValue.status, 0);
+  assert.match(missingValue.stderr, /--bump needs a value/);
+
+  const badDate = run("prepare", "--dry-run", "--date", "18/10/2026");
+  assert.notEqual(badDate.status, 0);
+  assert.match(badDate.stderr, /YYYY-MM-DD/);
+
+  const written = run("prepare", "--date", "2026-10-18");
+  assert.equal(written.status, 0, written.stderr);
+  assert.equal(
+    JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"))
+      .version,
+    "1.2.0"
+  );
+  assert.equal(
+    fs.readFileSync(path.join(root, "CHANGELOG.md"), "utf8"),
+    insertRelease(
+      plain,
+      "1.2.0",
+      "2026-10-18",
+      "### Added\n\n- Added a thing (#5)."
+    )
+  );
+  assert.deepStrictEqual(
+    fs.readdirSync(path.join(root, "changes", "unreleased")),
+    []
+  );
+
+  const nothingLeft = run("prepare");
+  assert.notEqual(nothingLeft.status, 0);
+  assert.match(nothingLeft.stderr, /nothing to release/);
+} finally {
+  fs.rmSync(root, { recursive: true, force: true });
+}
+
+console.log("release script tests passed");

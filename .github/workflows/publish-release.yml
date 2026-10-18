@@ -1,0 +1,145 @@
+name: Publish release from main
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
+
+# Every step checks its own result first, so re-running a failed job resumes
+# where it stopped.
+jobs:
+  publish:
+    name: Tag, publish notes and sync develop
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      BEFORE_SHA: ${{ github.event.before }}
+      GITLAB_DEPLOY_KEY: ${{ secrets.GITLAB_DEPLOY_KEY }}
+      GITLAB_KNOWN_HOSTS: ${{ secrets.GITLAB_KNOWN_HOSTS }}
+      GITLAB_REPOSITORY: git@gitlab.com:formation-cda1/projet-chef-oeuvre-rapport/projet-00-myhappywallet-backend.git
+    steps:
+      - name: Check out complete history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect a version change
+        id: version
+        run: |
+          version="$(jq -r .version package.json)"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::package.json version is not x.y.z."
+            exit 1
+          fi
+          previous="$(git show "$BEFORE_SHA:package.json" 2>/dev/null | jq -r ".version // empty" 2>/dev/null || true)"
+          {
+            echo "version=$version"
+            echo "tag=v$version"
+          } >> "$GITHUB_OUTPUT"
+          if [[ -z "$previous" ]]; then
+            echo "::notice::Previous main commit is unknown: nothing is published."
+            echo 'release=false' >> "$GITHUB_OUTPUT"
+          elif [[ "$version" == "$previous" ]]; then
+            echo "Version $version is unchanged: this push to main is not a release."
+            echo 'release=false' >> "$GITHUB_OUTPUT"
+          else
+            echo "Releasing $previous -> $version."
+            echo 'release=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Node.js
+        if: steps.version.outputs.release == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Create the version tag
+        if: steps.version.outputs.release == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          # The peeled "^{}" line, listed last, gives the commit of an annotated tag.
+          existing="$(git ls-remote --tags origin "refs/tags/$TAG" "refs/tags/$TAG^{}" | tail -n 1 | cut -f1)"
+          if [[ -n "$existing" ]]; then
+            if [[ "$existing" != "$GITHUB_SHA" ]]; then
+              echo "::error::$TAG already exists on another commit ($existing)."
+              exit 1
+            fi
+            echo "$TAG already exists on this commit."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a "$TAG" -m "Release $VERSION" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
+
+      - name: Publish the GitHub release
+        if: steps.version.outputs.release == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" --repo "$REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists."
+            exit 0
+          fi
+          node scripts/release.cjs notes "$VERSION" > "$RUNNER_TEMP/notes.md"
+          gh release create "$TAG" --repo "$REPOSITORY" --verify-tag \
+            --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
+
+      - name: Mirror the tag to GitLab
+        if: steps.version.outputs.release == 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if [[ -z "$GITLAB_DEPLOY_KEY" || -z "$GITLAB_KNOWN_HOSTS" ]]; then
+            echo "::warning::GitLab secrets are missing: $TAG was not pushed to GitLab."
+            exit 0
+          fi
+          install -d -m 700 "$RUNNER_TEMP/gitlab-ssh"
+          printf '%s\n' "$GITLAB_DEPLOY_KEY" > "$RUNNER_TEMP/gitlab-ssh/id_ed25519"
+          printf '%s\n' "$GITLAB_KNOWN_HOSTS" > "$RUNNER_TEMP/gitlab-ssh/known_hosts"
+          chmod 600 "$RUNNER_TEMP/gitlab-ssh/id_ed25519" "$RUNNER_TEMP/gitlab-ssh/known_hosts"
+          export GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/gitlab-ssh/id_ed25519 -o IdentitiesOnly=yes -o UserKnownHostsFile=$RUNNER_TEMP/gitlab-ssh/known_hosts -o StrictHostKeyChecking=yes"
+          if [[ -n "$(git ls-remote --tags "$GITLAB_REPOSITORY" "refs/tags/$TAG")" ]]; then
+            echo "$TAG already exists on GitLab."
+            exit 0
+          fi
+          if ! git push "$GITLAB_REPOSITORY" "refs/tags/$TAG"; then
+            echo "::warning::GitLab refused $TAG. Push it manually: git push <gitlab-remote> $TAG"
+          fi
+
+      # Brings the release commit (version and CHANGELOG) back into develop.
+      # Needs "Allow GitHub Actions to create and approve pull requests";
+      # otherwise the warning gives the manual command.
+      - name: Sync main back into develop
+        if: steps.version.outputs.release == 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git fetch origin develop
+          if [[ "$(git rev-list --count origin/develop..HEAD)" == 0 ]]; then
+            echo "develop already contains $TAG."
+            exit 0
+          fi
+          url="$(gh pr list --repo "$REPOSITORY" --base develop --head main --state open --json url --jq '.[0].url // empty')"
+          if [[ -z "$url" ]] && ! url="$(gh pr create --repo "$REPOSITORY" --base develop --head main \
+            --title "chore(release): sync $TAG into develop" \
+            --body "Brings the $TAG release commit back into \`develop\`. Opened by the publish-release workflow.")"; then
+            echo "::warning::Could not open the sync pull request. Run: gh pr create --base develop --head main --title 'chore(release): sync $TAG into develop'"
+            exit 0
+          fi
+          if ! gh pr merge "$url" --repo "$REPOSITORY" --merge; then
+            echo "::warning::Could not merge $url automatically. Merge it manually."
+          fi

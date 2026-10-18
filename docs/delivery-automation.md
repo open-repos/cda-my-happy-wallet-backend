@@ -33,7 +33,8 @@ these GitHub repository Actions secrets exist:
 Register the matching public key as a writable GitLab deploy key for the backend
 project. Keep the private key only in GitHub Actions secrets. The workflow
 mirrors the current branch and does not create tags, releases or call a
-deployment endpoint.
+deployment endpoint. Tags and releases come from the `publish-release`
+workflow described in `docs/release-process.md`.
 
 A push to GitLab `main` can start the existing GitLab pipeline, but its
 production deployment job remains manual. Only the project owner starts that

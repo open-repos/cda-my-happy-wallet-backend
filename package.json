@@ -12,7 +12,7 @@
     "build": "npx tsc",
     "type-check": "npx tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
-    "format": "prettier --check package.json eslint.config.js .github AGENTS.md CONTRIBUTING.md changes docs/analytics-api.md docs/budget-projection-api.md docs/daily-budget-domain.md docs/daily-budget-persistence.md docs/delivery-automation.md docs/development-toolchain-security.md docs/event-occurrence-resolutions.md docs/financial-goals.md docs/monthly-event-domain.md docs/monthly-event-persistence.md docs/operation-category-icons.md docs/jwt-issuer-audience.md docs/private-http-cache.md docs/request-logging.md docs/test-environment.md",
+    "format": "prettier --check package.json eslint.config.js .github AGENTS.md CONTRIBUTING.md changes docs/analytics-api.md docs/budget-projection-api.md docs/daily-budget-domain.md docs/daily-budget-persistence.md docs/delivery-automation.md docs/development-toolchain-security.md docs/event-occurrence-resolutions.md docs/financial-goals.md docs/monthly-event-domain.md docs/monthly-event-persistence.md docs/operation-category-icons.md docs/jwt-issuer-audience.md docs/private-http-cache.md docs/release-process.md docs/request-logging.md docs/test-environment.md scripts/release.cjs test/release",
     "db:migrate": "npx prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:visualize": "npx prisma studio",
@@ -78,6 +78,9 @@
     "test:result-construction": "ts-node test/modules/ResultConstruction.test.ts",
     "test:repositories": "ts-node test/modules/repositories/RepositoriesDataAccess.test.ts",
     "test:api": "ts-node test/modules/api/ApiCharacterization.test.ts",
+    "test:release": "node test/release/release.test.cjs",
+    "release:prepare": "node scripts/release.cjs prepare",
+    "release:notes": "node scripts/release.cjs notes",
     "test": "npm run type-check && npm run test:operations-domain",
     "test:jwt-policy": "ts-node test/modules/auth/JwtPolicy.test.ts",
     "test:jwt-session-migration": "ts-node test/modules/auth/JwtSessionMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/auth/JwtSessionMigration.test.ts verify"
