@@ -39,6 +39,6 @@ Use these rules:
 
 `develop` contains integrated work for the next version. `main` contains the release candidate accepted by the project owner.
 
-Creating a release includes collecting the unreleased change fragments into `CHANGELOG.md`, choosing a version, merging the release pull request, and creating matching GitHub and GitLab tags. The project owner explicitly authorizes these operations.
+Creating a release includes collecting the unreleased change fragments into `CHANGELOG.md`, choosing a version, merging the release pull request, and creating matching GitHub and GitLab tags. `npm run release:prepare` builds the changelog and version, and the `publish-release` workflow creates the tags and the GitHub release once the owner merges the release pull request. Follow `docs/release-process.md`.
 
 Production is deployed manually from the GitLab pipeline after the GitLab `main` branch has been synchronized and its pipeline has passed. Backend database migrations run before the container switch, so every release with a migration must document its compatibility and recovery plan. Agents must not trigger production deployment.
