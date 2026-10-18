@@ -32,8 +32,8 @@ From an up-to-date `develop`:
 ```bash
 git switch -c release/x.y.z origin/develop
 npm run release:prepare -- --dry-run   # preview version and notes
-npm run release:prepare                # write CHANGELOG.md, bump version, remove fragments
-git add CHANGELOG.md package.json package-lock.json changes/unreleased
+npm run release:prepare                # write CHANGELOG.md and changes/releases/x.y.z.md, bump version, remove fragments
+git add CHANGELOG.md package.json package-lock.json changes
 git commit -m "chore(release): x.y.z"
 git push -u origin release/x.y.z
 gh pr create --base main --head release/x.y.z --title "release: x.y.z" \
@@ -50,10 +50,17 @@ The `publish-release` workflow runs on the push to `main`. When the version in
 `package.json` changed, it:
 
 1. creates the annotated tag `vx.y.z` on GitHub;
-2. publishes the GitHub release with the matching `CHANGELOG.md` section;
-3. pushes the tag to GitLab, where tags start no pipeline;
+2. publishes the GitHub release with the release notes;
+3. pushes the tag to GitLab, where the `gitlab_release` job publishes the
+   same notes as a GitLab release;
 4. opens and merges a pull request from `main` back into `develop`, so the
    version and changelog reach `develop`.
+
+The release notes have two parts: « Pour les utilisateurs », the French
+`changes/releases/x.y.z.md` file built from the fragments' `user:` lines, then
+« Détail technique », the matching `CHANGELOG.md` section. Review and edit the
+French file in the release pull request: it is published as written. A tag
+pipeline runs only `gitlab_release`, never the build or deployment jobs.
 
 Each step skips what already exists, so re-running a failed job resumes it. A
 GitLab or sync failure only raises a warning with the manual command.

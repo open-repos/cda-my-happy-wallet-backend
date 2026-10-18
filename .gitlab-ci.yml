@@ -6,6 +6,7 @@ workflow:
     - if: "$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS"
       when: never
     - if: "$CI_COMMIT_BRANCH"
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
 
 default:
   interruptible: true
@@ -158,3 +159,33 @@ deploy_production:
     - install -m 644 "$SSH_KNOWN_HOSTS" ~/.ssh/known_hosts
   script:
     - ssh -i "$SSH_PRIVATE_KEY" -o IdentitiesOnly=yes "$SERVER_USER@$SERVER_IP" "sudo -n /usr/local/sbin/deploy-mhw-backend '$CI_COMMIT_SHA'"
+
+# Mirrors the GitHub release: the publish-release workflow pushes the version
+# tag, and this job publishes the same notes as a GitLab release.
+gitlab_release:
+  stage: deploy
+  interruptible: false
+  cache: []
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
+  script:
+    - |
+      node scripts/release.cjs notes "${CI_COMMIT_TAG#v}" > release-notes.md
+      node -e '
+        const fs = require("fs");
+        const tag = process.env.CI_COMMIT_TAG;
+        const description = fs.readFileSync("release-notes.md", "utf8");
+        fs.writeFileSync("release.json", JSON.stringify({ tag_name: tag, name: tag, description }));
+      '
+      status="$(curl --silent --show-error --output response.json --write-out '%{http_code}' \
+        --request POST \
+        --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+        --header "Content-Type: application/json" \
+        --data @release.json \
+        "$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases")"
+      if [ "$status" = "409" ]; then
+        echo "GitLab release $CI_COMMIT_TAG already exists."
+      elif [ "$status" != "201" ]; then
+        cat response.json
+        exit 1
+      fi

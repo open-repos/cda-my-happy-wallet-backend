@@ -34,6 +34,7 @@ List the commands and manual scenarios used:
 ## Delivery notes
 
 - [ ] An unreleased change fragment was added, or this change is not user-visible and does not change the public API
+- [ ] The fragment has a French `user:` line, or users will not notice this change
 - [ ] New configuration variables are documented, or none were added
 - [ ] Database and data migration steps are documented, or none are required
 - [ ] Every related Issue is referenced and its completed acceptance criteria are identified
