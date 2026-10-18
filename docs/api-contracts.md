@@ -19,6 +19,10 @@ Le propriétaire vient du JWT vérifié, jamais du cookie `id_user`, du corps ou
 de la query. Le rôle administrateur ne donne pas d'accès transversal aux
 ressources personnelles. `GET /users` demande le rôle `ADMIN`, relu en base.
 
+Toute réponse sous `APP_BASE_URL`, succès comme erreur, porte
+`Cache-Control: private, no-store`, sans `ETag` ni `304` : voir la
+[politique de cache privée](private-http-cache.md).
+
 Les modules récents exposent les montants en chaînes à deux décimales
 (`"12.30"`), les dates métier en `YYYY-MM-DD` et les mois en `YYYY-MM`.
 Les instants techniques publiés, comme `resolvedAt`, sont des dates ISO avec

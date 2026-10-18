@@ -11,6 +11,7 @@ import swaggerUI from 'swagger-ui-express'
 import swDocument from './utils/swagger.def'
 import { prisma } from './database'
 import { securityHeaders } from './middlewares/securityHeaders.middleware';
+import { privateApiCache } from './middlewares/privateApiCache.middleware';
 import {
   jsonBodyParser,
   urlEncodedBodyParser,
@@ -41,7 +42,11 @@ export const createServer = async (
       server.set('trust proxy', 1);
     }
 
+    // Aucune réponse n'est réutilisable par validation conditionnelle (#98).
+    server.set('etag', false);
+
     server.use(securityHeaders);
+    server.use(APP_BASE_URL as string, privateApiCache);
     
     server.use(urlEncodedBodyParser)
     server.use(jsonBodyParser)
