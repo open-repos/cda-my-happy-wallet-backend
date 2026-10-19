@@ -60,6 +60,9 @@ enum MonthlyEventKind {
 enum MonthlyEventRecurrence {
   AUCUNE
   MENSUELLE
+  HEBDOMADAIRE
+  TRIMESTRIELLE
+  ANNUELLE
 }
 
 

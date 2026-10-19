@@ -35,6 +35,12 @@ disponible prudent/jour = reste prévisionnel / jours restants
 Les occurrences sont agrégées en SQL par date et sens, soit au plus 62 lignes
 par mois. Les objectifs sont agrégés en une seule somme.
 
+Depuis M12-01, les répétitions hebdomadaire, trimestrielle et annuelle suivent
+la même règle. Chaque date hebdomadaire porte sa propre résolution : réaliser
+ou annuler le 9 ne retire pas celles du 16 et du 23. La validation d'une date
+vérifie son appartenance à toutes les occurrences de la période, puis conserve
+l'unicité propriétaire/règle/date et les garanties d'idempotence existantes.
+
 ## Résolutions
 
 `EventOccurrenceResolution` persiste une décision par

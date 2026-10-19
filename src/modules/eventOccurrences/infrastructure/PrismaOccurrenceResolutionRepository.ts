@@ -7,6 +7,10 @@ import {
 } from "@prisma/client";
 import { OneOffOperation } from "../../operations/domain";
 import {
+  matchesOccurrenceSql,
+  occurrenceDatesSql,
+} from "../../monthlyEvents/infrastructure/eventOccurrenceSql";
+import {
   createCursorPage,
   CursorPage,
   invalidPagination,
@@ -100,8 +104,8 @@ export class PrismaOccurrenceResolutionRepository
     const cursor =
       position === null
         ? Prisma.empty
-        : Prisma.sql`AND (o.occurrenceDate > STR_TO_DATE(${position[0]}, '%Y-%m-%d') OR (o.occurrenceDate = STR_TO_DATE(${position[0]}, '%Y-%m-%d') AND o.id > ${position[1]}))`;
-    // Au plus 12 mois générés; chaque règle produit au plus une occurrence par mois.
+        : Prisma.sql`AND (d.occurrenceDate > STR_TO_DATE(${position[0]}, '%Y-%m-%d') OR (d.occurrenceDate = STR_TO_DATE(${position[0]}, '%Y-%m-%d') AND e.id > ${position[1]}))`;
+    // Au plus 366 dates civiles sur la fenêtre de 12 mois.
     const rows = await this.prisma.$queryRaw<
       {
         id: number;
@@ -112,36 +116,17 @@ export class PrismaOccurrenceResolutionRepository
         occurrenceDate: Date;
       }[]
     >(Prisma.sql`
-      WITH RECURSIVE months (monthStart) AS (
-        SELECT STR_TO_DATE(${from}, '%Y-%m-%d')
-        UNION ALL
-        SELECT DATE_ADD(monthStart, INTERVAL 1 MONTH) FROM months
-        WHERE monthStart < DATE_FORMAT(STR_TO_DATE(${through}, '%Y-%m-%d'), '%Y-%m-01')
-      )
-      SELECT o.id, o.title, o.amount, o.currency, o.kind, o.occurrenceDate
-      FROM (
-        SELECT e.id, e.titre AS title, e.montant AS amount, e.devise AS currency,
-               e.kind, e.startDate, e.endDate,
-               DATE_ADD(m.monthStart, INTERVAL LEAST(DAY(e.startDate), DAY(LAST_DAY(m.monthStart))) - 1 DAY) AS occurrenceDate
-        FROM months m
-        JOIN EvenementMensuel e
-          ON e.userId = ${ownerId}
-         AND e.startDate <= LAST_DAY(m.monthStart)
-         AND (
-           (e.recurrence = 'AUCUNE' AND e.startDate >= m.monthStart)
-           OR e.recurrence = 'MENSUELLE'
-         )
-      ) o
+      ${occurrenceDatesSql(from, through)}
+      SELECT e.id, e.titre AS title, e.montant AS amount, e.devise AS currency,
+             e.kind, d.occurrenceDate
+      FROM EvenementMensuel e JOIN occurrence_dates d ON ${matchesOccurrenceSql}
       LEFT JOIN EventOccurrenceResolution r
         ON r.userId = ${ownerId}
-       AND r.sourceEventId = o.id
-       AND r.occurrenceDate = o.occurrenceDate
-      WHERE r.id IS NULL
-        AND o.occurrenceDate BETWEEN STR_TO_DATE(${from}, '%Y-%m-%d') AND STR_TO_DATE(${through}, '%Y-%m-%d')
-        AND o.occurrenceDate >= o.startDate
-        AND (o.endDate IS NULL OR o.occurrenceDate <= o.endDate)
+       AND r.sourceEventId = e.id
+       AND r.occurrenceDate = d.occurrenceDate
+      WHERE e.userId = ${ownerId} AND r.id IS NULL
         ${cursor}
-      ORDER BY o.occurrenceDate ASC, o.id ASC
+      ORDER BY d.occurrenceDate ASC, e.id ASC
       LIMIT ${page.limit + 1}
     `);
     return createCursorPage(

@@ -36,6 +36,30 @@ au format historique et vérifie le backfill ainsi que la suppression en cascade
 
 ## Frontières applicatives
 
+### Extension des répétitions (M12-01)
+
+La migration immuable `20261019113000_extend_event_recurrence` ajoute
+`HEBDOMADAIRE`, `TRIMESTRIELLE` et `ANNUELLE` à la fin de l'ENUM existant.
+Les deux premières valeurs gardent leurs positions et le défaut reste `AUCUNE`.
+Aucune ligne n'est mise à jour. `ALGORITHM=INPLACE, LOCK=NONE` impose une
+extension sans copie de table sur MySQL 8 ; le déploiement échoue si le serveur
+ne la supporte pas, sans repli implicite vers une réécriture.
+
+Les trois lectures SQL (occurrences du mois, agrégats du prévisionnel et file
+à traiter) partagent le prédicat `eventOccurrenceSql.ts`. Elles comparent des
+dates civiles SQL : écart de sept jours pour l'hebdomadaire, écart de trois ou
+douze mois et jour rabattu pour les autres. La série de dates est bornée à 31
+jours pour un mois et 366 jours pour la file de 12 mois. Les agrégats restent
+bornés à 62 lignes (date/sens) et les curseurs gardent l'ordre date/identifiant,
+même lorsqu'une règle hebdomadaire apparaît plusieurs fois dans la page.
+
+`test:monthly-events-domain`, `test:monthly-events-api`,
+`test:event-occurrences-use-cases` et `test:monthly-events-persistence` couvrent
+les nouvelles répétitions, le rapprochement domaine/SQL, les résolutions,
+la devise et le propriétaire. `test:monthly-events-migration` rejoue aussi
+l'extension d'ENUM, conserve dates/montants/horodatages des lignes existantes et
+répète le déploiement. Ces tests SQL utilisent uniquement la base jetable gardée.
+
 Le domaine et les cas d'usage ne dépendent ni de Prisma ni d'Express. Le
 repository filtre `userId` dans chaque lecture, modification et suppression.
 Une ressource d'un autre utilisateur reste indistinguable d'une ressource
@@ -57,6 +81,13 @@ les types Prisma, le secret de curseur ou un détail SQL.
 La migration est additive et conserve les noms historiques des colonnes titre,
 montant et devise. Le premier retour arrière consiste à redéployer l'ancien
 backend; les valeurs par défaut maintiennent ses écritures compatibles.
+
+Pour l'extension M12-01, la migration de production précède le nouveau backend
+et n'est pas annulée par un rollback applicatif. Une ancienne version ne sait
+pas lire les trois nouvelles valeurs : un retour à cette version n'est sûr
+qu'avant la création de règles utilisant ces valeurs. Après de telles créations,
+conserver un backend compatible ou préparer une correction en avant ; ne pas
+tronquer l'ENUM ni convertir les règles sans décision du propriétaire.
 
 Ne jamais modifier une migration déjà déployée. Si les colonnes doivent être
 retirées, exporter et compter d'abord les règles créées par la nouvelle API,

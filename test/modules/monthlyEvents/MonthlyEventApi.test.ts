@@ -39,10 +39,11 @@ class FakeRepository implements MonthlyEventRepository {
   ): Promise<CursorPage<MonthlyEventOccurrence>> {
     const rows = this.rows
       .filter((row) => row.ownerId === ownerId)
-      .flatMap((event) => {
-        const occurrenceDate = event.occurrenceIn(month);
-        return occurrenceDate == null ? [] : [{ event, occurrenceDate }];
-      });
+      .flatMap((event) =>
+        event
+          .occurrencesIn(month)
+          .map((occurrenceDate) => ({ event, occurrenceDate }))
+      );
     return this.page(rows, page);
   }
   public async findById(
@@ -319,6 +320,58 @@ async function run() {
     .get("/events/1")
     .set("Authorization", "Bearer owner");
   assert.strictEqual(missing.status, 404);
+
+  for (const recurrence of ["HEBDOMADAIRE", "TRIMESTRIELLE", "ANNUELLE"]) {
+    const created = await supertest(app)
+      .post("/events")
+      .set("Authorization", "Bearer owner")
+      .send({
+        ...validInput,
+        recurrence,
+        startDate: "2024-02-29",
+        endDate: "2028-02-29",
+      });
+    assert.strictEqual(created.status, 201);
+    assert.strictEqual(created.body.data.recurrence, recurrence);
+    const id = created.body.data.id;
+    await supertest(app)
+      .get(`/events/${id}`)
+      .set("Authorization", "Bearer other")
+      .expect(404);
+    await supertest(app)
+      .put(`/events/${id}`)
+      .set("Authorization", "Bearer owner")
+      .send({
+        ...validInput,
+        recurrence,
+        startDate: "2024-02-29",
+        endDate: "2028-02-29",
+      })
+      .expect(200);
+  }
+  const recurringOccurrences = await supertest(app)
+    .get("/event-occurrences?month=2024-03")
+    .set("Authorization", "Bearer owner")
+    .expect(200);
+  assert.deepStrictEqual(
+    recurringOccurrences.body.data.map(
+      (row: { occurrenceDate: string }) => row.occurrenceDate
+    ),
+    ["2024-03-07", "2024-03-14", "2024-03-21", "2024-03-28"]
+  );
+  assert.deepStrictEqual(
+    (
+      await supertest(app)
+        .get("/event-occurrences?month=2024-03")
+        .set("Authorization", "Bearer other")
+    ).body.data,
+    []
+  );
+  await supertest(app)
+    .post("/events")
+    .set("Authorization", "Bearer owner")
+    .send({ ...validInput, recurrence: "QUOTIDIENNE" })
+    .expect(422);
 
   repository.listByOwner = async () => {
     throw new Error("private repository details");

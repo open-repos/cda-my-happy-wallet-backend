@@ -35,7 +35,8 @@ Elle est indépendante de Prisma, Express et du fuseau horaire du serveur.
 - la devise est un code alphabétique de trois lettres en majuscules;
 - le sens financier vaut uniquement `DEPENSE` ou `ENTREE`;
 - la date de début est une date civile ISO valide `YYYY-MM-DD`;
-- la répétition vaut `AUCUNE` ou `MENSUELLE`;
+- la répétition vaut `AUCUNE`, `MENSUELLE`, `HEBDOMADAIRE`, `TRIMESTRIELLE`
+  ou `ANNUELLE` (extension M12-01);
 - la date de fin est facultative, inclusive, et ne peut pas précéder la date de
   début;
 - une répétition `AUCUNE` ne peut pas porter de date de fin;
@@ -70,6 +71,23 @@ toujours du jour d'ancrage initial : il ne dérive pas après un mois court.
 Une règle sans répétition produit exactement une occurrence à sa date de début.
 La génération est une fonction pure de la règle et de la période demandée; elle
 ne dépend ni de la date courante ni du fuseau du processus.
+
+### Répétitions étendues (M12-01, backend #109)
+
+`occurrencesIn(month)` retourne toutes les dates du mois dans l'ordre. Pour
+`HEBDOMADAIRE`, les dates sont espacées de sept jours civils depuis la date de
+début, y compris au changement d'année ou d'heure. Une règle peut donc produire
+jusqu'à cinq occurrences dans un mois. La date de fin reste inclusive.
+
+`TRIMESTRIELLE` et `ANNUELLE` avancent de trois ou douze mois depuis le mois
+initial, avec le même rabattement du jour que `MENSUELLE`. Le jour d'ancrage
+initial est conservé : un 31 janvier trimestriel donne 30 avril puis 31 juillet ;
+un 29 février annuel donne 28 février les années ordinaires puis retrouve le
+29 février bissextile. Il n'y a aucune dérive après rabattement.
+
+`occurrenceIn(month)` reste un raccourci de compatibilité retournant la première
+date ou `null`. Les lectures de collections et les résolutions utilisent toutes
+les dates ; elles ne se limitent pas à ce raccourci.
 
 ### Modification, suppression et réalisation
 
@@ -179,7 +197,7 @@ Les éléments suivants sont reportés hors du MVP et nécessiteront une nouvell
 décision produit avant extension du domaine :
 
 - exceptions et modifications d'une seule occurrence;
-- répétitions hebdomadaires, annuelles ou selon une règle libre;
+- répétitions selon une règle libre;
 - heure de la journée et rappels;
 - conservation d'un historique immuable des projections.
 

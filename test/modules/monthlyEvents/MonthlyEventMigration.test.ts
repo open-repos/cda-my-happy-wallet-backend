@@ -47,6 +47,8 @@ const prepare = async () => {
     "DELETE FROM `_prisma_migrations` WHERE `migration_name` = ?",
     migration
   );
+  // Dropping recurrence also removes the later additive ENUM extension.
+  await prisma.$executeRaw`DELETE FROM _prisma_migrations WHERE migration_name = '20261019113000_extend_event_recurrence'`;
   await prisma.$executeRawUnsafe(
     "INSERT INTO `EvenementMensuel` (`titre`, `montant`, `devise`, `userId`, `created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?)",
     "Événement historique",

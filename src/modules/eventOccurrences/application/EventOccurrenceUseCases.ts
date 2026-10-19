@@ -154,7 +154,7 @@ export class EventOccurrenceUseCases {
     if (event == null) throw new OccurrenceResolutionError("EVENT_NOT_FOUND");
     if (
       !/^\d{4}-(0[1-9]|1[0-2])-\d{2}$/.test(occurrenceDate) ||
-      event.occurrenceIn(occurrenceDate.slice(0, 7)) !== occurrenceDate
+      !event.occurrencesIn(occurrenceDate.slice(0, 7)).includes(occurrenceDate)
     ) {
       throw new OccurrenceResolutionError("OCCURRENCE_NOT_FOUND");
     }

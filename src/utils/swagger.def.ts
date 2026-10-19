@@ -182,7 +182,7 @@ const swagger = {
           currency: { type: "string", minLength: 3, maxLength: 3 },
           kind: { type: "string", enum: ["DEPENSE", "ENTREE"] },
           startDate: { type: "string", format: "date" },
-          recurrence: { type: "string", enum: ["AUCUNE", "MENSUELLE"] },
+          recurrence: { type: "string", enum: ["AUCUNE", "MENSUELLE", "HEBDOMADAIRE", "TRIMESTRIELLE", "ANNUELLE"] },
           endDate: { type: "string", format: "date", nullable: true },
         },
       },
