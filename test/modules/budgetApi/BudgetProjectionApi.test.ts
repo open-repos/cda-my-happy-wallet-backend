@@ -22,6 +22,8 @@ import {
 } from "../../../src/modules/operations/infrastructure";
 import { OneOffOperationController } from "../../../src/modules/operations/presentation";
 import { createBudgetPeriodRouter } from "../../../src/routes/budgetPeriods";
+import { BudgetForecastService } from "../../../src/modules/budgetPeriods/application/BudgetForecastService";
+import { createBudgetForecastRouter } from "../../../src/routes/budgetForecast";
 import { createEventOccurrenceRouter } from "../../../src/routes/eventOccurrences";
 import { createOneOffOperationRouter } from "../../../src/routes/oneOffOperations";
 import { ErrorCode, ErrorException } from "../../../src/utils/errors";
@@ -77,6 +79,13 @@ const buildApp = (ids: { owner: number; other: number }) => {
   const categories = new PrismaOperationCategoryRepository(prisma);
   const app = express();
   app.use(express.json());
+  app.use(
+    createBudgetForecastRouter(
+      new BudgetForecastService(periods),
+      authenticate,
+      clock
+    )
+  );
   app.use(
     createBudgetPeriodRouter(
       new BudgetPeriodController(
@@ -178,6 +187,47 @@ const run = async () => {
     test.set("Authorization", "Bearer owner");
   const asOther = (test: supertest.Test) =>
     test.set("Authorization", "Bearer other");
+
+  // The forecast must leave periods and resolutions untouched, even on first read.
+  const snapshot = async () =>
+    JSON.stringify(
+      await Promise.all([
+        prisma.budgetPeriod.findMany({
+          where: { userId: owner.id },
+          orderBy: { id: "asc" },
+        }),
+        prisma.eventOccurrenceResolution.findMany({
+          where: { userId: owner.id },
+          orderBy: { id: "asc" },
+        }),
+      ])
+    );
+  const before = await snapshot();
+  const multi = await asOwner(
+    supertest(app).get("/budget-forecast?from=2026-10&months=2&currency=EUR")
+  );
+  assert.strictEqual(multi.status, 200);
+  assert.deepStrictEqual(
+    multi.body.data.months.map(
+      (month: { forecastRemaining: string }) => month.forecastRemaining
+    ),
+    ["750.00", "1500.00"]
+  );
+  assert.strictEqual(await snapshot(), before);
+  const foreignForecast = await asOther(
+    supertest(app).get("/budget-forecast?from=2026-10&months=1&currency=EUR")
+  );
+  assert.strictEqual(foreignForecast.body.data.currentRealRemaining, "0.00");
+  assert.strictEqual(
+    (
+      await asOwner(
+        supertest(app).get(
+          "/budget-forecast?from=2026-10&months=1&currency=USD"
+        )
+      )
+    ).body.data.currentRealRemaining,
+    "0.00"
+  );
 
   // Authentification et validation.
   assert.strictEqual(
@@ -355,6 +405,19 @@ const run = async () => {
     afterRealization.body.data.forecast.forecastRemaining,
     "762.10"
   );
+  const resolvedSnapshot = await snapshot();
+  const resolvedForecast = await asOwner(
+    supertest(app).get("/budget-forecast?from=2026-10&months=1&currency=EUR")
+  );
+  assert.strictEqual(
+    resolvedForecast.body.data.months[0].plannedExpense,
+    "0.00"
+  );
+  assert.strictEqual(
+    resolvedForecast.body.data.months[0].forecastRemaining,
+    "762.10"
+  );
+  assert.strictEqual(await snapshot(), resolvedSnapshot);
 
   // Opérations filtrées par jour, devise et curseur.
   await prisma.oneOffOperationRecord.createMany({
