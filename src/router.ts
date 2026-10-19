@@ -9,6 +9,7 @@ import { oneOffOperationRouter } from './routes/oneOffOperations';
 import { monthlyEventRouter } from './routes/monthlyEvents';
 import { financialGoalRouter } from './routes/financialGoals';
 import { budgetPeriodRouter } from './routes/budgetPeriods';
+import { budgetForecastRouter } from './routes/budgetForecast';
 import { analyticsRouter } from './routes/analytics';
 import { eventOccurrenceRouter } from './routes/eventOccurrences';
 
@@ -58,6 +59,7 @@ mainRouter.use('/', eventOccurrenceRouter)
 mainRouter.use('/', monthlyEventRouter)
 mainRouter.use('/', financialGoalRouter)
 mainRouter.use('/', budgetPeriodRouter)
+mainRouter.use('/', budgetForecastRouter)
 mainRouter.use('/', analyticsRouter)
 
 
