@@ -1,5 +1,10 @@
 # Persistance et API des événements mensuels
 
+M12-04 ajoute une migration additive de statut et les filtres de Simulation.
+Les lectures habituelles n'incluent que les confirmés ; les potentiels expirés
+sont supprimés avec leurs résolutions avant lecture. Voir
+[Simulation](budget-simulation.md), notamment la restriction de rollback.
+
 ## Migration compatible
 
 La migration `20260918150000_expand_monthly_events` étend la table historique

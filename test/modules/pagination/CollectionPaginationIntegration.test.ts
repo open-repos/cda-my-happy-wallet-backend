@@ -333,6 +333,7 @@ async function run() {
     "amount",
     "currency",
     "kind",
+    "status",
     "startDate",
     "recurrence",
     "endDate",

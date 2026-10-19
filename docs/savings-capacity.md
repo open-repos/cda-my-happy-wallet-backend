@@ -2,7 +2,10 @@
 
 `GET /v1/savings-capacity?from=2026-10&months=12&currency=EUR`
 
-La route est authentifiée et en lecture seule. Elle utilise le même contrat de
+La route est authentifiée et ne modifie pas les objectifs ni les bilans. Elle
+supprime cependant les potentiels expirés avant lecture. `scenario=simulation`
+inclut explicitement les autres potentiels ; ils sont exclus par défaut. Voir
+[Simulation](budget-simulation.md). Elle utilise le même contrat de
 fenêtre que [la prévision multi-mois](budget-forecast.md) : `from` et `currency`
 obligatoires, `months` de 1 à 24 (12 par défaut), départ dans le mois courant ou
 l'un des 23 suivants. Les champs inconnus et les paramètres répétés sont refusés.

@@ -24,14 +24,16 @@ export class SavingsCapacityService {
     from: string,
     months: number,
     currency: string,
-    today: string
+    today: string,
+    scenario: import("../../monthlyEvents/domain").BudgetScenario = "standard"
   ) {
     const forecast = await this.forecast.forecast(
       ownerId,
       from,
       months,
       currency,
-      today
+      today,
+      scenario
     );
     const goals = await this.goals.listForSavingsCapacity(
       ownerId,

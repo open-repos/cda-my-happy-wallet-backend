@@ -6,6 +6,12 @@ export const toEventOccurrenceHttpError = (error: unknown): Error => {
   if (error instanceof ErrorException) return error;
   if (error instanceof OccurrenceResolutionError) {
     switch (error.code) {
+      case "EVENT_NOT_CONFIRMED":
+        return new ErrorException(
+          ErrorCode.ValidationFailed,
+          "Confirm the event before resolving it",
+          { code: error.code }
+        );
       case "EVENT_NOT_FOUND":
       case "OCCURRENCE_NOT_FOUND":
       case "CATEGORY_NOT_FOUND":

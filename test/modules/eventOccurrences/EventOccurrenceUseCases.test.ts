@@ -148,6 +148,28 @@ const rejectsWith = (promise: Promise<unknown>, code: string) =>
   );
 
 async function run() {
+  const potential = MonthlyEvent.create({
+    id: 99,
+    ownerId: OWNER,
+    title: "Potentiel",
+    amount: "50.00",
+    currency: "EUR",
+    kind: "DEPENSE",
+    startDate: "2026-10-31",
+    recurrence: "AUCUNE",
+    status: "POTENTIEL",
+  });
+  const potentialCases = build("2026-10-19", null, potential);
+  await rejectsWith(
+    potentialCases.useCases.realize(OWNER, 99, "2026-10-31", { categoryId: 3 }),
+    "EVENT_NOT_CONFIRMED"
+  );
+  await rejectsWith(
+    potentialCases.useCases.cancel(OWNER, 99, "2026-10-31"),
+    "EVENT_NOT_CONFIRMED"
+  );
+  assert.strictEqual(potentialCases.resolutions.operations, 0);
+  assert.strictEqual(potentialCases.resolutions.rows.length, 0);
   for (const [recurrence, startDate, firstDate, secondDate] of [
     ["HEBDOMADAIRE", "2026-10-02", "2026-10-09", "2026-10-16"],
     ["TRIMESTRIELLE", "2026-01-31", "2026-10-31", "2027-01-31"],

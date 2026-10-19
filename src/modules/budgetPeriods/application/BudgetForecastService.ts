@@ -54,7 +54,8 @@ export class BudgetForecastService {
     from: string,
     months: number,
     currency: string,
-    today: string
+    today: string,
+    scenario: import("../../monthlyEvents/domain").BudgetScenario = "standard"
   ) {
     if (!Number.isSafeInteger(ownerId) || ownerId <= 0)
       throw new BudgetPeriodEngineError("INVALID_OWNER_ID");
@@ -115,7 +116,8 @@ export class BudgetForecastService {
         planned: await this.periods.plannedMovements(
           ownerId,
           month,
-          normalizedCurrency
+          normalizedCurrency,
+          scenario
         ),
         goalSavingsMinorUnits: savings,
       });

@@ -14,7 +14,21 @@ import {
   PaginationRequest,
 } from "../../pagination";
 import { MonthlyEventRepository } from "../application";
-import { MonthlyEvent, MonthlyEventOccurrence } from "../domain";
+import {
+  BudgetScenario,
+  MonthlyEvent,
+  MonthlyEventOccurrence,
+  MonthlyEventStatus,
+} from "../domain";
+import {
+  CivilDateClock,
+  parisCivilDateClock,
+} from "../../../utils/civilDateClock";
+import {
+  deletePotentialEvents,
+  expirePotentialEvents,
+  potentialCutoff,
+} from "./potentialEventMaintenance";
 import { matchesOccurrenceSql, occurrenceDatesSql } from "./eventOccurrenceSql";
 
 type EventRow = Readonly<{
@@ -27,6 +41,7 @@ type EventRow = Readonly<{
   recurrence: MonthlyEventRecurrence;
   endDate: Date | null;
   userId: number;
+  status: MonthlyEventStatus;
 }>;
 
 type OccurrenceRow = EventRow & Readonly<{ occurrenceDate: Date }>;
@@ -34,14 +49,20 @@ type OccurrenceRow = EventRow & Readonly<{ occurrenceDate: Date }>;
 export class PrismaMonthlyEventRepository implements MonthlyEventRepository {
   public constructor(
     private readonly prisma: PrismaClient,
-    private readonly cursors: PaginationCursorCodec = paginationCursorCodec
+    private readonly cursors: PaginationCursorCodec = paginationCursorCodec,
+    private readonly today: CivilDateClock = parisCivilDateClock
   ) {}
 
   public async listByOwner(
     ownerId: number,
-    page: PaginationRequest
+    page: PaginationRequest,
+    status: MonthlyEventStatus = "CONFIRME"
   ): Promise<CursorPage<MonthlyEvent>> {
-    const context = this.context(ownerId, "monthly-events");
+    await expirePotentialEvents(this.prisma, ownerId, this.today());
+    const context = this.context(
+      ownerId,
+      status === "CONFIRME" ? "monthly-events" : `monthly-events:${status}`
+    );
     const position = this.dateIdPosition(page, context);
     const afterDate = position?.[0] as string | undefined;
     const afterId = position?.[1] as number | undefined;
@@ -57,7 +78,7 @@ export class PrismaMonthlyEventRepository implements MonthlyEventRepository {
             ],
           };
     const rows = await this.prisma.evenementMensuel.findMany({
-      where,
+      where: { ...where, status },
       orderBy: [{ startDate: "asc" }, { id: "asc" }],
       take: page.limit + 1,
     });
@@ -76,9 +97,16 @@ export class PrismaMonthlyEventRepository implements MonthlyEventRepository {
   public async listOccurrences(
     ownerId: number,
     month: string,
-    page: PaginationRequest
+    page: PaginationRequest,
+    scenario: BudgetScenario = "standard"
   ): Promise<CursorPage<MonthlyEventOccurrence>> {
-    const context = this.context(ownerId, `monthly-event-occurrences:${month}`);
+    await expirePotentialEvents(this.prisma, ownerId, this.today());
+    const context = this.context(
+      ownerId,
+      `monthly-event-occurrences:${month}${
+        scenario === "simulation" ? ":simulation" : ""
+      }`
+    );
     const position = this.dateIdPosition(page, context);
     const afterDate = position?.[0] as string | undefined;
     const afterId = position?.[1] as number | undefined;
@@ -93,9 +121,14 @@ export class PrismaMonthlyEventRepository implements MonthlyEventRepository {
         Prisma.sql`LAST_DAY(STR_TO_DATE(${monthStart}, '%Y-%m-%d'))`
       )}
       SELECT e.id, e.titre AS title, e.montant AS amount, e.devise AS currency, e.kind,
-             e.startDate, e.recurrence, e.endDate, e.userId, d.occurrenceDate
+             e.startDate, e.recurrence, e.endDate, e.status, e.userId, d.occurrenceDate
       FROM EvenementMensuel e JOIN occurrence_dates d ON ${matchesOccurrenceSql}
       WHERE e.userId = ${ownerId}
+        ${
+          scenario === "simulation"
+            ? Prisma.empty
+            : Prisma.sql`AND e.status = 'CONFIRME'`
+        }
         ${cursor}
       ORDER BY d.occurrenceDate ASC, e.id ASC
       LIMIT ${page.limit + 1}
@@ -119,6 +152,7 @@ export class PrismaMonthlyEventRepository implements MonthlyEventRepository {
     id: number,
     ownerId: number
   ): Promise<MonthlyEvent | null> {
+    await expirePotentialEvents(this.prisma, ownerId, this.today());
     const row = await this.prisma.evenementMensuel.findFirst({
       where: { id, userId: ownerId },
     });
@@ -136,20 +170,45 @@ export class PrismaMonthlyEventRepository implements MonthlyEventRepository {
   public async update(event: MonthlyEvent): Promise<MonthlyEvent | null> {
     if (event.id == null) return null;
     const result = await this.prisma.evenementMensuel.updateMany({
-      where: { id: event.id, userId: event.ownerId },
+      where: { id: event.id, userId: event.ownerId, status: event.status },
       data: this.toPersistence(event),
     });
     return result.count === 0 ? null : this.findById(event.id, event.ownerId);
   }
 
   public async delete(id: number, ownerId: number): Promise<boolean> {
+    await expirePotentialEvents(this.prisma, ownerId, this.today());
+    if ((await deletePotentialEvents(this.prisma, ownerId, { id })) === 1)
+      return true;
     return (
       (
         await this.prisma.evenementMensuel.deleteMany({
-          where: { id, userId: ownerId },
+          where: { id, userId: ownerId, status: "CONFIRME" },
         })
       ).count === 1
     );
+  }
+
+  public async confirm(
+    id: number,
+    ownerId: number
+  ): Promise<MonthlyEvent | null> {
+    const today = this.today();
+    await expirePotentialEvents(this.prisma, ownerId, today);
+    await this.prisma.evenementMensuel.updateMany({
+      where: {
+        id,
+        userId: ownerId,
+        status: "POTENTIEL",
+        startDate: { gte: potentialCutoff(today) },
+      },
+      data: { status: "CONFIRME" },
+    });
+    return this.findById(id, ownerId);
+  }
+
+  public async clearPotential(ownerId: number): Promise<void> {
+    await deletePotentialEvents(this.prisma, ownerId);
   }
 
   private toPersistence(event: MonthlyEvent) {
@@ -158,6 +217,7 @@ export class PrismaMonthlyEventRepository implements MonthlyEventRepository {
       amount: (event.minorUnits / 100).toFixed(2),
       currency: event.currency,
       kind: event.kind,
+      status: event.status,
       startDate: this.toDate(event.startDate),
       recurrence: event.recurrence,
       endDate: event.endDate == null ? null : this.toDate(event.endDate),
@@ -173,6 +233,7 @@ export class PrismaMonthlyEventRepository implements MonthlyEventRepository {
       amount: row.amount.toFixed(2),
       currency: row.currency,
       kind: row.kind,
+      status: row.status,
       startDate: row.startDate.toISOString().slice(0, 10),
       recurrence: row.recurrence,
       endDate: row.endDate?.toISOString().slice(0, 10) ?? null,

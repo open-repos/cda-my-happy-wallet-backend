@@ -26,6 +26,7 @@ export class ForecastReads
   public origin: string | null = null;
   public actual: Record<string, BudgetMovement[]> = {};
   public planned: Record<string, PlannedMovement[]> = {};
+  public potential: Record<string, PlannedMovement[]> = {};
   public calls: Array<readonly [number, string]> = [];
   public fixed = { incomeMinorUnits: 10000, expenseMinorUnits: 2000 };
   public savings = 1000;
@@ -55,10 +56,14 @@ export class ForecastReads
   public async plannedMovements(
     owner: number,
     month: string,
-    currency: string
+    currency: string,
+    scenario: "standard" | "simulation" = "standard"
   ) {
     this.record(owner, currency);
-    return this.planned[month] ?? [];
+    return [
+      ...(this.planned[month] ?? []),
+      ...(scenario === "simulation" ? this.potential[month] ?? [] : []),
+    ];
   }
   public async goalSavings(owner: number, currency: string) {
     this.record(owner, currency);

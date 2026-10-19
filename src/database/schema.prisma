@@ -43,6 +43,7 @@ model EvenementMensuel {
   kind       MonthlyEventKind       @default(DEPENSE)
   startDate  DateTime               @default(dbgenerated("(curdate())")) @db.Date
   recurrence MonthlyEventRecurrence @default(AUCUNE)
+  status     MonthlyEventStatus     @default(CONFIRME)
   endDate    DateTime?              @db.Date
   createdAt  DateTime               @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt  DateTime               @updatedAt @map("updated_at") @db.DateTime(0)
@@ -50,6 +51,12 @@ model EvenementMensuel {
   userId     Int
 
   @@index([userId, startDate, id])
+  @@index([userId, status, startDate, id])
+}
+
+enum MonthlyEventStatus {
+  CONFIRME
+  POTENTIEL
 }
 
 enum MonthlyEventKind {

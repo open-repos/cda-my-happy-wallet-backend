@@ -6,6 +6,7 @@ import {
   Router,
 } from "express";
 import { tokenJwtTAuth } from "../middlewares/authenticateToken.middleware";
+import { budgetScenarioParameter } from "../utils/budgetScenarioSwagger";
 import {
   BudgetPeriodController,
   budgetPeriodController,
@@ -76,6 +77,7 @@ export const swBudgetPeriodRouter = {
           schema: { type: "string", pattern: "^\\d{4}-(0[1-9]|1[0-2])$" },
         },
         currencyParameter,
+        budgetScenarioParameter,
       ],
       responses: {
         "200": { description: "Budget summary of the authenticated user" },
