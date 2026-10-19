@@ -21,6 +21,10 @@ import {
 } from "../../pagination";
 import { BudgetMovement, PlannedMovement } from "../domain";
 import { monthBounds } from "../domain/BudgetPeriod";
+import {
+  matchesOccurrenceSql,
+  occurrenceDatesSql,
+} from "../../monthlyEvents/infrastructure/eventOccurrenceSql";
 
 type DecimalValue = { toFixed(fractionDigits: number): string };
 
@@ -188,8 +192,7 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
     month: string,
     currency: string
   ): Promise<readonly PlannedMovement[]> {
-    const monthStart = monthBounds(month).start;
-    const occurrence = Prisma.sql`DATE_ADD(STR_TO_DATE(${monthStart}, '%Y-%m-%d'), INTERVAL LEAST(DAY(e.startDate), DAY(LAST_DAY(STR_TO_DATE(${monthStart}, '%Y-%m-%d')))) - 1 DAY)`;
+    const bounds = monthBounds(month);
     const rows = await this.prisma.$queryRaw<
       {
         occurrenceDate: Date;
@@ -198,28 +201,17 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
         occurrences: bigint | number;
       }[]
     >(Prisma.sql`
-      SELECT o.occurrenceDate, o.kind, SUM(o.amount) AS total,
+      ${occurrenceDatesSql(bounds.start, bounds.end)}
+      SELECT d.occurrenceDate, e.kind, SUM(e.montant) AS total,
              COUNT(*) AS occurrences
-      FROM (
-        SELECT e.id, e.kind, e.montant AS amount, ${occurrence} AS occurrenceDate
-        FROM EvenementMensuel e
-        WHERE e.userId = ${ownerId}
-          AND e.devise = ${currency}
-          AND (
-            (e.recurrence = 'AUCUNE' AND DATE_FORMAT(e.startDate, '%Y-%m') = ${month})
-            OR
-            (e.recurrence = 'MENSUELLE'
-              AND e.startDate <= LAST_DAY(STR_TO_DATE(${monthStart}, '%Y-%m-%d'))
-              AND (e.endDate IS NULL OR ${occurrence} <= e.endDate))
-          )
-      ) o
+      FROM EvenementMensuel e JOIN occurrence_dates d ON ${matchesOccurrenceSql}
       LEFT JOIN EventOccurrenceResolution r
         ON r.userId = ${ownerId}
-       AND r.sourceEventId = o.id
-       AND r.occurrenceDate = o.occurrenceDate
-      WHERE r.id IS NULL
-      GROUP BY o.occurrenceDate, o.kind
-      ORDER BY o.occurrenceDate ASC, o.kind ASC
+       AND r.sourceEventId = e.id
+       AND r.occurrenceDate = d.occurrenceDate
+      WHERE e.userId = ${ownerId} AND e.devise = ${currency} AND r.id IS NULL
+      GROUP BY d.occurrenceDate, e.kind
+      ORDER BY d.occurrenceDate ASC, e.kind ASC
     `);
     return rows.map((row) => ({
       occurrenceDate: row.occurrenceDate.toISOString().slice(0, 10),

@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import Joi from "joi";
 import { PaginationRequest, parsePaginationRequest } from "../../pagination";
 import { ErrorCode, ErrorException } from "../../../utils/errors";
+import { MONTHLY_EVENT_RECURRENCES } from "../domain";
 
 const bodySchema = Joi.object({
   title: Joi.string().trim().min(2).max(50).required(),
@@ -16,7 +17,9 @@ const bodySchema = Joi.object({
   startDate: Joi.string()
     .pattern(/^\d{4}-\d{2}-\d{2}$/)
     .required(),
-  recurrence: Joi.string().valid("AUCUNE", "MENSUELLE").required(),
+  recurrence: Joi.string()
+    .valid(...MONTHLY_EVENT_RECURRENCES)
+    .required(),
   endDate: Joi.string()
     .pattern(/^\d{4}-\d{2}-\d{2}$/)
     .allow(null)

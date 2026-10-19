@@ -15,6 +15,7 @@ import {
 } from "../../pagination";
 import { MonthlyEventRepository } from "../application";
 import { MonthlyEvent, MonthlyEventOccurrence } from "../domain";
+import { matchesOccurrenceSql, occurrenceDatesSql } from "./eventOccurrenceSql";
 
 type EventRow = Readonly<{
   id: number;
@@ -82,25 +83,21 @@ export class PrismaMonthlyEventRepository implements MonthlyEventRepository {
     const afterDate = position?.[0] as string | undefined;
     const afterId = position?.[1] as number | undefined;
     const monthStart = `${month}-01`;
-    const occurrence = Prisma.sql`DATE_ADD(STR_TO_DATE(${monthStart}, '%Y-%m-%d'), INTERVAL LEAST(DAY(startDate), DAY(LAST_DAY(STR_TO_DATE(${monthStart}, '%Y-%m-%d')))) - 1 DAY)`;
     const cursor =
       afterDate === undefined || afterId === undefined
         ? Prisma.empty
-        : Prisma.sql`AND (${occurrence} > STR_TO_DATE(${afterDate}, '%Y-%m-%d') OR (${occurrence} = STR_TO_DATE(${afterDate}, '%Y-%m-%d') AND id > ${afterId}))`;
+        : Prisma.sql`AND (d.occurrenceDate > STR_TO_DATE(${afterDate}, '%Y-%m-%d') OR (d.occurrenceDate = STR_TO_DATE(${afterDate}, '%Y-%m-%d') AND e.id > ${afterId}))`;
     const rows = await this.prisma.$queryRaw<OccurrenceRow[]>(Prisma.sql`
-      SELECT id, titre AS title, montant AS amount, devise AS currency, kind,
-             startDate, recurrence, endDate, userId, ${occurrence} AS occurrenceDate
-      FROM EvenementMensuel
-      WHERE userId = ${ownerId}
-        AND (
-          (recurrence = 'AUCUNE' AND DATE_FORMAT(startDate, '%Y-%m') = ${month})
-          OR
-          (recurrence = 'MENSUELLE'
-            AND startDate <= LAST_DAY(STR_TO_DATE(${monthStart}, '%Y-%m-%d'))
-            AND (endDate IS NULL OR ${occurrence} <= endDate))
-        )
+      ${occurrenceDatesSql(
+        monthStart,
+        Prisma.sql`LAST_DAY(STR_TO_DATE(${monthStart}, '%Y-%m-%d'))`
+      )}
+      SELECT e.id, e.titre AS title, e.montant AS amount, e.devise AS currency, e.kind,
+             e.startDate, e.recurrence, e.endDate, e.userId, d.occurrenceDate
+      FROM EvenementMensuel e JOIN occurrence_dates d ON ${matchesOccurrenceSql}
+      WHERE e.userId = ${ownerId}
         ${cursor}
-      ORDER BY occurrenceDate ASC, id ASC
+      ORDER BY d.occurrenceDate ASC, e.id ASC
       LIMIT ${page.limit + 1}
     `);
     return createCursorPage(

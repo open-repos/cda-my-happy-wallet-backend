@@ -113,12 +113,16 @@ class FakeResolutions implements OccurrenceResolutionRepository {
   }
 }
 
-const build = (today = "2026-10-11", closedMonth: string | null = null) => {
+const build = (
+  today = "2026-10-11",
+  closedMonth: string | null = null,
+  event = rent
+) => {
   const resolutions = new FakeResolutions();
   const useCases = new EventOccurrenceUseCases(
     {
       findById: async (id, ownerId) =>
-        id === rent.id && ownerId === OWNER ? rent : null,
+        id === event.id && ownerId === OWNER ? event : null,
     },
     {
       findById: async (id, ownerId) =>
@@ -144,6 +148,47 @@ const rejectsWith = (promise: Promise<unknown>, code: string) =>
   );
 
 async function run() {
+  for (const [recurrence, startDate, firstDate, secondDate] of [
+    ["HEBDOMADAIRE", "2026-10-02", "2026-10-09", "2026-10-16"],
+    ["TRIMESTRIELLE", "2026-01-31", "2026-10-31", "2027-01-31"],
+    ["ANNUELLE", "2024-02-29", "2027-02-28", "2028-02-29"],
+  ] as const) {
+    const event = MonthlyEvent.create({
+      id: 9,
+      ownerId: OWNER,
+      title: "Récurrent",
+      amount: "10.00",
+      currency: "EUR",
+      kind: "DEPENSE",
+      startDate,
+      recurrence,
+    });
+    const { useCases, resolutions } = build("2026-10-01", null, event);
+    const first = await useCases.realize(OWNER, 9, firstDate, {
+      categoryId: 3,
+      operationDate: "2026-10-10",
+    });
+    assert.strictEqual(first.resolution.occurrenceDate, firstDate);
+    assert.strictEqual(
+      (
+        await useCases.realize(OWNER, 9, firstDate, {
+          categoryId: 3,
+          operationDate: "2026-10-10",
+        })
+      ).replayed,
+      true
+    );
+    assert.strictEqual(
+      (await useCases.cancel(OWNER, 9, secondDate)).resolution.status,
+      "CANCELED"
+    );
+    assert.strictEqual(resolutions.operations, 1);
+    await rejectsWith(useCases.cancel(8, 9, secondDate), "EVENT_NOT_FOUND");
+    await rejectsWith(
+      useCases.cancel(OWNER, 9, "2026-10-10"),
+      "OCCURRENCE_NOT_FOUND"
+    );
+  }
   const { resolutions, useCases } = build();
 
   // La file couvre le mois courant et les 11 précédents, passage d'année inclus.
