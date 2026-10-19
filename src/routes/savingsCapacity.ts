@@ -1,4 +1,5 @@
 import { RequestHandler, Router } from "express";
+import { budgetScenarioParameter } from "../utils/budgetScenarioSwagger";
 import { prisma } from "../database";
 import { tokenJwtTAuth } from "../middlewares/authenticateToken.middleware";
 import { BudgetForecastService } from "../modules/budgetPeriods/application/BudgetForecastService";
@@ -90,9 +91,10 @@ export const swSavingsCapacityRouter = {
       tags: ["Objectifs"],
       summary: "Read personal savings capacity and monthly goal effort",
       description:
-        "Read-only independent cumulative scenarios before goals, after planned and after required contributions. Required amounts are unknown for missing/past deadlines. See docs/savings-capacity.md for sustainability rules and frozen-snapshot assumptions.",
+        "Independent cumulative scenarios before goals, after planned and after required contributions. Expired potential events are deleted before reading. Only scenario=simulation includes remaining potentials. Required amounts are unknown for missing/past deadlines. See docs/savings-capacity.md and docs/budget-simulation.md.",
       security: [{ accessToken_auth: [] }],
       parameters: [
+        budgetScenarioParameter,
         {
           name: "from",
           in: "query",

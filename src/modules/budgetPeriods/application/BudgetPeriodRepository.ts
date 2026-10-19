@@ -74,7 +74,8 @@ export interface BudgetPeriodRepository {
   plannedMovements(
     ownerId: number,
     month: string,
-    currency: string
+    currency: string,
+    scenario?: import("../../monthlyEvents/domain").BudgetScenario
   ): Promise<readonly PlannedMovement[]>;
   /** Périodes de la devise à partir d'un mois inclus, de la plus ancienne à la plus récente. */
   listFrom(

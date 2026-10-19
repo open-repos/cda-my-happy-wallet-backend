@@ -32,7 +32,8 @@ export class BudgetPeriodController {
       this.ownerId(req),
       query.month,
       query.currency,
-      this.today()
+      this.today(),
+      query.scenario
     );
     return res.status(200).json({
       data: this.summaryDto(

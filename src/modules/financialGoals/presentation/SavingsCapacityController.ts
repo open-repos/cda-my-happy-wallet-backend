@@ -24,7 +24,8 @@ export class SavingsCapacityController {
       query.from,
       query.months,
       query.currency,
-      this.today()
+      this.today(),
+      query.scenario
     );
     return res.status(200).json({
       data: {

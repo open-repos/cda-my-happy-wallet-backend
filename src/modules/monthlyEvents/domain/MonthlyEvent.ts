@@ -1,4 +1,6 @@
 export type MonthlyEventKind = "DEPENSE" | "ENTREE";
+export type MonthlyEventStatus = "CONFIRME" | "POTENTIEL";
+export type BudgetScenario = "standard" | "simulation";
 export const MONTHLY_EVENT_RECURRENCES = [
   "AUCUNE",
   "MENSUELLE",
@@ -18,6 +20,7 @@ export type MonthlyEventProps = Readonly<{
   startDate: string;
   recurrence: MonthlyEventRecurrence;
   endDate?: string | null;
+  status?: MonthlyEventStatus;
 }>;
 
 export type MonthlyEventErrorCode =
@@ -27,6 +30,8 @@ export type MonthlyEventErrorCode =
   | "INVALID_AMOUNT"
   | "INVALID_CURRENCY"
   | "INVALID_KIND"
+  | "INVALID_STATUS"
+  | "INVALID_REFERENCE_DATE"
   | "INVALID_START_DATE"
   | "INVALID_RECURRENCE"
   | "INVALID_END_DATE";
@@ -40,7 +45,7 @@ export class MonthlyEventError extends Error {
 
 const parseDate = (
   value: string,
-  code: "INVALID_START_DATE" | "INVALID_END_DATE"
+  code: "INVALID_START_DATE" | "INVALID_END_DATE" | "INVALID_REFERENCE_DATE"
 ): readonly [number, number, number] => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (match == null) throw new MonthlyEventError(code);
@@ -79,6 +84,7 @@ export class MonthlyEvent {
   public readonly startDate: string;
   public readonly recurrence: MonthlyEventRecurrence;
   public readonly endDate: string | null;
+  public readonly status: MonthlyEventStatus;
 
   private constructor(props: MonthlyEventProps, minorUnits: number) {
     this.id = props.id;
@@ -90,11 +96,19 @@ export class MonthlyEvent {
     this.startDate = props.startDate;
     this.recurrence = props.recurrence;
     this.endDate = props.endDate ?? null;
+    this.status = props.status ?? "CONFIRME";
   }
 
   public static create(props: MonthlyEventProps): MonthlyEvent {
     if (props.id !== undefined) this.assertId(props.id, "INVALID_ID");
     this.assertId(props.ownerId, "INVALID_OWNER_ID");
+    if (
+      props.status !== undefined &&
+      props.status !== "CONFIRME" &&
+      props.status !== "POTENTIEL"
+    ) {
+      throw new MonthlyEventError("INVALID_STATUS");
+    }
     if (
       typeof props.title !== "string" ||
       props.title.trim().length < 2 ||
@@ -128,6 +142,14 @@ export class MonthlyEvent {
   /** Compatibility helper for callers expecting a single monthly occurrence. */
   public occurrenceIn(month: string): string | null {
     return this.occurrencesIn(month)[0] ?? null;
+  }
+
+  public isExpired(today: string): boolean {
+    parseDate(today, "INVALID_REFERENCE_DATE");
+    return (
+      this.status === "POTENTIEL" &&
+      this.startDate.slice(0, 7) < today.slice(0, 7)
+    );
   }
 
   public occurrencesIn(month: string): readonly string[] {

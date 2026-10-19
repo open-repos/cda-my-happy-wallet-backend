@@ -6,6 +6,7 @@ import { PrismaBudgetPeriodRepository } from "../modules/budgetPeriods/infrastru
 import { BudgetForecastController } from "../modules/budgetPeriods/presentation/BudgetForecastController";
 import { toBudgetPeriodHttpError } from "../modules/budgetPeriods/presentation/budgetPeriodHttpError";
 import { CivilDateClock, parisCivilDateClock } from "../utils/civilDateClock";
+import { budgetScenarioParameter } from "../utils/budgetScenarioSwagger";
 
 export const createBudgetForecastRouter = (
   service: BudgetForecastService,
@@ -52,12 +53,12 @@ export const swBudgetForecastRouter = {
   "/budget-forecast": {
     get: {
       tags: ["ResteAVivre"],
-      summary:
-        "Read-only multi-month budget forecast for the authenticated owner",
+      summary: "Multi-month budget forecast for the authenticated owner",
       description:
-        "No period or occurrence is written. Starts from the current real balance; future months repeat current fixed totals and active goal savings. Intermediate months are projected before a future from window. See docs/budget-forecast.md for formulas and rounding.",
+        "No period is opened/closed and no occurrence is resolved. Expired potential events are deleted before reading. Only scenario=simulation includes remaining potentials. See docs/budget-forecast.md and docs/budget-simulation.md.",
       security: [{ accessToken_auth: [] }],
       parameters: [
+        budgetScenarioParameter,
         {
           name: "from",
           in: "query",

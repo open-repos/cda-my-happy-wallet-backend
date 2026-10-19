@@ -1,5 +1,9 @@
 # Prévision budgétaire sur plusieurs mois
 
+Depuis M12-04, `scenario=simulation` inclut explicitement les potentiels ; la
+lecture normale les exclut. Le nettoyage des potentiels expirés est la seule
+écriture de maintenance autorisée sur cette route. Voir [Simulation](budget-simulation.md).
+
 `GET /v1/budget-forecast?from=2026-10&months=12&currency=EUR`
 
 Cette lecture privée utilise exclusivement le propriétaire authentifié. `from`
@@ -10,9 +14,10 @@ courant ou l'un des 23 suivants : cette borne limite aussi le calcul des mois
 intermédiaires lorsque la fenêtre commence dans le futur. La réponse contient
 exactement `months` mois, au plus 47 mois sont calculés, mois intermédiaires inclus.
 
-La date de référence est injectée en `Europe/Paris`. Cette route ne modifie
-aucune donnée : elle n'ouvre ni ne clôture une période, ne crée aucune résolution
-et ne réserve aucun argent. La synthèse historique existante garde son contrat.
+La date de référence est injectée en `Europe/Paris`. Cette route n'ouvre ni ne
+clôture une période, ne crée aucune résolution et ne réserve aucun argent. Sa
+seule écriture est le nettoyage des potentiels expirés décrit ci-dessus. La
+synthèse historique existante garde son contrat.
 
 ## Hypothèses et calculs
 
@@ -83,4 +88,5 @@ les mois sautés, les bornes, les arrondis et le contrat HTTP avec un dépôt de
 lecture injecté. Cette suite est aussi appelée par `test:budget-forecast-domain`,
 déjà exécutée en CI. `test:budget-projection-api` vérifie avec MySQL les montants,
 l'isolation par propriétaire/devise et l'absence d'écriture avant la première
-synthèse matérialisée. Aucun changement de schéma ni migration n'est nécessaire.
+synthèse matérialisée lorsqu'aucun potentiel expiré n'existe. La Simulation ajoute
+une migration additive de statut, décrite dans [sa documentation](budget-simulation.md).

@@ -11,6 +11,8 @@ import {
 import {
   MonthlyEvent,
   MonthlyEventOccurrence,
+  MonthlyEventStatus,
+  BudgetScenario,
 } from "../../../src/modules/monthlyEvents/domain";
 import { MonthlyEventController } from "../../../src/modules/monthlyEvents/presentation";
 import { CursorPage, PaginationRequest } from "../../../src/modules/pagination";
@@ -19,26 +21,34 @@ import { ErrorCode, ErrorException } from "../../../src/utils/errors";
 
 const express = require("express") as typeof import("express");
 
-class FakeRepository implements MonthlyEventRepository {
+export class FakeRepository implements MonthlyEventRepository {
   public rows: MonthlyEvent[] = [];
   private nextId = 1;
 
   public async listByOwner(
     ownerId: number,
-    page: PaginationRequest
+    page: PaginationRequest,
+    status: MonthlyEventStatus = "CONFIRME"
   ): Promise<CursorPage<MonthlyEvent>> {
     return this.page(
-      this.rows.filter((row) => row.ownerId === ownerId),
+      this.rows.filter(
+        (row) => row.ownerId === ownerId && row.status === status
+      ),
       page
     );
   }
   public async listOccurrences(
     ownerId: number,
     month: string,
-    page: PaginationRequest
+    page: PaginationRequest,
+    scenario: BudgetScenario = "standard"
   ): Promise<CursorPage<MonthlyEventOccurrence>> {
     const rows = this.rows
-      .filter((row) => row.ownerId === ownerId)
+      .filter(
+        (row) =>
+          row.ownerId === ownerId &&
+          (scenario === "simulation" || row.status === "CONFIRME")
+      )
       .flatMap((event) =>
         event
           .occurrencesIn(month)
@@ -77,13 +87,31 @@ class FakeRepository implements MonthlyEventRepository {
     );
     return before !== this.rows.length;
   }
+  public async confirm(
+    id: number,
+    ownerId: number
+  ): Promise<MonthlyEvent | null> {
+    const event = await this.findById(id, ownerId);
+    if (event === null) return null;
+    const confirmed = this.copy(event, id, "CONFIRME");
+    return this.update(confirmed);
+  }
+  public async clearPotential(ownerId: number): Promise<void> {
+    this.rows = this.rows.filter(
+      (row) => row.ownerId !== ownerId || row.status === "CONFIRME"
+    );
+  }
   private page<T>(rows: T[], page: PaginationRequest): CursorPage<T> {
     return {
       data: rows.slice(0, page.limit),
       meta: { limit: page.limit, hasNext: false, nextCursor: null },
     };
   }
-  private copy(event: MonthlyEvent, id: number): MonthlyEvent {
+  private copy(
+    event: MonthlyEvent,
+    id: number,
+    status = event.status
+  ): MonthlyEvent {
     return MonthlyEvent.create({
       id,
       ownerId: event.ownerId,
@@ -91,6 +119,7 @@ class FakeRepository implements MonthlyEventRepository {
       amount: (event.minorUnits / 100).toFixed(2),
       currency: event.currency,
       kind: event.kind,
+      status,
       startDate: event.startDate,
       recurrence: event.recurrence,
       endDate: event.endDate,
@@ -190,6 +219,7 @@ async function run() {
     amount: "10.00",
     currency: "EUR",
     kind: "ENTREE",
+    status: "CONFIRME",
     startDate: "2026-01-31",
     recurrence: "MENSUELLE",
     endDate: "2026-03-31",
@@ -391,6 +421,7 @@ async function run() {
   });
 }
 
-run().catch((error) => {
-  throw error;
-});
+if (require.main === module)
+  run().catch((error) => {
+    throw error;
+  });

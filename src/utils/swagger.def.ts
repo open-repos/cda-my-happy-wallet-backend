@@ -181,6 +181,7 @@ const swagger = {
         required: ["title", "amount", "currency", "kind", "startDate", "recurrence"],
         additionalProperties: false,
         properties: {
+          status: { type: "string", enum: ["CONFIRME", "POTENTIEL"], description: "Defaults to CONFIRME on create; preserved on PUT when omitted. Use the confirmation endpoint for a transition." },
           title: { type: "string", minLength: 2, maxLength: 50 },
           amount: { oneOf: [{ type: "number", minimum: 0.01, maximum: 99999999.99 }, { type: "string", pattern: "^(0|[1-9]\\d{0,7})(?:\\.\\d{1,2})?$" }] },
           currency: { type: "string", minLength: 3, maxLength: 3 },

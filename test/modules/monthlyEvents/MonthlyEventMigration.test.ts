@@ -23,6 +23,13 @@ const cleanup = async () => prisma.utilisateur.deleteMany({ where: { email } });
 
 const prepare = async () => {
   await cleanup();
+  await prisma.$executeRawUnsafe(
+    "DROP INDEX `EvenementMensuel_userId_status_startDate_id_idx` ON `EvenementMensuel`"
+  );
+  await prisma.$executeRawUnsafe(
+    "ALTER TABLE `EvenementMensuel` DROP COLUMN `status`"
+  );
+  await prisma.$executeRaw`DELETE FROM _prisma_migrations WHERE migration_name = '20261019180000_add_event_simulation'`;
   const user = await prisma.utilisateur.create({
     data: {
       firstname: "Legacy",
@@ -67,6 +74,7 @@ const verify = async () => {
   });
   assert.strictEqual(event.title, "Événement historique");
   assert.strictEqual(event.kind, "DEPENSE");
+  assert.strictEqual(event.status, "CONFIRME");
   assert.strictEqual(event.recurrence, "AUCUNE");
   assert.strictEqual(event.startDate.toISOString().slice(0, 10), "2026-09-10");
   assert.strictEqual(event.endDate, null);

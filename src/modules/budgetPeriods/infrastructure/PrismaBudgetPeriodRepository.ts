@@ -21,6 +21,12 @@ import {
 } from "../../pagination";
 import { BudgetMovement, PlannedMovement } from "../domain";
 import { monthBounds } from "../domain/BudgetPeriod";
+import { BudgetScenario } from "../../monthlyEvents/domain";
+import {
+  CivilDateClock,
+  parisCivilDateClock,
+} from "../../../utils/civilDateClock";
+import { expirePotentialEvents } from "../../monthlyEvents/infrastructure/potentialEventMaintenance";
 import {
   matchesOccurrenceSql,
   occurrenceDatesSql,
@@ -45,7 +51,8 @@ const decimalOf = (minorUnits: number): string => (minorUnits / 100).toFixed(2);
 export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
   public constructor(
     private readonly prisma: PrismaClient,
-    private readonly cursors: PaginationCursorCodec = paginationCursorCodec
+    private readonly cursors: PaginationCursorCodec = paginationCursorCodec,
+    private readonly today: CivilDateClock = parisCivilDateClock
   ) {}
 
   public async find(
@@ -190,8 +197,10 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
   public async plannedMovements(
     ownerId: number,
     month: string,
-    currency: string
+    currency: string,
+    scenario: BudgetScenario = "standard"
   ): Promise<readonly PlannedMovement[]> {
+    await expirePotentialEvents(this.prisma, ownerId, this.today());
     const bounds = monthBounds(month);
     const rows = await this.prisma.$queryRaw<
       {
@@ -210,6 +219,11 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
        AND r.sourceEventId = e.id
        AND r.occurrenceDate = d.occurrenceDate
       WHERE e.userId = ${ownerId} AND e.devise = ${currency} AND r.id IS NULL
+        ${
+          scenario === "simulation"
+            ? Prisma.empty
+            : Prisma.sql`AND e.status = 'CONFIRME'`
+        }
       GROUP BY d.occurrenceDate, e.kind
       ORDER BY d.occurrenceDate ASC, e.kind ASC
     `);

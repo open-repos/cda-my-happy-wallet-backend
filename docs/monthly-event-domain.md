@@ -1,5 +1,9 @@
 # Domaine des événements mensuels
 
+M12-04 ajoute le statut `CONFIRME` (défaut) ou `POTENTIEL`, la confirmation
+explicite et l'expiration par mois civil Europe/Paris. Voir
+[Simulation](budget-simulation.md) pour les règles et le contrat complets.
+
 ## Statut
 
 - Work Item : `M04-01`

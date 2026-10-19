@@ -7,6 +7,11 @@ import {
 } from "@prisma/client";
 import { OneOffOperation } from "../../operations/domain";
 import {
+  CivilDateClock,
+  parisCivilDateClock,
+} from "../../../utils/civilDateClock";
+import { expirePotentialEvents } from "../../monthlyEvents/infrastructure/potentialEventMaintenance";
+import {
   matchesOccurrenceSql,
   occurrenceDatesSql,
 } from "../../monthlyEvents/infrastructure/eventOccurrenceSql";
@@ -75,7 +80,8 @@ export class PrismaOccurrenceResolutionRepository
 {
   public constructor(
     private readonly prisma: PrismaClient,
-    private readonly cursors: PaginationCursorCodec = paginationCursorCodec
+    private readonly cursors: PaginationCursorCodec = paginationCursorCodec,
+    private readonly today: CivilDateClock = parisCivilDateClock
   ) {}
 
   public async listPending(
@@ -84,6 +90,7 @@ export class PrismaOccurrenceResolutionRepository
     through: string,
     page: PaginationRequest
   ): Promise<CursorPage<PendingOccurrence>> {
+    await expirePotentialEvents(this.prisma, ownerId, this.today());
     const context = {
       resource: "pending-event-occurrences",
       scope: `owner:${ownerId}:${from}:${through}`,
@@ -125,6 +132,7 @@ export class PrismaOccurrenceResolutionRepository
        AND r.sourceEventId = e.id
        AND r.occurrenceDate = d.occurrenceDate
       WHERE e.userId = ${ownerId} AND r.id IS NULL
+        AND e.status = 'CONFIRME'
         ${cursor}
       ORDER BY d.occurrenceDate ASC, e.id ASC
       LIMIT ${page.limit + 1}
@@ -150,6 +158,7 @@ export class PrismaOccurrenceResolutionRepository
     sourceEventId: number,
     occurrenceDate: string
   ): Promise<OccurrenceResolution | null> {
+    await expirePotentialEvents(this.prisma, ownerId, this.today());
     const row = await this.prisma.eventOccurrenceResolution.findUnique({
       where: {
         userId_sourceEventId_occurrenceDate: {
