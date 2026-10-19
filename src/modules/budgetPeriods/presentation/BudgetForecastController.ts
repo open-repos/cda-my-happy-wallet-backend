@@ -3,10 +3,9 @@ import {
   CivilDateClock,
   parisCivilDateClock,
 } from "../../../utils/civilDateClock";
-import { ErrorCode, ErrorException } from "../../../utils/errors";
 import { getAuthenticatedUserId } from "../../auth/authenticatedRequest";
 import { BudgetForecastService } from "../application/BudgetForecastService";
-import { parseSummaryRequest } from "./budgetPeriodValidators";
+import { parseForecastRequest } from "./budgetPeriodValidators";
 
 const amountOf = (value: number): string => (value / 100).toFixed(2);
 
@@ -17,23 +16,11 @@ export class BudgetForecastController {
   ) {}
 
   public async forecast(req: Request, res: Response): Promise<Response> {
-    const { from, months, currency, ...unknown } = req.query;
-    if (
-      Object.keys(unknown).length > 0 ||
-      typeof from !== "string" ||
-      (months !== undefined &&
-        (typeof months !== "string" || !/^(?:[1-9]|1\d|2[0-4])$/.test(months)))
-    ) {
-      throw new ErrorException(
-        ErrorCode.ValidationFailed,
-        "Forecast parameters are invalid"
-      );
-    }
-    const query = parseSummaryRequest(from, { currency });
+    const query = parseForecastRequest(req.query);
     const result = await this.service.forecast(
       Number(getAuthenticatedUserId(req)),
-      query.month,
-      months === undefined ? 12 : Number(months),
+      query.from,
+      query.months,
       query.currency,
       this.today()
     );

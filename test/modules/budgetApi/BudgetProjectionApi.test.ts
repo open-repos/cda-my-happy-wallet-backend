@@ -24,6 +24,9 @@ import { OneOffOperationController } from "../../../src/modules/operations/prese
 import { createBudgetPeriodRouter } from "../../../src/routes/budgetPeriods";
 import { BudgetForecastService } from "../../../src/modules/budgetPeriods/application/BudgetForecastService";
 import { createBudgetForecastRouter } from "../../../src/routes/budgetForecast";
+import { SavingsCapacityService } from "../../../src/modules/financialGoals/application/SavingsCapacityService";
+import { PrismaFinancialGoalRepository } from "../../../src/modules/financialGoals/infrastructure";
+import { createSavingsCapacityRouter } from "../../../src/routes/savingsCapacity";
 import { createEventOccurrenceRouter } from "../../../src/routes/eventOccurrences";
 import { createOneOffOperationRouter } from "../../../src/routes/oneOffOperations";
 import { ErrorCode, ErrorException } from "../../../src/utils/errors";
@@ -79,6 +82,16 @@ const buildApp = (ids: { owner: number; other: number }) => {
   const categories = new PrismaOperationCategoryRepository(prisma);
   const app = express();
   app.use(express.json());
+  app.use(
+    createSavingsCapacityRouter(
+      new SavingsCapacityService(
+        new BudgetForecastService(periods),
+        new PrismaFinancialGoalRepository(prisma)
+      ),
+      authenticate,
+      clock
+    )
+  );
   app.use(
     createBudgetForecastRouter(
       new BudgetForecastService(periods),
@@ -178,6 +191,7 @@ const run = async () => {
       savedAmount: "300.00",
       monthlyContribution: "150.00",
       currency: "EUR",
+      targetDate: new Date("2027-03-15T00:00:00.000Z"),
       userId: owner.id,
     },
   });
@@ -203,6 +217,73 @@ const run = async () => {
       ])
     );
   const before = await snapshot();
+  await prisma.objectifFinancier.createMany({
+    data: [
+      {
+        title: "Autre propriétaire",
+        targetAmount: "999.00",
+        savedAmount: "0.00",
+        monthlyContribution: "30.00",
+        currency: "EUR",
+        userId: other.id,
+      },
+      {
+        title: "Autre devise",
+        targetAmount: "999.00",
+        savedAmount: "0.00",
+        monthlyContribution: "40.00",
+        currency: "USD",
+        userId: owner.id,
+      },
+    ],
+  });
+  const savings = await asOwner(
+    supertest(app).get("/savings-capacity?from=2026-10&months=2&currency=EUR")
+  );
+  assert.strictEqual(savings.status, 200);
+  assert.strictEqual(
+    savings.body.data.totalPlannedMonthlyContribution,
+    "150.00"
+  );
+  assert.strictEqual(
+    savings.body.data.totalRequiredMonthlyContribution,
+    "180.00"
+  );
+  assert.deepStrictEqual(
+    savings.body.data.goals.map((goal: { title: string }) => goal.title),
+    ["Vacances"]
+  );
+  assert.deepStrictEqual(savings.body.data.months, [
+    {
+      month: "2026-10",
+      beforeGoals: "900.00",
+      afterPlanned: "750.00",
+      afterRequired: "720.00",
+      sustainability: "TENABLE",
+    },
+    {
+      month: "2026-11",
+      beforeGoals: "1800.00",
+      afterPlanned: "1500.00",
+      afterRequired: "1440.00",
+      sustainability: "TENABLE",
+    },
+  ]);
+  const otherSavings = await asOther(
+    supertest(app).get("/savings-capacity?from=2026-10&months=1&currency=EUR")
+  );
+  assert.deepStrictEqual(
+    otherSavings.body.data.goals.map((goal: { title: string }) => goal.title),
+    ["Autre propriétaire"]
+  );
+  const usdSavings = await asOwner(
+    supertest(app).get("/savings-capacity?from=2026-10&months=1&currency=USD")
+  );
+  assert.deepStrictEqual(
+    usdSavings.body.data.goals.map((goal: { title: string }) => goal.title),
+    ["Autre devise"]
+  );
+  assert.strictEqual(await snapshot(), before);
   const multi = await asOwner(
     supertest(app).get("/budget-forecast?from=2026-10&months=2&currency=EUR")
   );
