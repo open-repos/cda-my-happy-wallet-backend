@@ -72,6 +72,18 @@ export class PrismaFinancialGoalRepository implements FinancialGoalRepository {
     return row == null ? null : this.toDomain(row);
   }
 
+  /** A complete owner/currency snapshot is needed for totals, not a list page. */
+  public async listForSavingsCapacity(
+    ownerId: number,
+    currency: string
+  ): Promise<readonly FinancialGoal[]> {
+    const rows = await this.prisma.objectifFinancier.findMany({
+      where: { userId: ownerId, currency },
+      orderBy: { id: "asc" },
+    });
+    return rows.map((row) => this.toDomain(row));
+  }
+
   public async create(goal: FinancialGoal): Promise<FinancialGoal> {
     return this.toDomain(
       await this.prisma.objectifFinancier.create({

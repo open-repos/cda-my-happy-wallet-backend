@@ -33,3 +33,23 @@ export const parseHistoryRequest = (
     pagination: parsePaginationRequest(pagination),
   };
 };
+
+export const parseForecastRequest = (
+  query: Readonly<Record<string, unknown>>
+): { from: string; months: number; currency: string } => {
+  const { from, months, currency, ...unknown } = query;
+  if (
+    Object.keys(unknown).length > 0 ||
+    typeof from !== "string" ||
+    (months !== undefined &&
+      (typeof months !== "string" || !/^(?:[1-9]|1\d|2[0-4])$/.test(months)))
+  ) {
+    throw invalid("Forecast parameters are invalid");
+  }
+  const summary = parseSummaryRequest(from, { currency });
+  return {
+    from: summary.month,
+    months: months === undefined ? 12 : Number(months),
+    currency: summary.currency,
+  };
+};
