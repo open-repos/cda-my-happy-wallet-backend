@@ -7,8 +7,11 @@ les tests avec MySQL 8, le build TypeScript et la construction de l'image.
 BuildKit rootless publie l'image dans le Container Registry GitLab avec le SHA
 Git complet comme tag. Aucun Docker daemon privilegie n'est expose au job.
 
-Sur un push vers la branche protegee `main`, `deploy_production` devient
-disponible manuellement apres validation de toute la pipeline. Le job SSH ne
+Sur un push vers la branche protegee `main`, ou pour un pipeline lance a la
+main sur `main` (« Run pipeline », source `web`, par exemple pour redeployer
+le meme commit apres un changement de `backend.env`), `deploy_production`
+devient disponible manuellement apres validation de toute la pipeline. Il
+n'est jamais propose pour une merge request, une autre branche ou un tag. Le job SSH ne
 transmet que le SHA valide. Le serveur fixe lui-meme le registre, le fichier
 d'environnement et le fichier Compose autorises.
 
