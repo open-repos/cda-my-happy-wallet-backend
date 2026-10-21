@@ -6,6 +6,7 @@ import {
   Router,
 } from "express";
 import { tokenJwtTAuth } from "../middlewares/authenticateToken.middleware";
+import { budgetScenarioParameter } from "../utils/budgetScenarioSwagger";
 import {
   MonthlyEventController,
   monthlyEventController,
@@ -30,6 +31,16 @@ export const createMonthlyEventRouter = (
   authenticate: RequestHandler = tokenJwtTAuth
 ): Router => {
   const router = Router();
+  router.post(
+    "/events/:id/confirm",
+    authenticate,
+    handle((req, res) => controller.confirm(req, res))
+  );
+  router.delete(
+    "/simulation/events",
+    authenticate,
+    handle((req, res) => controller.clearPotential(req, res))
+  );
   router.get(
     "/event-occurrences",
     authenticate,
@@ -91,12 +102,47 @@ const idParameter = {
 };
 
 export const swMonthlyEventRouter = {
+  "/events/{id}/confirm": {
+    post: {
+      tags: ["Evenements"],
+      summary:
+        "Confirm a potential event without changing its amount or dates (idempotent)",
+      security: [{ accessToken_auth: [] }],
+      parameters: [idParameter],
+      responses: {
+        "200": { description: "Confirmed event DTO, including status" },
+        ...securedResponses,
+      },
+    },
+  },
+  "/simulation/events": {
+    delete: {
+      tags: ["Evenements"],
+      summary: "Delete all personal potential events and their resolutions",
+      security: [{ accessToken_auth: [] }],
+      responses: {
+        "204": { description: "Simulation cleared (idempotent)" },
+        ...securedResponses,
+      },
+    },
+  },
   "/events": {
     get: {
       tags: ["Evenements"],
       summary: "List personal monthly-event rules",
       security: [{ accessToken_auth: [] }],
-      parameters: paginationParameters,
+      parameters: [
+        {
+          name: "status",
+          in: "query",
+          schema: {
+            type: "string",
+            enum: ["CONFIRME", "POTENTIEL"],
+            default: "CONFIRME",
+          },
+        },
+        ...paginationParameters,
+      ],
       responses: {
         "200": paginatedCollectionResponse("Paginated event rules"),
         ...securedResponses,
@@ -147,6 +193,7 @@ export const swMonthlyEventRouter = {
       summary: "List calculated event occurrences for a calendar month",
       security: [{ accessToken_auth: [] }],
       parameters: [
+        budgetScenarioParameter,
         {
           name: "month",
           in: "query",

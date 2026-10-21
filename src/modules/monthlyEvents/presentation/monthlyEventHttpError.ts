@@ -17,7 +17,8 @@ export const toMonthlyEventHttpError = (error: unknown): Error => {
     }
     return new ErrorException(
       ErrorCode.ValidationFailed,
-      "Month parameter is invalid"
+      "Monthly event request is invalid",
+      { code: error.code }
     );
   }
   return error instanceof Error

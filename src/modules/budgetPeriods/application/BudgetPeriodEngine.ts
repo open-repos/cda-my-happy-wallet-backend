@@ -66,7 +66,8 @@ export class BudgetPeriodEngine {
     ownerId: number,
     month: string,
     currency: string,
-    today: string
+    today: string,
+    scenario: import("../../monthlyEvents/domain").BudgetScenario = "standard"
   ): Promise<BudgetPeriodSummary> {
     if (!Number.isSafeInteger(ownerId) || ownerId <= 0) {
       throw new BudgetPeriodEngineError("INVALID_OWNER_ID");
@@ -110,7 +111,12 @@ export class BudgetPeriodEngine {
     }
 
     const [planned, goalSavingsMinorUnits] = await Promise.all([
-      this.periods.plannedMovements(ownerId, month, normalizedCurrency),
+      this.periods.plannedMovements(
+        ownerId,
+        month,
+        normalizedCurrency,
+        scenario
+      ),
       this.periods.goalSavings(ownerId, normalizedCurrency),
     ]);
     return {

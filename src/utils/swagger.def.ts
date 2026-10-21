@@ -12,6 +12,8 @@ import { swOneOffOperationRouter } from '../routes/oneOffOperations';
 import { swMonthlyEventRouter } from '../routes/monthlyEvents';
 import { swFinancialGoalRouter } from '../routes/financialGoals';
 import { swBudgetPeriodRouter } from '../routes/budgetPeriods';
+import { swBudgetForecastRouter } from '../routes/budgetForecast';
+import { swSavingsCapacityRouter } from '../routes/savingsCapacity';
 import { swAnalyticsRouter } from '../routes/analytics';
 import { swEventOccurrenceRouter } from '../routes/eventOccurrences';
 
@@ -78,6 +80,8 @@ const swagger = {
     ...swMonthlyEventRouter,
     ...swFinancialGoalRouter,
     ...swBudgetPeriodRouter,
+    ...swBudgetForecastRouter,
+    ...swSavingsCapacityRouter,
     ...swAnalyticsRouter,
     ...swEventOccurrenceRouter
   },
@@ -177,12 +181,13 @@ const swagger = {
         required: ["title", "amount", "currency", "kind", "startDate", "recurrence"],
         additionalProperties: false,
         properties: {
+          status: { type: "string", enum: ["CONFIRME", "POTENTIEL"], description: "Defaults to CONFIRME on create; preserved on PUT when omitted. Use the confirmation endpoint for a transition." },
           title: { type: "string", minLength: 2, maxLength: 50 },
           amount: { oneOf: [{ type: "number", minimum: 0.01, maximum: 99999999.99 }, { type: "string", pattern: "^(0|[1-9]\\d{0,7})(?:\\.\\d{1,2})?$" }] },
           currency: { type: "string", minLength: 3, maxLength: 3 },
           kind: { type: "string", enum: ["DEPENSE", "ENTREE"] },
           startDate: { type: "string", format: "date" },
-          recurrence: { type: "string", enum: ["AUCUNE", "MENSUELLE"] },
+          recurrence: { type: "string", enum: ["AUCUNE", "MENSUELLE", "HEBDOMADAIRE", "TRIMESTRIELLE", "ANNUELLE"] },
           endDate: { type: "string", format: "date", nullable: true },
         },
       },

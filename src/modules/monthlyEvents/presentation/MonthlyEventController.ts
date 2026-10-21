@@ -1,17 +1,23 @@
 import { Request, Response } from "express";
 import { getAuthenticatedUserId } from "../../auth/authenticatedRequest";
-import { parsePaginationRequest } from "../../pagination";
+import { ErrorCode, ErrorException } from "../../../utils/errors";
 import { MonthlyEventUseCases } from "../application";
 import { MonthlyEvent } from "../domain";
-import { parseEventId, parseOccurrenceQuery } from "./monthlyEventValidators";
+import {
+  parseEventId,
+  parseEventListQuery,
+  parseOccurrenceQuery,
+} from "./monthlyEventValidators";
 
 export class MonthlyEventController {
   public constructor(private readonly events: MonthlyEventUseCases) {}
 
   public async list(req: Request, res: Response): Promise<Response> {
+    const query = parseEventListQuery(req.query);
     const page = await this.events.list(
       this.ownerId(req),
-      parsePaginationRequest(req.query)
+      query.pagination,
+      query.status
     );
     return res
       .status(200)
@@ -23,7 +29,8 @@ export class MonthlyEventController {
     const page = await this.events.occurrences(
       this.ownerId(req),
       query.month,
-      query.pagination
+      query.pagination,
+      query.scenario
     );
     return res.status(200).json({
       data: page.data.map((item) => ({
@@ -62,6 +69,40 @@ export class MonthlyEventController {
     return res.status(204).send();
   }
 
+  public async confirm(req: Request, res: Response): Promise<Response> {
+    if (
+      Object.keys(req.body ?? {}).length > 0 ||
+      Object.keys(req.query).length > 0
+    )
+      throw new ErrorException(
+        ErrorCode.ValidationFailed,
+        "Confirmation does not accept parameters"
+      );
+    return res
+      .status(200)
+      .json({
+        data: this.dto(
+          await this.events.confirm(
+            this.ownerId(req),
+            parseEventId(req.params.id)
+          )
+        ),
+      });
+  }
+
+  public async clearPotential(req: Request, res: Response): Promise<Response> {
+    if (
+      Object.keys(req.body ?? {}).length > 0 ||
+      Object.keys(req.query).length > 0
+    )
+      throw new ErrorException(
+        ErrorCode.ValidationFailed,
+        "Clearing simulation does not accept parameters"
+      );
+    await this.events.clearPotential(this.ownerId(req));
+    return res.status(204).send();
+  }
+
   private ownerId(req: Request): number {
     return Number(getAuthenticatedUserId(req));
   }
@@ -72,6 +113,7 @@ export class MonthlyEventController {
     amount: (event.minorUnits / 100).toFixed(2),
     currency: event.currency,
     kind: event.kind,
+    status: event.status,
     startDate: event.startDate,
     recurrence: event.recurrence,
     endDate: event.endDate,

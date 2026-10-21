@@ -2,8 +2,15 @@ import { NextFunction, Request, Response } from "express";
 import Joi from "joi";
 import { PaginationRequest, parsePaginationRequest } from "../../pagination";
 import { ErrorCode, ErrorException } from "../../../utils/errors";
+import {
+  BudgetScenario,
+  MonthlyEventStatus,
+  MONTHLY_EVENT_RECURRENCES,
+} from "../domain";
+import { parseScenario } from "../../budgetPeriods/presentation/budgetPeriodValidators";
 
 const bodySchema = Joi.object({
+  status: Joi.string().valid("CONFIRME", "POTENTIEL").optional(),
   title: Joi.string().trim().min(2).max(50).required(),
   amount: Joi.alternatives()
     .try(
@@ -16,7 +23,9 @@ const bodySchema = Joi.object({
   startDate: Joi.string()
     .pattern(/^\d{4}-\d{2}-\d{2}$/)
     .required(),
-  recurrence: Joi.string().valid("AUCUNE", "MENSUELLE").required(),
+  recurrence: Joi.string()
+    .valid(...MONTHLY_EVENT_RECURRENCES)
+    .required(),
   endDate: Joi.string()
     .pattern(/^\d{4}-\d{2}-\d{2}$/)
     .allow(null)
@@ -60,10 +69,18 @@ export const parseEventId = (value: string): number => {
 
 export const parseOccurrenceQuery = (
   query: Readonly<Record<string, unknown>>
-): { month: string; pagination: PaginationRequest } => {
+): {
+  month: string;
+  pagination: PaginationRequest;
+  scenario: BudgetScenario;
+} => {
   if (
     Object.keys(query).some(
-      (key) => key !== "month" && key !== "limit" && key !== "cursor"
+      (key) =>
+        key !== "month" &&
+        key !== "limit" &&
+        key !== "cursor" &&
+        key !== "scenario"
     )
   ) {
     throw new ErrorException(
@@ -80,9 +97,22 @@ export const parseOccurrenceQuery = (
   }
   return {
     month,
+    scenario: parseScenario(query.scenario),
     pagination: parsePaginationRequest({
       ...(query.limit === undefined ? {} : { limit: query.limit }),
       ...(query.cursor === undefined ? {} : { cursor: query.cursor }),
     }),
   };
+};
+
+export const parseEventListQuery = (
+  query: Readonly<Record<string, unknown>>
+): { status: MonthlyEventStatus; pagination: PaginationRequest } => {
+  const { status = "CONFIRME", ...pagination } = query;
+  if (status !== "CONFIRME" && status !== "POTENTIEL")
+    throw new ErrorException(
+      ErrorCode.ValidationFailed,
+      "Event status is invalid"
+    );
+  return { status, pagination: parsePaginationRequest(pagination) };
 };

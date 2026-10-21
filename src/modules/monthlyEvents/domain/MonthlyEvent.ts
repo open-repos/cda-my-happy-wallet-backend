@@ -1,5 +1,14 @@
 export type MonthlyEventKind = "DEPENSE" | "ENTREE";
-export type MonthlyEventRecurrence = "AUCUNE" | "MENSUELLE";
+export type MonthlyEventStatus = "CONFIRME" | "POTENTIEL";
+export type BudgetScenario = "standard" | "simulation";
+export const MONTHLY_EVENT_RECURRENCES = [
+  "AUCUNE",
+  "MENSUELLE",
+  "HEBDOMADAIRE",
+  "TRIMESTRIELLE",
+  "ANNUELLE",
+] as const;
+export type MonthlyEventRecurrence = (typeof MONTHLY_EVENT_RECURRENCES)[number];
 
 export type MonthlyEventProps = Readonly<{
   id?: number;
@@ -11,6 +20,7 @@ export type MonthlyEventProps = Readonly<{
   startDate: string;
   recurrence: MonthlyEventRecurrence;
   endDate?: string | null;
+  status?: MonthlyEventStatus;
 }>;
 
 export type MonthlyEventErrorCode =
@@ -20,6 +30,8 @@ export type MonthlyEventErrorCode =
   | "INVALID_AMOUNT"
   | "INVALID_CURRENCY"
   | "INVALID_KIND"
+  | "INVALID_STATUS"
+  | "INVALID_REFERENCE_DATE"
   | "INVALID_START_DATE"
   | "INVALID_RECURRENCE"
   | "INVALID_END_DATE";
@@ -33,7 +45,7 @@ export class MonthlyEventError extends Error {
 
 const parseDate = (
   value: string,
-  code: "INVALID_START_DATE" | "INVALID_END_DATE"
+  code: "INVALID_START_DATE" | "INVALID_END_DATE" | "INVALID_REFERENCE_DATE"
 ): readonly [number, number, number] => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (match == null) throw new MonthlyEventError(code);
@@ -72,6 +84,7 @@ export class MonthlyEvent {
   public readonly startDate: string;
   public readonly recurrence: MonthlyEventRecurrence;
   public readonly endDate: string | null;
+  public readonly status: MonthlyEventStatus;
 
   private constructor(props: MonthlyEventProps, minorUnits: number) {
     this.id = props.id;
@@ -83,11 +96,19 @@ export class MonthlyEvent {
     this.startDate = props.startDate;
     this.recurrence = props.recurrence;
     this.endDate = props.endDate ?? null;
+    this.status = props.status ?? "CONFIRME";
   }
 
   public static create(props: MonthlyEventProps): MonthlyEvent {
     if (props.id !== undefined) this.assertId(props.id, "INVALID_ID");
     this.assertId(props.ownerId, "INVALID_OWNER_ID");
+    if (
+      props.status !== undefined &&
+      props.status !== "CONFIRME" &&
+      props.status !== "POTENTIEL"
+    ) {
+      throw new MonthlyEventError("INVALID_STATUS");
+    }
     if (
       typeof props.title !== "string" ||
       props.title.trim().length < 2 ||
@@ -104,7 +125,7 @@ export class MonthlyEvent {
     if (props.kind !== "DEPENSE" && props.kind !== "ENTREE") {
       throw new MonthlyEventError("INVALID_KIND");
     }
-    if (props.recurrence !== "AUCUNE" && props.recurrence !== "MENSUELLE") {
+    if (!MONTHLY_EVENT_RECURRENCES.includes(props.recurrence)) {
       throw new MonthlyEventError("INVALID_RECURRENCE");
     }
     parseDate(props.startDate, "INVALID_START_DATE");
@@ -118,7 +139,20 @@ export class MonthlyEvent {
     return new MonthlyEvent(props, minorUnitsOf(props.amount));
   }
 
+  /** Compatibility helper for callers expecting a single monthly occurrence. */
   public occurrenceIn(month: string): string | null {
+    return this.occurrencesIn(month)[0] ?? null;
+  }
+
+  public isExpired(today: string): boolean {
+    parseDate(today, "INVALID_REFERENCE_DATE");
+    return (
+      this.status === "POTENTIEL" &&
+      this.startDate.slice(0, 7) < today.slice(0, 7)
+    );
+  }
+
+  public occurrencesIn(month: string): readonly string[] {
     const match = /^(\d{4})-(\d{2})$/.exec(month);
     if (match == null) throw new MonthlyEventError("INVALID_START_DATE");
     const year = Number(match[1]);
@@ -131,10 +165,43 @@ export class MonthlyEvent {
     const monthEnd = `${month}-${String(lastDay).padStart(2, "0")}`;
     if (this.recurrence === "AUCUNE") {
       return this.startDate >= monthStart && this.startDate <= monthEnd
-        ? this.startDate
-        : null;
+        ? [this.startDate]
+        : [];
     }
-    if (this.startDate > monthEnd) return null;
+    if (
+      this.startDate > monthEnd ||
+      (this.endDate !== null && this.endDate < monthStart)
+    )
+      return [];
+    if (this.recurrence === "HEBDOMADAIRE") {
+      const dayMs = 86400000;
+      const start = Date.parse(`${this.startDate}T00:00:00.000Z`);
+      const first = Date.parse(`${monthStart}T00:00:00.000Z`);
+      const last = Date.parse(`${monthEnd}T00:00:00.000Z`);
+      const firstIndex = Math.max(0, Math.ceil((first - start) / (7 * dayMs)));
+      const dates: string[] = [];
+      for (
+        let date = start + firstIndex * 7 * dayMs;
+        date <= last;
+        date += 7 * dayMs
+      ) {
+        const civil = new Date(date).toISOString().slice(0, 10);
+        if (this.endDate !== null && civil > this.endDate) break;
+        dates.push(civil);
+      }
+      return dates;
+    }
+    const distance =
+      (year - Number(this.startDate.slice(0, 4))) * 12 +
+      monthNumber -
+      Number(this.startDate.slice(5, 7));
+    const interval =
+      this.recurrence === "TRIMESTRIELLE"
+        ? 3
+        : this.recurrence === "ANNUELLE"
+        ? 12
+        : 1;
+    if (distance % interval !== 0) return [];
     const anchorDay = Number(this.startDate.slice(8, 10));
     const occurrence = `${month}-${String(
       Math.min(anchorDay, lastDay)
@@ -143,9 +210,9 @@ export class MonthlyEvent {
       occurrence < this.startDate ||
       (this.endDate !== null && occurrence > this.endDate)
     ) {
-      return null;
+      return [];
     }
-    return occurrence;
+    return [occurrence];
   }
 
   private static assertId(

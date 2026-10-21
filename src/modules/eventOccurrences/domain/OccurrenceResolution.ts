@@ -32,6 +32,7 @@ export type OccurrenceResolution = OccurrenceSnapshot &
 
 export type OccurrenceResolutionErrorCode =
   | "EVENT_NOT_FOUND"
+  | "EVENT_NOT_CONFIRMED"
   | "OCCURRENCE_NOT_FOUND"
   | "CATEGORY_NOT_FOUND"
   | "OCCURRENCE_ALREADY_RESOLVED"
