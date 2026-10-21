@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.3.0 (2026-10-21)
+
+### Added
+
+- Added weekly, quarterly and annual event repetitions with civil-date occurrences, inclusive end dates and per-occurrence resolutions (#109).
+- Added a private read-only budget forecast over up to 24 months with projected balances and daily, weekly and monthly allowances (#110).
+- Added a private read-only savings-capacity summary with goal contribution gaps, independent monthly balances and documented sustainability indicators (#111).
+- Added owner-scoped potential events, explicit Simulation forecasts and savings capacity, confirmation, clearing and automatic expiry without affecting standard balances (#112).
+
+### Security
+
+- Updated the transitive `follow-redirects` dependency to 1.16.1 to fix two high-severity advisories on credential headers during cross-origin redirects (GHSA-q3jh-wrc6-jgq8, GHSA-8r9p-f939-6h3c) (#119).
+
 ## 1.2.0 (2026-10-18)
 
 ### Added
