@@ -1,6 +1,6 @@
 {
   "name": "projet-00-myhappywallet-backend",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Dans ce projet je mettrais toutes les tâches liées au Backend de mon projet \"Chef d'oeuvre\" CDA .",
   "main": "index.js",
   "scripts": {
@@ -19,7 +19,7 @@
     "test:runtime-dependencies": "node test/modules/security/RuntimeDependencies.test.cjs",
     "test:request-logging": "node test/modules/security/RequestLogging.test.cjs",
     "test:rav": "ts-node test/modules/operationsFixes/ResteAVivreCalculator.test.ts",
-    "test:services": "npm run test:rav",
+    "test:services": "npm run test:rav && npm run test:fixed-charges",
     "test:mailer": "ts-node test/modules/user/FakeMailer.test.ts",
     "test:smtp-mailer": "ts-node test/modules/user/SmtpMailer.test.ts",
     "test:create-user": "ts-node test/modules/user/CreateUser.test.ts",
@@ -78,14 +78,17 @@
     "test:pagination-integration": "ts-node test/modules/pagination/CollectionPaginationIntegration.test.ts",
     "test:prisma-errors": "ts-node test/modules/errors/PrismaErrorHandling.test.ts",
     "test:result-construction": "ts-node test/modules/ResultConstruction.test.ts",
-    "test:repositories": "ts-node test/modules/repositories/RepositoriesDataAccess.test.ts",
+    "test:repositories": "ts-node test/modules/repositories/RepositoriesDataAccess.test.ts && npm run test:fixed-charge-migration && npm run test:fixed-charge-persistence",
     "test:api": "ts-node test/modules/api/ApiCharacterization.test.ts",
     "test:release": "node test/release/release.test.cjs",
     "release:prepare": "node scripts/release.cjs prepare",
     "release:notes": "node scripts/release.cjs notes",
     "test": "npm run type-check && npm run test:operations-domain",
     "test:jwt-policy": "ts-node test/modules/auth/JwtPolicy.test.ts",
-    "test:jwt-session-migration": "ts-node test/modules/auth/JwtSessionMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/auth/JwtSessionMigration.test.ts verify"
+    "test:jwt-session-migration": "ts-node test/modules/auth/JwtSessionMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/auth/JwtSessionMigration.test.ts verify",
+    "test:fixed-charges": "ts-node test/modules/operationsFixes/FixedCharges.test.ts && ts-node test/modules/operationsFixes/FixedChargesApi.test.ts",
+    "test:fixed-charge-migration": "ts-node test/modules/operationsFixes/FixedChargesMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/operationsFixes/FixedChargesMigration.test.ts verify",
+    "test:fixed-charge-persistence": "ts-node test/modules/operationsFixes/FixedChargesPersistence.test.ts"
   },
   "repository": {
     "type": "git",

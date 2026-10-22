@@ -5,6 +5,7 @@ import { responseOperationFixePost, RequestOperationFixe } from './../../../../u
 import { CreateOperationFixe } from './createOperationFixe'
 import { Request, Response } from 'express'
 import { getAuthenticatedUserId } from '../../../auth/authenticatedRequest';
+import { fixedChargeResultResponse } from '../../../../utils/fixedChargeSwagger';
 
 //Controller
 export class CreateOperationFixeController {
@@ -29,7 +30,7 @@ export class CreateOperationFixeController {
 // DOCUMENTATION SWAGGER
 export const swCreateCharge = {
     ...new RequestOperationFixe("Charge","Create","post").jsonStruct,
-    responses: responseOperationFixePost,
+    responses: { ...responseOperationFixePost, "201": fixedChargeResultResponse() },
     security: [
         {
           accessToken_auth: [],

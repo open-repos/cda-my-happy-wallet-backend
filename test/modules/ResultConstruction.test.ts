@@ -18,10 +18,7 @@ import { ResetPasswordUser } from "../../src/modules/user/useCases/resetPassword
 import { IUserRepository } from "../../src/modules/user/userRepository.interface";
 import { createUserProps } from "../../src/utils/validators/register.validator";
 import { OperationFixeProps } from "../../src/utils/validators/operationFixe.validator";
-import {
-  CursorPage,
-  PaginationRequest,
-} from "../../src/modules/pagination";
+import { CursorPage, PaginationRequest } from "../../src/modules/pagination";
 import { OperationFixeListItem } from "../../src/modules/operationsFixes/operationFixeRepository.interface";
 import {
   operationFixeFixtures,
@@ -178,7 +175,10 @@ class FakeUserRepository implements IUserRepository {
     return { count: 1 };
   }
 
-  public async confirmRegistration(_id: string, _email: string): Promise<boolean> {
+  public async confirmRegistration(
+    _id: string,
+    _email: string
+  ): Promise<boolean> {
     this.calls.push("confirmRegistration");
     return true;
   }
@@ -265,10 +265,7 @@ async function runOperationFixeResultTests() {
     success: true,
     message: "CHARGE Successfully Updated",
   });
-  assert.strictEqual(
-    repository.lastExistsId,
-    operationFixeFixtures.charge.id
-  );
+  assert.strictEqual(repository.lastExistsId, operationFixeFixtures.charge.id);
 
   const deleteResult = await new DeleteOperationFixe(repository).execute(
     operationFixeFixtures.charge.updatedInput,
@@ -306,7 +303,12 @@ async function runOperationFixeResultTests() {
     deleteRouteIdRepository.lastDeletePropsId,
     operationFixeFixtures.revenu.id
   );
-  assert.deepStrictEqual(deleteRouteIdRepository.calls, ["exists", "delete"]);
+  assert.deepStrictEqual(deleteRouteIdRepository.calls, [
+    "exists",
+    "delete",
+    "updateOrCreateRaV",
+    "createRaV",
+  ]);
 
   const emptyChargesResult = await new ReadAllOperationFixe(repository).execute(
     operationFixeFixtures.userId,

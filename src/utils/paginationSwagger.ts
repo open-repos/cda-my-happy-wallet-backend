@@ -3,7 +3,10 @@ export const paginationParameters = [
   { $ref: "#/components/parameters/PaginationCursor" },
 ];
 
-export const paginatedCollectionResponse = (description: string) => ({
+export const paginatedCollectionResponse = (
+  description: string,
+  itemSchema: object = { type: "object" }
+) => ({
   description,
   content: {
     "application/json": {
@@ -12,7 +15,7 @@ export const paginatedCollectionResponse = (description: string) => ({
         required: ["data", "meta"],
         additionalProperties: false,
         properties: {
-          data: { type: "array", items: { type: "object" } },
+          data: { type: "array", items: itemSchema },
           meta: { $ref: "#/components/schemas/PaginationMeta" },
         },
       },
