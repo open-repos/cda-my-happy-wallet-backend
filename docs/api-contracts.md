@@ -108,10 +108,14 @@ pas un segment littéral ni une troisième route générique.
 Les champs publics historiques sont `idOperationFixe`, `titre`, `montant`,
 `devise` et, pour la liste, `typeOperation` (`REVENU` / `CHARGE`). Ne pas leur
 appliquer automatiquement le DTO anglais ni la sérialisation monétaire des
-opérations ponctuelles. Leur validation historique supprime les champs
-inconnus et retourne `400` ; les cas d'absence passent notamment par
-`PrismaError` (`400`). La garantie `404` des nouveaux modules ne doit pas être
-généralisée à ces routes. Sources : [routeur](../src/routes/operationsFixes.ts),
+opérations ponctuelles. Les charges ajoutent `periodicite`,
+`pourcentagePersonnel`, `montantPersonnel` et `montantMensuelPersonnel`, selon
+le [contrat des charges périodiques](fixed-charge-budgeting.md). POST/PUT de
+charge acceptent les deux premiers champs ; omettre ces champs sur PUT les
+conserve. Leur validation historique supprime les champs inconnus et retourne
+`400`. Les lectures, modifications et suppressions unitaires filtrent aussi le
+type et retournent désormais `404` pour une ressource absente, étrangère ou du
+mauvais type. Sources : [routeur](../src/routes/operationsFixes.ts),
 [repository](../src/modules/operationsFixes/operationFixeRepo.ts) et
 [tests de données](../test/modules/repositories/RepositoriesDataAccess.test.ts).
 

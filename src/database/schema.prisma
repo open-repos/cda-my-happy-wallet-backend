@@ -21,6 +21,8 @@ model OperationFixe {
   idOperationFixe Int      @id @default(autoincrement())
   titre           String  @db.VarChar(50)
   montant         Decimal @db.Decimal(10, 2)
+  periodicite     FixedChargePeriodicity @default(MENSUELLE)
+  pourcentagePersonnel Decimal @default(100) @db.Decimal(5, 2)
   devise          String?  @db.VarChar(3)
   typeOperation  TypeOperationFixeEnum @default(CHARGE)
   User Utilisateur @relation(fields: [userId],references: [id])
@@ -33,6 +35,14 @@ model OperationFixe {
   // idRevenu String?
   @@index([userId, idOperationFixe])
   @@index([userId, typeOperation, idOperationFixe])
+}
+
+enum FixedChargePeriodicity {
+  MENSUELLE
+  BIMESTRIELLE
+  TRIMESTRIELLE
+  SEMESTRIELLE
+  ANNUELLE
 }
 
 model EvenementMensuel {

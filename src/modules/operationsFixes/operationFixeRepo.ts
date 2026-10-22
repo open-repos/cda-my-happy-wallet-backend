@@ -1,4 +1,4 @@
-import { TypeOperationFixeEnum } from '@prisma/client';
+import { TypeOperationFixeEnum } from "@prisma/client";
 import { OperationFixeProps } from "./../../utils/validators/operationFixe.validator";
 import {
   IOperationFixeRepository,
@@ -6,7 +6,8 @@ import {
   OperationFixeWithIdProps,
   ReadOperationFixeProps,
 } from "./operationFixeRepository.interface";
-import { ResteAVivreCalculator } from "./services/ResteAVivreCalculator";
+import { chargeAmountFields } from "./services/fixedChargeAmounts";
+import { loadFixedTotals } from "./infrastructure/loadFixedTotals";
 import {
   createCursorPage,
   CursorContext,
@@ -45,18 +46,22 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         devise: operationProps.devise,
         typeOperation: typeOperationFixe,
         userId: idUser,
+        ...(typeOperationFixe === "CHARGE"
+          ? {
+              periodicite: operationProps.periodicite ?? "MENSUELLE",
+              pourcentagePersonnel: operationProps.pourcentagePersonnel ?? 100,
+            }
+          : {}),
       },
-    })
-    const {idOperationFixe,titre,montant,devise} = response
-
-    return {idOperationFixe,titre,montant,devise};
+    });
+    return this.publicRow(response);
   }
 
   public async read(
     operationProps: ReadOperationFixeProps,
     userId: string,
     idOperation: string,
-    _typeOperationFixe: string
+    typeOperationFixe: string
   ) {
     const OperationFixeEntity = this.entities.operationFixe;
     const idUser = parseInt(userId);
@@ -66,16 +71,20 @@ export class OperationFixeRepo implements IOperationFixeRepository {
       where: {
         idOperationFixe: operationProps.id,
         userId: idUser,
+        typeOperation: typeOperationFixe,
       },
       select: {
-        idOperationFixe:true,
+        idOperationFixe: true,
         titre: true,
         montant: true,
         devise: true,
+        typeOperation: true,
+        periodicite: true,
+        pourcentagePersonnel: true,
       },
       take: 1,
     });
-    return resultOperationFixeById;
+    return resultOperationFixeById.map((row: any) => this.publicRow(row));
 
     // }
 
@@ -86,45 +95,56 @@ export class OperationFixeRepo implements IOperationFixeRepository {
     operationProps: OperationFixeWithIdProps,
     userId: string,
     idOperationFixe: string,
-    _typeOperationFixe: string
+    typeOperationFixe: string
   ) {
     const OperationFixeEntity = this.entities.operationFixe;
     const idUser = parseInt(userId);
     operationProps.id = +idOperationFixe;
     const response = await OperationFixeEntity.updateMany({
-        where: {
-          idOperationFixe: operationProps.id,
-          userId: idUser,
-        },
-        data: {
-          titre: operationProps.titre,
-          montant: operationProps.montant,
-          devise: operationProps.devise,
-        },
-      });
+      where: {
+        idOperationFixe: operationProps.id,
+        userId: idUser,
+        typeOperation: typeOperationFixe,
+      },
+      data: {
+        titre: operationProps.titre,
+        montant: operationProps.montant,
+        devise: operationProps.devise,
+        ...(typeOperationFixe === "CHARGE"
+          ? {
+              ...(operationProps.periodicite === undefined
+                ? {}
+                : { periodicite: operationProps.periodicite }),
+              ...(operationProps.pourcentagePersonnel === undefined
+                ? {}
+                : {
+                    pourcentagePersonnel: operationProps.pourcentagePersonnel,
+                  }),
+            }
+          : {}),
+      },
+    });
     return response;
   }
-
-
 
   public async delete(
     operationProps: OperationFixeWithIdProps,
     userId: string,
     idOperationFixe: string,
-    _typeOperationFixe: string
+    typeOperationFixe: string
   ) {
     const OperationFixeEntity = this.entities.operationFixe;
     const idUser = parseInt(userId);
     operationProps.id = +idOperationFixe;
     const response = await OperationFixeEntity.deleteMany({
-        where: {
-          idOperationFixe: operationProps.id,
-          userId: idUser,
-        }
-      });
+      where: {
+        idOperationFixe: operationProps.id,
+        userId: idUser,
+        typeOperation: typeOperationFixe,
+      },
+    });
     return response;
   }
-
 
   public getAllOperationsFixes(
     userId: string,
@@ -149,10 +169,10 @@ export class OperationFixeRepo implements IOperationFixeRepository {
     return this.listOperations(userId, pagination, typeOperationFixe);
   }
 
-
   public async exists(
     idOperationFixe: number,
-    idUser: number
+    idUser: number,
+    typeOperation?: string
   ): Promise<boolean> {
     const OperationFixeEntity = this.entities.operationFixe;
     // const id = parseInt(idOperationFixe)
@@ -160,12 +180,16 @@ export class OperationFixeRepo implements IOperationFixeRepository {
       where: {
         userId: idUser,
         idOperationFixe: idOperationFixe,
+        ...(typeOperation === undefined ? {} : { typeOperation }),
       },
       take: 1,
     });
 
     // const result = resultOperationFixeUser
-    if (resultOperationFixeUser.length === 0  || resultOperationFixeUser == null) {
+    if (
+      resultOperationFixeUser.length === 0 ||
+      resultOperationFixeUser == null
+    ) {
       this.operationFixeExist = false;
     } else {
       this.operationFixeExist = true;
@@ -193,7 +217,6 @@ export class OperationFixeRepo implements IOperationFixeRepository {
     return response
 
   }
-
 
   public async createRaV(userId:string){
 
@@ -227,8 +250,6 @@ export class OperationFixeRepo implements IOperationFixeRepository {
   //     },
   //   })
   // }
-
-
 
   public async updateOrCreateRaV(userId:string){
 
@@ -293,12 +314,14 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         montant: true,
         devise: true,
         typeOperation: true,
+        periodicite: true,
+        pourcentagePersonnel: true,
       },
       orderBy: { idOperationFixe: "desc" },
       take: pagination.limit + 1,
     });
     return createCursorPage(
-      rows,
+      rows.map((row: any) => this.publicRow(row, true)),
       pagination,
       context,
       (row: OperationFixeListItem) => [row.idOperationFixe],
@@ -317,19 +340,23 @@ export class OperationFixeRepo implements IOperationFixeRepository {
   }
 
   private async calculateRav(userId: string) {
-    const totals = await this.entities.operationFixe.groupBy({
-      by: ["typeOperation"],
-      where: { userId: parseInt(userId) },
-      _sum: { montant: true },
-    });
-    const amount = (type: TypeOperationFixeEnum): unknown =>
-      totals.find(
-        (entry: { typeOperation: TypeOperationFixeEnum }) =>
-          entry.typeOperation === type
-      )?._sum.montant ?? 0;
-    return ResteAVivreCalculator.calculate(
-      [{ montant: amount("REVENU") }],
-      [{ montant: amount("CHARGE") }]
-    );
+    const totals = await loadFixedTotals(this.entities, parseInt(userId));
+    return {
+      montantRaV: (totals.incomeMinorUnits - totals.expenseMinorUnits) / 100,
+      montantTotalEntree: totals.incomeMinorUnits / 100,
+      montantTotalDepense: totals.expenseMinorUnits / 100,
+    };
+  }
+
+  private publicRow(row: any, includeType = false) {
+    const { idOperationFixe, titre, montant, devise } = row;
+    return {
+      idOperationFixe,
+      titre,
+      montant,
+      devise,
+      ...(includeType ? { typeOperation: row.typeOperation } : {}),
+      ...(row.typeOperation === "CHARGE" ? chargeAmountFields(row) : {}),
+    };
   }
 }

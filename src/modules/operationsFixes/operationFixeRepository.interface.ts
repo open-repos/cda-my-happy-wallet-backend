@@ -56,7 +56,11 @@ export interface IOperationFixeRepository {
     typeOperationFixe: TypeOperationFixeEnum,
     pagination: PaginationRequest
   ): Promise<CursorPage<OperationFixeListItem>>;
-  exists(idOperationFixe: number, idUser: number): Promise<boolean>;
+  exists(
+    idOperationFixe: number,
+    idUser: number,
+    typeOperation?: string
+  ): Promise<boolean>;
   updateRaV(userId: string, idRaV: number): Promise<any>;
   createRaV(userId: string): Promise<any>;
   updateOrCreateRaV(userId: string): Promise<any>;

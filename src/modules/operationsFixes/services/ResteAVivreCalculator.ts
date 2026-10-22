@@ -1,6 +1,10 @@
-type OperationAmount = {
-  montant: unknown;
-};
+import {
+  decimalHundredths,
+  FixedChargeAmount,
+  personalChargeMinorUnits,
+} from "./fixedChargeAmounts";
+
+type OperationAmount = FixedChargeAmount;
 
 export type ResteAVivreCalculation = {
   montantRaV: number;
@@ -13,21 +17,19 @@ export class ResteAVivreCalculator {
     revenus: OperationAmount[],
     charges: OperationAmount[]
   ): ResteAVivreCalculation {
-    const montantTotalDepense = this.sumMontants(charges);
-    const montantTotalEntree = this.sumMontants(revenus);
-
-    return {
-      montantRaV: montantTotalEntree - montantTotalDepense,
-      montantTotalDepense,
-      montantTotalEntree,
-    };
-  }
-
-  private static sumMontants(operations: OperationAmount[]): number {
-    return operations.reduce(
-      (accumulator: number, current: OperationAmount) =>
-        accumulator + parseFloat(String(current.montant)),
+    const expense = charges.reduce(
+      (total, charge) => total + personalChargeMinorUnits(charge),
       0
     );
+    const income = revenus.reduce(
+      (total, revenu) => total + decimalHundredths(revenu.montant),
+      0
+    );
+
+    return {
+      montantRaV: (income - expense) / 100,
+      montantTotalDepense: expense / 100,
+      montantTotalEntree: income / 100,
+    };
   }
 }

@@ -3,7 +3,6 @@ import {
   Prisma,
   PrismaClient,
   TypeOperationEnum,
-  TypeOperationFixeEnum,
 } from "@prisma/client";
 import {
   BudgetPeriodRepository,
@@ -27,6 +26,7 @@ import {
   parisCivilDateClock,
 } from "../../../utils/civilDateClock";
 import { expirePotentialEvents } from "../../monthlyEvents/infrastructure/potentialEventMaintenance";
+import { loadFixedTotals } from "../../operationsFixes/infrastructure/loadFixedTotals";
 import {
   matchesOccurrenceSql,
   occurrenceDatesSql,
@@ -147,23 +147,7 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
   ): Promise<
     Readonly<{ incomeMinorUnits: number; expenseMinorUnits: number }>
   > {
-    const totals = await this.prisma.operationFixe.groupBy({
-      by: ["typeOperation"],
-      where: { userId: ownerId, devise: currency },
-      _sum: { montant: true },
-    });
-    let incomeMinorUnits = 0;
-    let expenseMinorUnits = 0;
-    for (const total of totals) {
-      const amount =
-        total._sum.montant == null ? 0 : minorUnitsOf(total._sum.montant);
-      if (total.typeOperation === TypeOperationFixeEnum.REVENU) {
-        incomeMinorUnits += amount;
-      } else {
-        expenseMinorUnits += amount;
-      }
-    }
-    return { incomeMinorUnits, expenseMinorUnits };
+    return loadFixedTotals(this.prisma, ownerId, currency);
   }
 
   public async actualMovements(

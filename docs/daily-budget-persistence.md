@@ -37,6 +37,11 @@ et à la devise. Une période courante ouverte rafraîchit son snapshot fixe
 seulement lorsque les totaux changent. Une période passée ouverte est clôturée
 à la première synthèse et n'est plus mise à jour.
 
+Le total fixe des charges utilise leur coût mensuel personnel, calculé à
+partir du montant par échéance, de la périodicité et du pourcentage personnel.
+La [règle de mensualisation](fixed-charge-budgeting.md) est commune au RaV
+historique et aux synthèses avancées ; elle ne génère pas d'événement.
+
 Les opérations réelles restent les faits de référence. Le moteur charge un
 intervalle d'au plus 31 jours avec l'index composite et calcule les points
 journaliers en mémoire. Il ne persiste aucun total journalier.
