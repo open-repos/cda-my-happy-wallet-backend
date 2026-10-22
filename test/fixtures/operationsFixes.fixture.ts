@@ -24,6 +24,10 @@ export const operationFixeFixtures = {
       titre: "Loyer",
       montant: 600,
       devise: "EUR",
+      periodicite: "MENSUELLE",
+      pourcentagePersonnel: 100,
+      montantPersonnel: "600.00",
+      montantMensuelPersonnel: "600.00",
     },
     updatedInput: {
       id: 7,

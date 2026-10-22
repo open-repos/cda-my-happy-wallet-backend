@@ -10,6 +10,7 @@ import {ReadOperationFixe } from './readOperationFixe'
 import { Request, Response } from 'express'
 import { TypeOperationFixeEnum } from '@prisma/client';
 import { getAuthenticatedUserId } from '../../../auth/authenticatedRequest';
+import { fixedChargeResultResponse } from '../../../../utils/fixedChargeSwagger';
 
 //Controller
 export class ReadOperationFixeController {
@@ -36,7 +37,7 @@ export const swGetChargeById = {
     tags: ["OperationsFixe"],
     summary: "Get Charges from user by Id",
     operationId: "GetChargeById",
-    responses: new ResponseOperationFixeGetById("Charge").jsonStruct,
+    responses: { ...new ResponseOperationFixeGetById("Charge").jsonStruct, "200": fixedChargeResultResponse(true) },
     security: [
         {
           accessToken_auth: [],

@@ -64,7 +64,7 @@ export const swGetAllOperationFixe = {
     parameters: paginationParameters,
     responses: {
       ...new ResponseOperationFixeGet("Charge").jsonStruct,
-      "200": paginatedCollectionResponse("Paginated fixed charges"),
+      "200": paginatedCollectionResponse("Paginated fixed charges", { $ref: "#/components/schemas/FixedCharge" }),
       "422": paginationValidationResponse,
     },
     security: [

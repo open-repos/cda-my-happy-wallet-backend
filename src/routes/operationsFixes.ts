@@ -104,7 +104,7 @@ operationFixeRouter.post(
 operationFixeRouter.post(
   "/charges",
   tokenJwtTAuth,
-  Validator("operationFixe"),
+  Validator("fixedCharge"),
   (req: Request, res: Response, next: NextFunction) =>
     Promise.resolve(
       createOperationFixeController.execute(req, res, "CHARGE")
@@ -124,7 +124,7 @@ operationFixeRouter.put(
 operationFixeRouter.put(
   "/charges/:id",
   tokenJwtTAuth,
-  Validator("operationFixe"),
+  Validator("fixedCharge"),
   (req: Request, res: Response, next: NextFunction) =>
     Promise.resolve(
       updateOperationFixeController.execute(req, res, "CHARGE")

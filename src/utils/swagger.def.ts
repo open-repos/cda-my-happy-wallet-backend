@@ -16,6 +16,7 @@ import { swBudgetForecastRouter } from '../routes/budgetForecast';
 import { swSavingsCapacityRouter } from '../routes/savingsCapacity';
 import { swAnalyticsRouter } from '../routes/analytics';
 import { swEventOccurrenceRouter } from '../routes/eventOccurrences';
+import { fixedChargeDtoSchema } from './fixedChargeSwagger';
 
 const swagger = {
   openapi: "3.0.0",
@@ -126,6 +127,7 @@ const swagger = {
       ListeChargeResponse:ResSchemaSwg.arrayCharge,
       ListeRevenuResponse:ResSchemaSwg.arrayRevenu,
       Charge:SchemaSwg.charge,
+      FixedCharge: fixedChargeDtoSchema,
       Revenu:SchemaSwg.revenu,
       DeleteEmailAccount:SchemaSwg.deleteEmail,
       NativeRefreshSession:SchemaSwg.nativeRefreshSession,
