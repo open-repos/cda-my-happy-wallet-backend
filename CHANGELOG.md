@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.4.0 (2026-10-22)
+
+### Added
+
+- Added periodicity and personal percentages to fixed charges and applied their monthly personal cost to budget totals while preserving existing monthly charges and closed periods (#122).
+
 ## 1.3.0 (2026-10-21)
 
 ### Added
