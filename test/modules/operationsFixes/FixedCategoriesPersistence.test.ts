@@ -114,6 +114,7 @@ async function run() {
     String(user.id),
     "CHARGE"
   );
+  assert.ok(saved.category, "The saved fixed charge must expose its assigned category");
   assert.strictEqual(saved.category.icon, "solid:shield-halved");
   await assert.rejects(
     prisma.operationFixe.create({
