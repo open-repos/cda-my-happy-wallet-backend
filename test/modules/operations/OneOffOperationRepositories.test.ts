@@ -59,7 +59,7 @@ async function run() {
     categoryRepository
   );
 
-  assert.strictEqual((await categories.list(firstUser.id, firstPage)).data.length, 4);
+  assert.strictEqual((await categories.list(firstUser.id, firstPage)).data.length, 24);
   const category = await categories.create(firstUser.id, {
     name: "Voyage",
     color: "#336699",
@@ -70,12 +70,17 @@ async function run() {
     expectsApplicationError("CATEGORY_NAME_CONFLICT")
   );
 
-  // Catégories existantes et nouvelles sans icône : `null`.
-  assert.ok(
-    (await categories.list(firstUser.id, firstPage)).data.every(
-      (row) => row.icon === null
-    )
-  );
+  // Les catégories générales historiques et celle créée sans icône restent
+  // sans icône ; les 20 nouveaux défauts fixes copient leur icône et leur type.
+  const listed = (await categories.list(firstUser.id, firstPage)).data;
+  const general = listed.filter((row) => row.fixedKind == null);
+  const fixed = listed.filter((row) => row.fixedKind != null);
+  assert.strictEqual(general.length, 5);
+  assert.ok(general.every((row) => row.icon === null));
+  assert.strictEqual(fixed.length, 20);
+  assert.ok(fixed.every((row) => typeof row.icon === "string" && row.icon.startsWith("solid:")));
+  assert.strictEqual(fixed.filter((row) => row.fixedKind === "CHARGE").length, 12);
+  assert.strictEqual(fixed.filter((row) => row.fixedKind === "REVENU").length, 8);
   const withIcon = await categories.create(firstUser.id, {
     name: "Restaurants",
     icon: "solid:utensils",

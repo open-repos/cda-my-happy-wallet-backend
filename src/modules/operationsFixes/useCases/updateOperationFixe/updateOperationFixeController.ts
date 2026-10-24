@@ -40,7 +40,7 @@ export class UpdateOperationFixeController {
 // DOCUMENTATION SWAGGER
 export const swUpdateChargeById = {
     ...new RequestOperationFixe("Charge","Update","put").jsonStruct,
-    responses: new RespUpdateDelete('Update').jsonStruct,
+    responses: { ...new RespUpdateDelete('Update').jsonStruct, '422': { description: 'INVALID_FIXED_CATEGORY: unavailable or incompatible category' } },
     security: [
         {
           accessToken_auth: [],
@@ -50,7 +50,7 @@ export const swUpdateChargeById = {
 
 export const swUpdateRevenuById = {
     ...new RequestOperationFixe("Revenu","Update","put").jsonStruct,
-    responses: new RespUpdateDelete('Update').jsonStruct,
+    responses: { ...new RespUpdateDelete('Update').jsonStruct, '422': { description: 'INVALID_FIXED_CATEGORY: unavailable or incompatible category' } },
     security: [
         {
           accessToken_auth: [],

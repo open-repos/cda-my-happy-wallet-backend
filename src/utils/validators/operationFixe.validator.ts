@@ -8,6 +8,7 @@ export interface OperationFixeProps {
   titre: string;
   montant: number;
   devise: string;
+  categoryId?: number | null;
   periodicite?: FixedChargePeriodicity;
   pourcentagePersonnel?: number;
 }
@@ -16,6 +17,12 @@ export const operationFixeSchema = Joi.object<OperationFixeProps>({
   titre: Joi.string().min(2).max(50).trim(true).required().example("Loyer"),
   montant: Joi.number().min(1).required().example(600),
   devise: Joi.string().min(3).max(3).trim(true).required().example("EUR"),
+  categoryId: Joi.number()
+    .integer()
+    .positive()
+    .max(2147483647)
+    .allow(null)
+    .example(10),
   periodicite: Joi.forbidden(),
   pourcentagePersonnel: Joi.forbidden(),
 });
@@ -34,6 +41,12 @@ export const chargeSchema = Joi.object<OperationFixeProps>({
     .required()
     .example(600),
   devise: Joi.string().min(3).max(3).trim(true).required().example("EUR"),
+  categoryId: Joi.number()
+    .integer()
+    .positive()
+    .max(2147483647)
+    .allow(null)
+    .example(10),
   periodicite: Joi.string()
     .valid(...Object.keys(FIXED_CHARGE_MONTHS))
     .example("ANNUELLE"),
@@ -53,6 +66,12 @@ const revenuSchema = Joi.object<OperationFixeProps>({
     .example("Aide parents"),
   montant: Joi.number().min(1).required().example(300),
   devise: Joi.string().min(3).max(3).trim(true).required().example("EUR"),
+  categoryId: Joi.number()
+    .integer()
+    .positive()
+    .max(2147483647)
+    .allow(null)
+    .example(10),
 });
 
 export const revenuSchemaSwg = j2s(revenuSchema).swagger;

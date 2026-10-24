@@ -131,7 +131,7 @@ export const swOneOffOperationRouter = {
       security: [{ accessToken_auth: [] }],
       parameters: paginationParameters,
       responses: {
-        "200": paginatedCollectionResponse("Paginated category collection"),
+        "200": paginatedCollectionResponse("Paginated category collection", { $ref: "#/components/schemas/OperationCategory" }),
         ...securedResponses,
       },
     },

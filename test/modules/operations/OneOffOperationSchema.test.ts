@@ -49,9 +49,12 @@ async function run() {
     orderBy: { sortOrder: "asc" },
   });
   assert.deepStrictEqual(
-    templates.map((template) => template.code),
+    templates.filter((template) => template.fixedKind === null).map((template) => template.code),
     ["ALIMENTATION", "LOISIR", "IMPREVU", "AUTRES"]
   );
+
+  assert.strictEqual(templates.filter(template => template.fixedKind === "CHARGE").length, 12);
+  assert.strictEqual(templates.filter(template => template.fixedKind === "REVENU").length, 8);
 
   const firstUser = await createUser("schema-owner@example.test");
   const secondUser = await createUser("schema-other@example.test");

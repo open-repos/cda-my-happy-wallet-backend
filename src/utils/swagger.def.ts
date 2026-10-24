@@ -16,7 +16,7 @@ import { swBudgetForecastRouter } from '../routes/budgetForecast';
 import { swSavingsCapacityRouter } from '../routes/savingsCapacity';
 import { swAnalyticsRouter } from '../routes/analytics';
 import { swEventOccurrenceRouter } from '../routes/eventOccurrences';
-import { fixedChargeDtoSchema } from './fixedChargeSwagger';
+import { fixedChargeDtoSchema, fixedIncomeDtoSchema } from './fixedChargeSwagger';
 
 const swagger = {
   openapi: "3.0.0",
@@ -128,9 +128,17 @@ const swagger = {
       ListeRevenuResponse:ResSchemaSwg.arrayRevenu,
       Charge:SchemaSwg.charge,
       FixedCharge: fixedChargeDtoSchema,
+      FixedIncome: fixedIncomeDtoSchema,
       Revenu:SchemaSwg.revenu,
       DeleteEmailAccount:SchemaSwg.deleteEmail,
       NativeRefreshSession:SchemaSwg.nativeRefreshSession,
+      OperationCategory: {
+        ...fixedChargeDtoSchema.properties.category,
+        nullable: false,
+        required: ["id", "name", "color", "icon"],
+        additionalProperties: false,
+        description: "Personal category. fixedKind is CHARGE/REVENU for specialized defaults; omitted or null means compatible with both fixed kinds.",
+      },
       OperationCategoryInput: {
         type: "object",
         required: ["name"],

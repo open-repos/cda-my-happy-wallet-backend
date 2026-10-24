@@ -230,7 +230,11 @@ async function runOperationFixeResultTests() {
   assert.deepStrictEqual(createResult, {
     success: true,
     message: "CHARGE Successfully Created",
-    data: operationFixeFixtures.charge.result,
+    data: {
+      ...operationFixeFixtures.charge.result,
+      categoryId: null,
+      category: null,
+    },
   });
   assert.deepStrictEqual(createRaVResult, {
     success: true,

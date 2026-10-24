@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.5.0 (2026-10-24)
+
+### Added
+
+- Added owner-scoped optional categories to fixed expenses and income, with twenty additive default category templates, validated icons and preserved personal customizations (#127).
+
+### Security
+
+- Updated body-parser to 1.20.9 and Nodemailer to 10.2.1 to fix request parsing and email address parsing vulnerabilities without relaxing dependency audits (#127).
+
 ## 1.4.0 (2026-10-22)
 
 ### Added
