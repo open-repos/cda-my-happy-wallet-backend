@@ -102,6 +102,7 @@ export class OneOffOperationController {
     name: category.name,
     color: category.color,
     icon: category.icon,
+    ...(category.fixedKind == null ? {} : { fixedKind: category.fixedKind }),
   });
 
   private readonly operationDto = (operation: OneOffOperation) => ({

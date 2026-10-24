@@ -27,7 +27,14 @@ export class CreateOperationFixe {
       `${typeOperationFixe}`
     ).response_get();
     const { idOperationFixe, titre, montant, devise } = operationFixe;
-    result.data = { idOperationFixe, titre, montant, devise };
+    result.data = {
+      idOperationFixe,
+      titre,
+      montant,
+      devise,
+      categoryId: operationFixe.categoryId ?? null,
+      category: operationFixe.category ?? null,
+    };
     if (typeOperationFixe === "CHARGE") {
       Object.assign(result.data, chargeAmountFields(operationFixe));
     }

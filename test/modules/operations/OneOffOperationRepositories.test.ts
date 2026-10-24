@@ -59,7 +59,7 @@ async function run() {
     categoryRepository
   );
 
-  assert.strictEqual((await categories.list(firstUser.id, firstPage)).data.length, 4);
+  assert.strictEqual((await categories.list(firstUser.id, firstPage)).data.length, 24);
   const category = await categories.create(firstUser.id, {
     name: "Voyage",
     color: "#336699",

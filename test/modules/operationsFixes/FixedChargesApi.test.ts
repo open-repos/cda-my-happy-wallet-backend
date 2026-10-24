@@ -28,7 +28,54 @@ async function run() {
       return row[key] === value;
     });
   let legacyExpense = -1;
+  const categories = [
+    {
+      id: 10,
+      userId: 42,
+      name: "Assurances",
+      color: null,
+      icon: "solid:shield-halved",
+      fixedKind: "CHARGE",
+    },
+    {
+      id: 11,
+      userId: 42,
+      name: "Salaires",
+      color: null,
+      icon: "solid:money-bill-wave",
+      fixedKind: "REVENU",
+    },
+    {
+      id: 12,
+      userId: 43,
+      name: "Privé",
+      color: null,
+      icon: null,
+      fixedKind: null,
+    },
+    {
+      id: 13,
+      userId: 42,
+      name: "Personnel",
+      color: null,
+      icon: null,
+      fixedKind: null,
+    },
+  ];
+  const hydrate = (row: any) => ({
+    ...row,
+    category: categories.find((c) => c.id === row.categoryId) ?? null,
+  });
   const entities = {
+    operationCategory: {
+      findFirst: async ({ where }: any) => {
+        return (
+          categories.find(
+            (c) => c.id === where.id && c.userId === where.userId
+          ) ?? null
+        );
+      },
+    },
     operationFixe: {
       create: async ({ data }: any) => {
         const row = {
@@ -38,13 +85,14 @@ async function run() {
           ...data,
         };
         rows.push(row);
-        return row;
+        return hydrate(row);
       },
       findMany: async ({ where, take }: any) =>
         rows
           .filter((row) => matches(row, where))
           .sort((a, b) => b.idOperationFixe - a.idOperationFixe)
-          .slice(0, take),
+          .slice(0, take)
+          .map(hydrate),
       updateMany: async ({ where, data }: any) => {
         const found = rows.filter((row) => matches(row, where));
         found.forEach((row) => Object.assign(row, data));
@@ -161,6 +209,8 @@ async function run() {
   assert.deepStrictEqual(created.body.data, {
     ...input,
     idOperationFixe: 1,
+    categoryId: null,
+    category: null,
     montantPersonnel: "60.00",
     montantMensuelPersonnel: "5.00",
   });
@@ -237,6 +287,72 @@ async function run() {
     .set("Authorization", owner)
     .send(input);
   assert.strictEqual(forbiddenIncome.status, 400);
+  // Categories are optional, owner-scoped and compatible with the fixed kind.
+  for (const categoryId of [11, 12, 999]) {
+    const denied = await supertest(app)
+      .put("/operations-fixes/charges/1")
+      .set("Authorization", owner)
+      .send({ ...input, categoryId });
+    assert.strictEqual(denied.status, 422);
+    assert.strictEqual(
+      denied.body.error.details.code,
+      "INVALID_FIXED_CATEGORY"
+    );
+    assert.strictEqual(rows[0].categoryId ?? null, null);
+  }
+  for (const categoryId of [-1, 0, 1.5, 2147483648, "bad"]) {
+    const invalid = await supertest(app)
+      .post("/operations-fixes/charges")
+      .set("Authorization", owner)
+      .send({ ...input, categoryId });
+    assert.strictEqual(invalid.status, 400);
+  }
+  const assigned = await supertest(app)
+    .put("/operations-fixes/charges/1")
+    .set("Authorization", owner)
+    .send({ ...input, categoryId: 10 });
+  assert.strictEqual(assigned.status, 200);
+  const categorized = await supertest(app)
+    .get("/operations-fixes/charges/1")
+    .set("Authorization", owner);
+  assert.deepStrictEqual(categorized.body.data[0].category, {
+    id: 10,
+    name: "Assurances",
+    color: null,
+    icon: "solid:shield-halved",
+    fixedKind: "CHARGE",
+  });
+  assert.strictEqual(categorized.body.data[0].categoryId, 10);
+  await supertest(app)
+    .put("/operations-fixes/charges/1")
+    .set("Authorization", owner)
+    .send(input);
+  assert.strictEqual(
+    rows[0].categoryId,
+    10,
+    "old clients preserve category on PUT omission"
+  );
+  const cleared = await supertest(app)
+    .put("/operations-fixes/charges/1")
+    .set("Authorization", owner)
+    .send({ ...input, categoryId: null });
+  assert.strictEqual(cleared.status, 200);
+  assert.strictEqual(rows[0].categoryId, null);
+  const revenu = await supertest(app)
+    .post("/operations-fixes/revenus")
+    .set("Authorization", owner)
+    .send({ titre: "Salaire", montant: 2000, devise: "EUR", categoryId: 11 });
+  assert.strictEqual(revenu.status, 201);
+  assert.strictEqual(revenu.body.data.category.icon, "solid:money-bill-wave");
+  const personal = await supertest(app)
+    .post("/operations-fixes/charges")
+    .set("Authorization", owner)
+    .send({ ...input, categoryId: 13 });
+  assert.strictEqual(personal.status, 201);
+  const removePersonal = await supertest(app)
+    .delete(`/operations-fixes/charges/${personal.body.data.idOperationFixe}`)
+    .set("Authorization", owner);
+  assert.strictEqual(removePersonal.status, 200);
   const removed = await supertest(app)
     .delete("/operations-fixes/charges/1")
     .set("Authorization", owner);

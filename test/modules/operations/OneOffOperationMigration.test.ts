@@ -14,6 +14,7 @@ const migrationNames = [
   "20261011150000_add_budget_period_carry_in",
   "20261011170000_add_budget_period_corrected_at",
   "20261017120000_add_operation_category_icon",
+  "20261024090000_fixed_operation_categories",
 ];
 
 if (
@@ -114,6 +115,7 @@ const prepare = async () => {
   await prisma.$executeRawUnsafe("DROP TABLE `EventOccurrenceResolution`");
   await prisma.$executeRawUnsafe("DROP TABLE `BudgetPeriod`");
   await prisma.$executeRawUnsafe("DROP TABLE `OneOffOperationRecord`");
+  await prisma.$executeRawUnsafe("ALTER TABLE `OperationFixe` DROP FOREIGN KEY `OperationFixe_categoryId_userId_fkey`, DROP INDEX `OperationFixe_categoryId_userId_idx`, DROP COLUMN `categoryId`");
   await prisma.$executeRawUnsafe("DROP TABLE `OperationCategory`");
   await prisma.$executeRawUnsafe("DROP TABLE `OperationCategoryTemplate`");
   await prisma.$executeRawUnsafe(
@@ -139,7 +141,7 @@ const verify = async () => {
     where: { userId: user.id },
   });
 
-  assert.strictEqual(await prisma.operationCategoryTemplate.count(), 4);
+  assert.strictEqual(await prisma.operationCategoryTemplate.count(), 24);
   assert.strictEqual(legacyOperations.length, 2);
   assert.strictEqual(copiedOperations.length, 1);
   assert.strictEqual(copiedOperations[0].title, "Legacy ponctuelle");

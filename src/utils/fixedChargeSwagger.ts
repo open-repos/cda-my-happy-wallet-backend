@@ -11,9 +11,27 @@ export const fixedChargeDtoSchema = {
     "pourcentagePersonnel",
     "montantPersonnel",
     "montantMensuelPersonnel",
+    "categoryId",
+    "category",
   ],
   additionalProperties: false,
   properties: {
+    categoryId: { type: "integer", minimum: 1, nullable: true },
+    category: {
+      type: "object",
+      nullable: true,
+      properties: {
+        id: { type: "integer" },
+        name: { type: "string" },
+        color: { type: "string", nullable: true },
+        icon: { type: "string", nullable: true },
+        fixedKind: {
+          type: "string",
+          enum: ["CHARGE", "REVENU"],
+          nullable: true,
+        },
+      },
+    },
     idOperationFixe: { type: "integer", minimum: 1 },
     titre: { type: "string" },
     montant: {
@@ -50,9 +68,33 @@ export const fixedChargeDtoSchema = {
   },
 };
 
-export const fixedChargeResultResponse = (array = false) => ({
+export const fixedIncomeDtoSchema = {
+  type: "object",
+  required: [
+    "idOperationFixe",
+    "titre",
+    "montant",
+    "devise",
+    "categoryId",
+    "category",
+  ],
+  properties: {
+    idOperationFixe: fixedChargeDtoSchema.properties.idOperationFixe,
+    titre: fixedChargeDtoSchema.properties.titre,
+    montant: fixedChargeDtoSchema.properties.montant,
+    devise: fixedChargeDtoSchema.properties.devise,
+    typeOperation: { type: "string", enum: ["REVENU"] },
+    categoryId: fixedChargeDtoSchema.properties.categoryId,
+    category: fixedChargeDtoSchema.properties.category,
+  },
+};
+
+export const fixedChargeResultResponse = (
+  array = false,
+  schema = "FixedCharge"
+) => ({
   description:
-    "Fixed charge with invoice total, periodicity and personal amounts; no owner identifier.",
+    "Fixed operation with optional personal category; charge amounts include periodicity and personal share. No owner identifier.",
   content: {
     "application/json": {
       schema: {
@@ -64,9 +106,9 @@ export const fixedChargeResultResponse = (array = false) => ({
           data: array
             ? {
                 type: "array",
-                items: { $ref: "#/components/schemas/FixedCharge" },
+                items: { $ref: `#/components/schemas/${schema}` },
               }
-            : { $ref: "#/components/schemas/FixedCharge" },
+            : { $ref: `#/components/schemas/${schema}` },
         },
       },
     },

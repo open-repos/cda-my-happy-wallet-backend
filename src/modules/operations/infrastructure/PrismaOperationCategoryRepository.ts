@@ -138,12 +138,14 @@ export class PrismaOperationCategoryRepository
     name: string;
     color: string | null;
     icon: string | null;
+    fixedKind?: "CHARGE" | "REVENU" | null;
   }): OperationCategory => ({
     id: row.id,
     ownerId: row.userId,
     name: row.name,
     color: row.color,
     icon: row.icon,
+    ...(row.fixedKind == null ? {} : { fixedKind: row.fixedKind }),
   });
 
   private cursorContext(ownerId: number): CursorContext {
