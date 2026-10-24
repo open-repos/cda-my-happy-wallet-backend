@@ -42,9 +42,13 @@ export class UserRepo implements IUserRepository {
                 id: number;
                 name: string;
                 color: string | null;
+                icon?: string | null;
+                fixedKind?: "CHARGE" | "REVENU" | null;
               }) => ({
                 name: template.name,
                 color: template.color,
+                icon: template.icon ?? null,
+                fixedKind: template.fixedKind ?? null,
                 template: { connect: { id: template.id } },
               })
             ),

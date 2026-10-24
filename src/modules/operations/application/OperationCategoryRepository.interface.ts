@@ -4,6 +4,7 @@ export type OperationCategory = Readonly<{
   name: string;
   color: string | null;
   icon: string | null;
+  fixedKind?: "CHARGE" | "REVENU" | null;
 }>;
 
 export type SaveOperationCategory = Readonly<{

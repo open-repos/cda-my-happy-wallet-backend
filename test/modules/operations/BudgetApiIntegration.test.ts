@@ -107,7 +107,7 @@ async function run() {
     .get(`${baseUrl}/operation-categories`)
     .set(ownerAuth);
   assert.strictEqual(defaults.status, 200);
-  assert.strictEqual(defaults.body.data.length, 4);
+  assert.strictEqual(defaults.body.data.length, 24);
   assert.ok(
     defaults.body.data.every(
       (category: Record<string, unknown>) =>

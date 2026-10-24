@@ -82,7 +82,7 @@ export const swGetAllOperationFixe = {
     parameters: paginationParameters,
     responses: {
       ...new ResponseOperationFixeGet("Revenu").jsonStruct,
-      "200": paginatedCollectionResponse("Paginated fixed revenues"),
+      "200": paginatedCollectionResponse("Paginated fixed revenues", { $ref: "#/components/schemas/FixedIncome" }),
       "422": paginationValidationResponse,
     },
     security: [

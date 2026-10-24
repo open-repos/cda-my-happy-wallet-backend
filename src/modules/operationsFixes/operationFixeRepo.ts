@@ -1,3 +1,4 @@
+import { ErrorCode, ErrorException } from "../../utils/errors";
 import { TypeOperationFixeEnum } from "@prisma/client";
 import { OperationFixeProps } from "./../../utils/validators/operationFixe.validator";
 import {
@@ -20,6 +21,14 @@ import {
 // On va utiliser notre ORM pour modifier notre BDD (couche de persistence)
 //script "générale" utilisable par notre service createOperationFixe.ts
 
+const categorySelect = {
+  id: true,
+  name: true,
+  color: true,
+  icon: true,
+  fixedKind: true,
+};
+
 export class OperationFixeRepo implements IOperationFixeRepository {
   private entities: any;
   private operationFixeExist: boolean;
@@ -39,8 +48,17 @@ export class OperationFixeRepo implements IOperationFixeRepository {
     const OperationFixeEntity = this.entities.operationFixe;
     const idUser = parseInt(userId);
 
+    await this.validateCategory(
+      operationProps.categoryId,
+      idUser,
+      typeOperationFixe
+    );
     const response = await OperationFixeEntity.create({
+      include: { category: { select: categorySelect } },
       data: {
+        ...(operationProps.categoryId === undefined
+          ? {}
+          : { categoryId: operationProps.categoryId }),
         titre: operationProps.titre,
         montant: operationProps.montant,
         devise: operationProps.devise,
@@ -79,6 +97,8 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         montant: true,
         devise: true,
         typeOperation: true,
+        categoryId: true,
+        category: { select: categorySelect },
         periodicite: true,
         pourcentagePersonnel: true,
       },
@@ -100,6 +120,11 @@ export class OperationFixeRepo implements IOperationFixeRepository {
     const OperationFixeEntity = this.entities.operationFixe;
     const idUser = parseInt(userId);
     operationProps.id = +idOperationFixe;
+    await this.validateCategory(
+      operationProps.categoryId,
+      idUser,
+      typeOperationFixe
+    );
     const response = await OperationFixeEntity.updateMany({
       where: {
         idOperationFixe: operationProps.id,
@@ -107,6 +132,9 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         typeOperation: typeOperationFixe,
       },
       data: {
+        ...(operationProps.categoryId === undefined
+          ? {}
+          : { categoryId: operationProps.categoryId }),
         titre: operationProps.titre,
         montant: operationProps.montant,
         devise: operationProps.devise,
@@ -197,43 +225,39 @@ export class OperationFixeRepo implements IOperationFixeRepository {
     return this.operationFixeExist;
   }
 
-  public async updateRaV(userId:string, idRaV:number){
-
-    const RaVEntity = this.entities.resteAVivre
+  public async updateRaV(userId: string, idRaV: number) {
+    const RaVEntity = this.entities.resteAVivre;
     const ravCalculation = await this.calculateRav(userId);
 
     const response = await RaVEntity.updateMany({
-        where: {
-          idRaV: idRaV,
-          userId: parseInt(userId),
-        },
-        data: {
-          montantRaV: ravCalculation.montantRaV,
-          montantTotalDepense:ravCalculation.montantTotalDepense,
-          montantTotalEntree: ravCalculation.montantTotalEntree,
-        },
-      })
-    
-    return response
+      where: {
+        idRaV: idRaV,
+        userId: parseInt(userId),
+      },
+      data: {
+        montantRaV: ravCalculation.montantRaV,
+        montantTotalDepense: ravCalculation.montantTotalDepense,
+        montantTotalEntree: ravCalculation.montantTotalEntree,
+      },
+    });
 
+    return response;
   }
 
-  public async createRaV(userId:string){
-
-    const RaVEntity = this.entities.resteAVivre
+  public async createRaV(userId: string) {
+    const RaVEntity = this.entities.resteAVivre;
     const ravCalculation = await this.calculateRav(userId);
 
     const response = await RaVEntity.create({
-        data: {
-          montantRaV: ravCalculation.montantRaV,
-          montantTotalDepense:ravCalculation.montantTotalDepense,
-          montantTotalEntree: ravCalculation.montantTotalEntree,
-          userId:parseInt(userId)
-        },
-      })
-    
-    return response
+      data: {
+        montantRaV: ravCalculation.montantRaV,
+        montantTotalDepense: ravCalculation.montantTotalDepense,
+        montantTotalEntree: ravCalculation.montantTotalEntree,
+        userId: parseInt(userId),
+      },
+    });
 
+    return response;
   }
   // public async getRaV(userId:string){
 
@@ -251,9 +275,8 @@ export class OperationFixeRepo implements IOperationFixeRepository {
   //   })
   // }
 
-  public async updateOrCreateRaV(userId:string){
-
-    const RaVEntity = this.entities.resteAVivre
+  public async updateOrCreateRaV(userId: string) {
+    const RaVEntity = this.entities.resteAVivre;
 
     const responseGet = await RaVEntity.findMany({
       take: 1,
@@ -261,33 +284,33 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         userId: parseInt(userId),
       },
       orderBy: {
-        updated_at: 'desc',
+        updated_at: "desc",
       },
-    })
+    });
 
     let now = new Date();
-    let isRaVpastMonth = true 
+    let isRaVpastMonth = true;
 
-    if(responseGet.length==0){
-      return [isRaVpastMonth, ] as const;
+    if (responseGet.length == 0) {
+      return [isRaVpastMonth] as const;
     }
 
-    let monthLastRav = responseGet[0].updated_at.getMonth()
-    let currentMonth = now.getMonth()
-    let yearLastRav = responseGet[0].updated_at.getFullYear()
-    let currentYear = now.getFullYear()
-    if(currentYear == yearLastRav ){
-      if(currentMonth == monthLastRav){
-        isRaVpastMonth = false
-      } else{
-        isRaVpastMonth = true
+    let monthLastRav = responseGet[0].updated_at.getMonth();
+    let currentMonth = now.getMonth();
+    let yearLastRav = responseGet[0].updated_at.getFullYear();
+    let currentYear = now.getFullYear();
+    if (currentYear == yearLastRav) {
+      if (currentMonth == monthLastRav) {
+        isRaVpastMonth = false;
+      } else {
+        isRaVpastMonth = true;
       }
-    } else{
-      isRaVpastMonth = true
+    } else {
+      isRaVpastMonth = true;
     }
 
-    const idRav = responseGet[0].idRaV
-     return [isRaVpastMonth, idRav] as const;
+    const idRav = responseGet[0].idRaV;
+    return [isRaVpastMonth, idRav] as const;
   }
 
   private async listOperations(
@@ -314,6 +337,8 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         montant: true,
         devise: true,
         typeOperation: true,
+        categoryId: true,
+        category: { select: categorySelect },
         periodicite: true,
         pourcentagePersonnel: true,
       },
@@ -348,6 +373,28 @@ export class OperationFixeRepo implements IOperationFixeRepository {
     };
   }
 
+  private async validateCategory(
+    categoryId: number | null | undefined,
+    userId: number,
+    kind: string
+  ) {
+    if (categoryId == null) return;
+    const category = await this.entities.operationCategory.findFirst({
+      where: { id: categoryId, userId },
+      select: { id: true, fixedKind: true },
+    });
+    if (
+      !category ||
+      (category.fixedKind != null && category.fixedKind !== kind)
+    ) {
+      throw new ErrorException(
+        ErrorCode.ValidationFailed,
+        "Category unavailable for this fixed operation",
+        { code: "INVALID_FIXED_CATEGORY" }
+      );
+    }
+  }
+
   private publicRow(row: any, includeType = false) {
     const { idOperationFixe, titre, montant, devise } = row;
     return {
@@ -355,6 +402,16 @@ export class OperationFixeRepo implements IOperationFixeRepository {
       titre,
       montant,
       devise,
+      categoryId: row.categoryId ?? null,
+      category: row.category
+        ? {
+            id: row.category.id,
+            name: row.category.name,
+            color: row.category.color,
+            icon: row.category.icon,
+            fixedKind: row.category.fixedKind ?? null,
+          }
+        : null,
       ...(includeType ? { typeOperation: row.typeOperation } : {}),
       ...(row.typeOperation === "CHARGE" ? chargeAmountFields(row) : {}),
     };

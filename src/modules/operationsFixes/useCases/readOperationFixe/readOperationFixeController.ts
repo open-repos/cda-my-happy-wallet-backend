@@ -50,7 +50,7 @@ export const swGetChargeById = {
     tags: ["OperationsFixe"],
     summary: "Get Revenus from user by Id",
     operationId: "GetRevenuById",
-    responses: new ResponseOperationFixeGetById("Revenu").jsonStruct,
+    responses: { ...new ResponseOperationFixeGetById("Revenu").jsonStruct, "200": fixedChargeResultResponse(true, "FixedIncome") },
     security: [
         {
           accessToken_auth: [],

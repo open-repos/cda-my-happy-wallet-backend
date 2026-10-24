@@ -30,7 +30,7 @@ export class CreateOperationFixeController {
 // DOCUMENTATION SWAGGER
 export const swCreateCharge = {
     ...new RequestOperationFixe("Charge","Create","post").jsonStruct,
-    responses: { ...responseOperationFixePost, "201": fixedChargeResultResponse() },
+    responses: { ...responseOperationFixePost, "201": fixedChargeResultResponse(), "422": { description: "INVALID_FIXED_CATEGORY: unavailable or incompatible category" } },
     security: [
         {
           accessToken_auth: [],
@@ -40,7 +40,7 @@ export const swCreateCharge = {
 
 export const swCreateRevenu = {
     ...new RequestOperationFixe("Revenu","Create","post").jsonStruct,
-    responses: responseOperationFixePost,
+    responses: { ...responseOperationFixePost, "201": fixedChargeResultResponse(false, "FixedIncome"), "422": { description: "INVALID_FIXED_CATEGORY: unavailable or incompatible category" } },
     security: [
         {
           accessToken_auth: [],
