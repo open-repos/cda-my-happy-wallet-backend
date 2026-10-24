@@ -73,8 +73,8 @@ async function run() {
   // Les catégories générales historiques et celle créée sans icône restent
   // sans icône ; les 20 nouveaux défauts fixes copient leur icône et leur type.
   const listed = (await categories.list(firstUser.id, firstPage)).data;
-  const general = listed.filter((row) => row.fixedKind === null);
-  const fixed = listed.filter((row) => row.fixedKind !== null);
+  const general = listed.filter((row) => row.fixedKind == null);
+  const fixed = listed.filter((row) => row.fixedKind != null);
   assert.strictEqual(general.length, 5);
   assert.ok(general.every((row) => row.icon === null));
   assert.strictEqual(fixed.length, 20);
