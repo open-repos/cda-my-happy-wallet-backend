@@ -128,7 +128,7 @@
     "joi-to-swagger": "6.2.0",
     "jsonwebtoken": "9.0.3",
     "morgan": "1.12.1",
-    "nodemailer": "10.1.2",
+    "nodemailer": "10.2.1",
     "prisma": "6.19.3",
     "rate-limit-redis": "^4.3.0",
     "redis": "^5.8.2",
