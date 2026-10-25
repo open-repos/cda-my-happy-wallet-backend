@@ -50,7 +50,7 @@ const decimalOf = (minorUnits: number): string => (minorUnits / 100).toFixed(2);
 
 export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
   public constructor(
-    private readonly prisma: PrismaClient,
+    private readonly prisma: PrismaClient | Prisma.TransactionClient,
     private readonly cursors: PaginationCursorCodec = paginationCursorCodec,
     private readonly today: CivilDateClock = parisCivilDateClock
   ) {}
@@ -184,7 +184,9 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
     currency: string,
     scenario: BudgetScenario = "standard"
   ): Promise<readonly PlannedMovement[]> {
-    await expirePotentialEvents(this.prisma, ownerId, this.today());
+    // Snapshot readers perform the existing maintenance before opening their transaction.
+    if ("$transaction" in this.prisma)
+      await expirePotentialEvents(this.prisma, ownerId, this.today());
     const bounds = monthBounds(month);
     const rows = await this.prisma.$queryRaw<
       {
