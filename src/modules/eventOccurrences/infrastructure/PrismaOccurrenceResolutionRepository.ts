@@ -84,6 +84,90 @@ export class PrismaOccurrenceResolutionRepository
     private readonly today: CivilDateClock = parisCivilDateClock
   ) {}
 
+  /** Persistent decisions survive source-rule and linked-operation deletion. */
+  public async listResolved(
+    ownerId: number,
+    from: string,
+    to: string,
+    page: PaginationRequest
+  ): Promise<CursorPage<OccurrenceResolution>> {
+    const context = {
+      resource: "event-occurrence-resolutions",
+      scope: `owner:${ownerId}:${from}:${to}`,
+    };
+    const position =
+      page.cursor === null ? null : this.cursors.decode(context, page.cursor);
+    if (
+      position !== null &&
+      (position.length !== 3 ||
+        typeof position[0] !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(position[0]) ||
+        !position
+          .slice(1)
+          .every(
+            (value) =>
+              typeof value === "number" &&
+              Number.isSafeInteger(value) &&
+              value > 0
+          ))
+    )
+      throw invalidPagination();
+    const after: Prisma.EventOccurrenceResolutionWhereInput =
+      position === null
+        ? {}
+        : {
+            OR: [
+              { occurrenceDate: { gt: dateOf(position[0] as string) } },
+              {
+                occurrenceDate: dateOf(position[0] as string),
+                sourceEventId: { gt: position[1] as number },
+              },
+              {
+                occurrenceDate: dateOf(position[0] as string),
+                sourceEventId: position[1] as number,
+                id: { gt: position[2] as number },
+              },
+            ],
+          };
+    const rows = await this.prisma.eventOccurrenceResolution.findMany({
+      where: {
+        userId: ownerId,
+        AND: [
+          {
+            OR: [
+              { occurrenceDate: { gte: dateOf(from), lte: dateOf(to) } },
+              {
+                operation: {
+                  is: {
+                    userId: ownerId,
+                    operationDate: { gte: dateOf(from), lte: dateOf(to) },
+                  },
+                },
+              },
+            ],
+          },
+          after,
+        ],
+      },
+      include: {
+        operation: { ...operationSelect, where: { userId: ownerId } },
+      },
+      orderBy: [
+        { occurrenceDate: "asc" },
+        { sourceEventId: "asc" },
+        { id: "asc" },
+      ],
+      take: page.limit + 1,
+    });
+    return createCursorPage(
+      rows.map((row) => this.toDomain(row)),
+      page,
+      context,
+      (row) => [row.occurrenceDate, row.sourceEventId, row.id],
+      this.cursors
+    );
+  }
+
   public async listPending(
     ownerId: number,
     from: string,

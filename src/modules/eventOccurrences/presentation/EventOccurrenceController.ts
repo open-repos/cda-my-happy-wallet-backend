@@ -1,3 +1,4 @@
+import { occurrenceResolutionDto } from "./occurrenceResolutionDto";
 import { Request, Response } from "express";
 import { getAuthenticatedUserId } from "../../auth/authenticatedRequest";
 import {
@@ -62,26 +63,7 @@ export class EventOccurrenceController {
   private send(res: Response, result: OccurrenceResolutionResult): Response {
     const { resolution } = result;
     return res.status(result.replayed ? 200 : 201).json({
-      data: {
-        eventId: resolution.sourceEventId,
-        occurrenceDate: resolution.occurrenceDate,
-        status: resolution.status,
-        title: resolution.title,
-        amount: amountOf(resolution.minorUnits),
-        currency: resolution.currency,
-        kind: resolution.kind,
-        resolvedAt: resolution.resolvedAt.toISOString(),
-        operation:
-          resolution.operation === null
-            ? null
-            : {
-                id: resolution.operation.id,
-                title: resolution.operation.title,
-                amount: amountOf(resolution.operation.minorUnits),
-                operationDate: resolution.operation.operationDate,
-                categoryId: resolution.operation.categoryId,
-              },
-      },
+      data: occurrenceResolutionDto(resolution),
     });
   }
 
