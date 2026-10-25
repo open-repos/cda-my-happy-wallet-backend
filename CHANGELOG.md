@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.6.0 (2026-10-25)
+
+### Added
+
+- Added reversible savings trajectory simulations with coherent budget snapshots, explicit goal allocations and monthly reach estimates (#131).
+
 ## 1.5.0 (2026-10-24)
 
 ### Added
