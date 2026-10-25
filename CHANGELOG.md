@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.7.0 (2026-10-25)
+
+### Added
+
+- Added an owner-scoped paginated read of persistent occurrence decisions and their current operation links for exhaustive calendar views (#134).
+
 ## 1.6.0 (2026-10-25)
 
 ### Added
