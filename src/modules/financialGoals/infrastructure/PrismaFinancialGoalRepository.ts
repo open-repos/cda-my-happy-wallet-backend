@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import {
   createCursorPage,
   CursorContext,
@@ -29,7 +29,7 @@ const amountOf = (minorUnits: number): string => (minorUnits / 100).toFixed(2);
 
 export class PrismaFinancialGoalRepository implements FinancialGoalRepository {
   public constructor(
-    private readonly prisma: PrismaClient,
+    private readonly prisma: PrismaClient | Prisma.TransactionClient,
     private readonly cursors: PaginationCursorCodec = paginationCursorCodec
   ) {}
 
