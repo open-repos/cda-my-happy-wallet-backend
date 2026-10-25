@@ -73,7 +73,10 @@ complément, marge, capacité disponible avant objectifs (hors solde protégé),
 objectifs, supplément libre signé, supplément affecté, versement total du
 sélectionné, solde sortant, solde protégé et allocations de chaque objectif
 (réservation, versement projeté plafonné, cumul projeté). `fundable` indique
-si engagements et marge sont financés sur ce mois.
+si engagements et marge sont financés cumulativement sur ce mois. Chaque
+point futur porte aussi `fundable` : une courbe de versements projetés ne
+doit jamais présenter un point non finançable comme de l’épargne acquise.
+Le premier point déclaré reste toujours connu, indépendamment du budget.
 
 `reachReason` : `REACHED`, `PROJECTED`, `NO_CONTRIBUTION`, `OUTSIDE_HORIZON`
 ou `BUDGET_DEFICIT`. Une échéance absente reste null ; aucun jour estimé.

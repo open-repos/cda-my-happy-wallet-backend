@@ -69,6 +69,7 @@ assert.deepStrictEqual(reasonable.points[0], {
   month: "2026-10",
   savedAmount: "1800.00",
   kind: "DECLARED",
+  fundable: true,
 });
 assert.strictEqual(reasonable.months[0].month, "2026-11");
 assert.strictEqual(selected.savedMinorUnits, 180000);
@@ -194,3 +195,6 @@ const lateFunding = calculateSavingsTrajectory(
 );
 assert.strictEqual(lateFunding.scheduledReachMonth, "2026-11");
 assert.strictEqual(lateFunding.estimatedReachMonth, "2026-12");
+
+assert.strictEqual(deficit.points[1].fundable, false);
+assert.strictEqual(recovered.points[2].fundable, true);

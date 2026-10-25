@@ -83,6 +83,7 @@ export const calculateSavingsTrajectory = (
       month: first.month,
       savedAmount: decimalMinor(selected.savedMinorUnits),
       kind: "DECLARED" as "DECLARED" | "PROJECTED",
+      fundable: true,
     },
   ];
   let scheduledReachMonth: string | null =
@@ -153,6 +154,7 @@ export const calculateSavingsTrajectory = (
       month: month.month,
       savedAmount: decimalMinor(accumulated[selectedIndex]),
       kind: "PROJECTED",
+      fundable,
     });
     return {
       month: month.month,

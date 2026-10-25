@@ -38,6 +38,7 @@ const projection = object({
       month,
       savedAmount: money,
       kind: { type: "string", enum: ["DECLARED", "PROJECTED"] },
+      fundable: boolean,
     }),
     24
   ),
