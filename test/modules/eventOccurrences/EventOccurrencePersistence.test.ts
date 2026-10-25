@@ -271,6 +271,115 @@ const run = async () => {
   assert.strictEqual(unlinked?.status, "REALIZED");
   assert.strictEqual(unlinked?.operation, null);
 
+  // Read decisions after deletion, beyond one page, and on the linked real date.
+  await prisma.eventOccurrenceResolution.createMany({
+    data: Array.from({ length: 103 }, (_, i) => ({
+      userId: user.id,
+      sourceEventId: 200000 + i,
+      occurrenceDate: new Date("2026-10-25T00:00:00Z"),
+      status: "CANCELED" as const,
+      title: "Pagination",
+      amount: "1.00",
+      currency: "EUR",
+      kind: "DEPENSE" as const,
+    })),
+  });
+  const linkedOperation = await prisma.oneOffOperationRecord.create({
+    data: {
+      userId: user.id,
+      categoryId: category.id,
+      title: "Date réelle différente",
+      amount: "75.00",
+      currency: "EUR",
+      type: "DEPENSE",
+      operationDate: new Date("2026-11-01T00:00:00Z"),
+    },
+  });
+  await prisma.eventOccurrenceResolution.create({
+    data: {
+      userId: user.id,
+      sourceEventId: 300000,
+      occurrenceDate: new Date("2026-10-25T00:00:00Z"),
+      status: "REALIZED",
+      title: "Prévision originale",
+      amount: "100.00",
+      currency: "EUR",
+      kind: "DEPENSE",
+      operationId: linkedOperation.id,
+    },
+  });
+  const collected = [];
+  let cursor: string | null = null;
+  do {
+    const result = await resolutions.listResolved(
+      user.id,
+      "2026-10-01",
+      "2026-10-31",
+      { limit: 20, cursor }
+    );
+    collected.push(...result.data);
+    cursor = result.meta.nextCursor;
+  } while (cursor);
+  assert.strictEqual(
+    new Set(collected.map((item) => item.id)).size,
+    collected.length
+  );
+  assert.strictEqual(
+    collected.filter(
+      (item) => item.sourceEventId >= 200000 && item.sourceEventId < 200103
+    ).length,
+    103
+  );
+  assert.ok(
+    collected.some(
+      (item) =>
+        item.sourceEventId === rent.id &&
+        item.operation === null &&
+        item.status === "REALIZED"
+    )
+  );
+  const otherRows = await resolutions.listResolved(
+    other.id,
+    "2026-10-01",
+    "2026-10-31",
+    { limit: 100, cursor: null }
+  );
+  assert.ok(otherRows.data.every((row) => row.ownerId === other.id));
+  assert.ok(otherRows.data.every((row) => row.sourceEventId !== 300000));
+  const november = await resolutions.listResolved(
+    user.id,
+    "2026-11-01",
+    "2026-11-01",
+    { limit: 100, cursor: null }
+  );
+  assert.ok(
+    november.data.some(
+      (row) =>
+        row.sourceEventId === 300000 &&
+        row.occurrenceDate === "2026-10-25" &&
+        row.operation?.id === linkedOperation.id
+    )
+  );
+  const first = await resolutions.listResolved(
+    user.id,
+    "2026-10-01",
+    "2026-10-31",
+    { limit: 1, cursor: null }
+  );
+  assert.ok(first.meta.nextCursor);
+  await assert.rejects(
+    resolutions.listResolved(other.id, "2026-10-01", "2026-10-31", {
+      limit: 1,
+      cursor: first.meta.nextCursor,
+    })
+  );
+  await assert.rejects(
+    resolutions.listResolved(user.id, "2026-10-02", "2026-10-31", {
+      limit: 1,
+      cursor: first.meta.nextCursor,
+    })
+  );
+
   await explainUses(
     "EventOccurrenceResolution_userId_occurrenceDate_status_id_idx",
     "SELECT `id` FROM `EventOccurrenceResolution` WHERE `userId` = ? AND `occurrenceDate` <= ? AND `status` = 'REALIZED' ORDER BY `occurrenceDate`, `id` LIMIT 51",
