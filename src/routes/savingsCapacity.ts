@@ -1,3 +1,9 @@
+import {
+  createSavingsTrajectoryRouter,
+  swSavingsTrajectoryRouter,
+} from "./savingsTrajectories";
+import { SavingsTrajectoryService } from "../modules/financialGoals/application/SavingsTrajectoryService";
+import { PrismaSavingsTrajectorySnapshot } from "../modules/financialGoals/infrastructure/PrismaSavingsTrajectorySnapshot";
 import { RequestHandler, Router } from "express";
 import { budgetScenarioParameter } from "../utils/budgetScenarioSwagger";
 import { prisma } from "../database";
@@ -31,6 +37,12 @@ export const savingsCapacityRouter = createSavingsCapacityRouter(
   new SavingsCapacityService(
     new BudgetForecastService(new PrismaBudgetPeriodRepository(prisma)),
     new PrismaFinancialGoalRepository(prisma)
+  )
+);
+
+savingsCapacityRouter.use(
+  createSavingsTrajectoryRouter(
+    new SavingsTrajectoryService(new PrismaSavingsTrajectorySnapshot(prisma))
   )
 );
 
@@ -86,6 +98,7 @@ const properties = {
   },
 };
 export const swSavingsCapacityRouter = {
+  ...swSavingsTrajectoryRouter,
   "/savings-capacity": {
     get: {
       tags: ["Objectifs"],
