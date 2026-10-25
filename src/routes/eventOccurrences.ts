@@ -7,6 +7,8 @@ import {
 } from "express";
 import { tokenJwtTAuth } from "../middlewares/authenticateToken.middleware";
 import {
+  OccurrenceResolutionReadController,
+  occurrenceResolutionReadController,
   EventOccurrenceController,
   eventOccurrenceController,
   toEventOccurrenceHttpError,
@@ -27,9 +29,16 @@ const handle =
 
 export const createEventOccurrenceRouter = (
   controller: EventOccurrenceController,
-  authenticate: RequestHandler = tokenJwtTAuth
+  authenticate: RequestHandler = tokenJwtTAuth,
+  resolutions?: OccurrenceResolutionReadController
 ): Router => {
   const router = Router();
+  if (resolutions)
+    router.get(
+      "/event-occurrence-resolutions",
+      authenticate,
+      handle((req, res) => resolutions.list(req, res))
+    );
   router.get(
     "/event-occurrences/pending",
     authenticate,
@@ -50,7 +59,9 @@ export const createEventOccurrenceRouter = (
 };
 
 export const eventOccurrenceRouter = createEventOccurrenceRouter(
-  eventOccurrenceController
+  eventOccurrenceController,
+  tokenJwtTAuth,
+  occurrenceResolutionReadController
 );
 
 const occurrenceParameters = [
@@ -81,6 +92,30 @@ const commandResponses = {
 };
 
 export const swEventOccurrenceRouter = {
+  "/event-occurrence-resolutions": {
+    get: {
+      tags: ["Evenements"],
+      summary:
+        "Persistent occurrence decisions whose occurrence or linked operation date is inside the inclusive range (up to 366 days)",
+      security: [{ accessToken_auth: [] }],
+      parameters: [
+        ...["from", "to"].map((name) => ({
+          name,
+          in: "query",
+          required: true,
+          schema: { type: "string", format: "date" },
+        })),
+        ...paginationParameters,
+      ],
+      responses: {
+        "200": paginatedCollectionResponse(
+          "Persistent decisions: eventId, occurrenceDate, REALIZED/CANCELED, snapshot, resolvedAt, nullable operation (id/title/amount/operationDate/categoryId)"
+        ),
+        "401": { description: "Unauthenticated" },
+        "422": { description: "Invalid civil range or pagination" },
+      },
+    },
+  },
   "/event-occurrences/pending": {
     get: {
       tags: ["Evenements"],

@@ -81,3 +81,22 @@ export const parsePendingQuery = (
     pagination: parsePaginationRequest(pagination),
   };
 };
+
+/** Inclusive civil-date window, at most 366 days; pagination rejects unknown keys. */
+export const parseResolutionQuery = (
+  query: Readonly<Record<string, unknown>>
+): { from: string; to: string; pagination: PaginationRequest } => {
+  const { from, to, ...pagination } = query;
+  if (
+    !isCivilDate(from) ||
+    !isCivilDate(to) ||
+    from > to ||
+    Date.parse(to + "T00:00:00Z") - Date.parse(from + "T00:00:00Z") >=
+      366 * 86400000
+  )
+    throw new ErrorException(
+      ErrorCode.ValidationFailed,
+      "Resolution date range is invalid"
+    );
+  return { from, to, pagination: parsePaginationRequest(pagination) };
+};
