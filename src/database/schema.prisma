@@ -108,6 +108,8 @@ model Utilisateur {
   oneOffOperations OneOffOperationRecord[] @relation("OneOffOperationOwner")
   budgetPeriods BudgetPeriod[]
   occurrenceResolutions EventOccurrenceResolution[]
+  budgetEnvelopes BudgetEnvelope[]
+  reconciliationOccurrences ReconciliationOccurrence[]
   created_at  DateTime @default(now()) @db.Timestamp(0)
   updated_at  DateTime @default(now()) @db.DateTime(0)
 }
@@ -237,6 +239,7 @@ model OperationCategory {
   template   OperationCategoryTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   fixedKind TypeOperationFixeEnum?
   fixedOperations OperationFixe[]
+  budgetEnvelopes BudgetEnvelope[]
   operations OneOffOperationRecord[]
   createdAt  DateTime                   @default(now()) @db.Timestamp(0)
   updatedAt  DateTime                   @updatedAt @db.DateTime(0)
@@ -259,10 +262,12 @@ model OneOffOperationRecord {
   categoryId        Int
   owner             Utilisateur       @relation("OneOffOperationOwner", fields: [userId], references: [id], onDelete: Cascade)
   category          OperationCategory @relation(fields: [categoryId, userId], references: [id, userId], onDelete: Restrict)
+  reconciliation    ReconciliationLink?
   resolution        EventOccurrenceResolution?
   createdAt         DateTime          @default(now()) @db.Timestamp(0)
   updatedAt         DateTime          @updatedAt @db.DateTime(0)
 
+  @@unique([id, userId])
   @@index([userId, operationDate])
   @@index([userId, operationDate, id])
   @@index([userId, currency, operationDate, id])
@@ -350,4 +355,70 @@ enum TypeOperationFixeEnum{
 enum Role{
   ADMIN
   USER
+}
+
+
+/// A recurring monthly variable budget; deletion through the API archives it.
+model BudgetEnvelope {
+  id          Int @id @default(autoincrement())
+  userId      Int
+  title       String @db.VarChar(50)
+  amount      Decimal @db.Decimal(10, 2)
+  currency    String @db.Char(3)
+  categoryId  Int?
+  startMonth  DateTime @db.Date
+  endMonth    DateTime? @db.Date
+  archived    Boolean @default(false)
+  createdAt   DateTime @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime @updatedAt @db.DateTime(0)
+  user        Utilisateur @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    OperationCategory? @relation(fields: [categoryId, userId], references: [id, userId], onDelete: Restrict)
+  occurrences ReconciliationOccurrence[]
+  @@unique([id, userId])
+  @@index([categoryId, userId])
+  @@index([userId, currency, id])
+}
+
+/// Immutable source snapshot. An explicit open-month override only changes planned.
+model ReconciliationOccurrence {
+  id             Int @id @default(autoincrement())
+  userId         Int
+  month          DateTime @db.Date
+  sourceKey      String @db.VarChar(40)
+  sourceType     ReconciliationSourceType
+  envelopeId     Int?
+  fixedSourceId  Int?
+  title          String @db.VarChar(50)
+  currency       String @db.Char(3)
+  kind           TypeOperationEnum
+  referenceTotal Decimal @db.Decimal(10, 2)
+  personalShare  Decimal @db.Decimal(5, 2)
+  planned        Decimal @db.Decimal(10, 2)
+  categoryId     Int?
+  createdAt      DateTime @default(now()) @db.Timestamp(0)
+  user           Utilisateur @relation(fields: [userId], references: [id], onDelete: Cascade)
+  envelope       BudgetEnvelope? @relation(fields: [envelopeId, userId], references: [id, userId], onDelete: Restrict)
+  links          ReconciliationLink[]
+  @@unique([id, userId])
+  @@unique([userId, month, sourceKey])
+  @@index([userId, month, currency, id])
+  @@index([envelopeId, userId])
+}
+
+/// A link is metadata, never a financial movement.
+model ReconciliationLink {
+  operationId  Int @id
+  userId       Int
+  occurrenceId Int
+  createdAt    DateTime @default(now()) @db.Timestamp(0)
+  operation    OneOffOperationRecord @relation(fields: [operationId, userId], references: [id, userId], onDelete: Cascade)
+  occurrence   ReconciliationOccurrence @relation(fields: [occurrenceId, userId], references: [id, userId], onDelete: Restrict)
+  @@index([occurrenceId, userId])
+  @@unique([operationId, userId])
+}
+
+enum ReconciliationSourceType {
+  ENVELOPE
+  FIXED_EXPENSE
+  FIXED_INCOME
 }

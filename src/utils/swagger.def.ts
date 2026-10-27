@@ -1,3 +1,4 @@
+import { swReconciliationRouter, reconciliationSchemas } from "./reconciliationSwagger";
 import { swRenewTokenRouter, swAdminRouter } from './../router';
 import { ErrorCode } from "./errors/errorCode.error";
 import { ErrorException } from "./errors/errorException.error";
@@ -72,6 +73,7 @@ const swagger = {
     },
   ],
   paths: {
+    ...swReconciliationRouter,
     ...swAdminRouter,
     ...swUserRouter,
     ...swRenewTokenRouter,
@@ -104,6 +106,7 @@ const swagger = {
       },
     },
     schemas: {
+      ...reconciliationSchemas,
       PaginationMeta: {
         type: "object",
         required: ["limit", "hasNext", "nextCursor"],

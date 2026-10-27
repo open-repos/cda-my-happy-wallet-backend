@@ -5,6 +5,11 @@ Les tableaux décrivent les routes actuellement montées, sans changement de
 comportement. Les liens spécialisés détaillent les règles et leurs limites.
 Pour reproduire les exemples, préparer [l'environnement de test](test-environment.md).
 
+Le [rapprochement prévu/réalisé](budget-reconciliation.md) ajoute les enveloppes,
+occurrences et associations de paiements. Son suivi est isolé : les formules
+globales RaV, prévision et capacité d'épargne ne changent pas. Le frontend doit
+respecter le marqueur `integration.globalBudgetAdjusted=false`.
+
 ## Adresse, formats et authentification
 
 Les chemins métier sont relatifs à `APP_BASE_URL`, `/v1` par défaut ; le port

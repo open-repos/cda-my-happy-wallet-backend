@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+import { lockReconciliationOwner } from "../reconciliation/infrastructure/reconciliationLocks";
 import { ErrorException,ErrorCode }  from "./../../utils/errors/";
 import { toPrismaErrorException } from "../../utils/errors/prismaError.error";
 // On va utiliser notre ORM pour modifier notre BDD (couche de persistence)
@@ -58,14 +60,18 @@ export class UserRepo implements IUserRepository {
     });
   }
 
-  public async delete(email: string,userId:number) {
-    const UserEntity = this.entities.utilisateur;
-
-    const result = await UserEntity.deleteMany({
-      where: { email: email,id:userId }
+  public async delete(email: string, userId: number) {
+    // MySQL checks RESTRICT immediately, even during user cascades. Remove
+    // reconciliation metadata in dependency order within the account transaction.
+    return this.entities.$transaction(async (tx: Prisma.TransactionClient) => {
+      const user = await tx.utilisateur.findFirst({ where: { id: userId, email }, select: { id: true } });
+      if (!user) return { count: 0 };
+      await lockReconciliationOwner(tx, userId);
+      await tx.reconciliationLink.deleteMany({ where: { userId } });
+      await tx.reconciliationOccurrence.deleteMany({ where: { userId } });
+      await tx.budgetEnvelope.deleteMany({ where: { userId } });
+      return tx.utilisateur.deleteMany({ where: { id: userId, email } });
     });
-
-    return result
   }
   public async resetPassword(email: string, resetToken:string, resetTokenExpiration:Date) {
     const UserEntity = this.entities.utilisateur;

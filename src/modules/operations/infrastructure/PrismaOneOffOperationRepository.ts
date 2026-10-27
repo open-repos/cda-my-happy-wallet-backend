@@ -1,3 +1,5 @@
+import { guardLinkedOperation, lockReconciliationOwner } from "../../reconciliation/infrastructure/reconciliationLocks";
+import { CivilDateClock, parisCivilDateClock } from "../../../utils/civilDateClock";
 import { Prisma, PrismaClient, TypeOperationEnum } from "@prisma/client";
 import {
   OneOffOperationRepository,
@@ -31,7 +33,8 @@ export class PrismaOneOffOperationRepository
 {
   public constructor(
     private readonly prisma: PrismaClient,
-    private readonly cursors: PaginationCursorCodec = paginationCursorCodec
+    private readonly cursors: PaginationCursorCodec = paginationCursorCodec,
+    private readonly today: CivilDateClock = parisCivilDateClock
   ) {}
 
   public async listByOwner(
@@ -135,9 +138,14 @@ export class PrismaOneOffOperationRepository
       throw new OperationApplicationError("OPERATION_NOT_FOUND");
     }
 
-    const result = await this.prisma.oneOffOperationRecord.updateMany({
-      where: { id: operation.id, userId: operation.ownerId },
-      data: this.toPersistence(operation),
+    const result = await this.prisma.$transaction(async tx => {
+      await lockReconciliationOwner(tx, operation.ownerId);
+      await guardLinkedOperation(tx, operation.ownerId, operation.id!, {
+        operationDate: operation.operationDate, currency: operation.money.currency, kind: operation.kind,
+      }, this.today());
+      return tx.oneOffOperationRecord.updateMany({
+        where: { id: operation.id, userId: operation.ownerId }, data: this.toPersistence(operation),
+      });
     });
     return result.count === 0
       ? null
@@ -145,8 +153,10 @@ export class PrismaOneOffOperationRepository
   }
 
   public async delete(id: number, ownerId: number): Promise<boolean> {
-    const result = await this.prisma.oneOffOperationRecord.deleteMany({
-      where: { id, userId: ownerId },
+    const result = await this.prisma.$transaction(async tx => {
+      await lockReconciliationOwner(tx, ownerId);
+      await guardLinkedOperation(tx, ownerId, id, undefined, this.today());
+      return tx.oneOffOperationRecord.deleteMany({ where: { id, userId: ownerId } });
     });
     return result.count === 1;
   }
