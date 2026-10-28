@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.8.0 (2026-10-28)
+
+### Added
+
+- Added opted-in monthly expense envelopes with atomic payment reconciliation, corrected monthly balances and carry-over, monthly/yearly analysis and effective-month changes to fixed charges and income (#139).
+
+### Security
+
+- Secured SendGrid email delivery by replacing the vulnerable SDK dependency chain with the native HTTPS transport, preserving existing configuration, HTML content, tracking settings and public errors (#139).
+
 ## 1.7.0 (2026-10-25)
 
 ### Added
