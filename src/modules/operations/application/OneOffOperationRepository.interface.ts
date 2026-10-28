@@ -8,6 +8,10 @@ export type OperationListFilter = Readonly<{
   currency?: string;
 }>;
 
+export type OperationReconciliationInput = Readonly<{
+  occurrenceId: number | null;
+  expectedOccurrenceId: number | null;
+}>;
 export interface OneOffOperationRepository {
   listByOwner(
     ownerId: number,
@@ -15,7 +19,13 @@ export interface OneOffOperationRepository {
     filter?: OperationListFilter
   ): Promise<CursorPage<OneOffOperation>>;
   findById(id: number, ownerId: number): Promise<OneOffOperation | null>;
-  create(operation: OneOffOperation): Promise<OneOffOperation>;
-  update(operation: OneOffOperation): Promise<OneOffOperation | null>;
+  create(
+    operation: OneOffOperation,
+    reconciliation?: OperationReconciliationInput
+  ): Promise<OneOffOperation>;
+  update(
+    operation: OneOffOperation,
+    reconciliation?: OperationReconciliationInput
+  ): Promise<OneOffOperation | null>;
   delete(id: number, ownerId: number): Promise<boolean>;
 }

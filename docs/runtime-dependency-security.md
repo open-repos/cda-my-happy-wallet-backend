@@ -100,14 +100,14 @@ pour satisfaire une proposition de downgrade de l'audit.
 
 ## Modèle de menace et limites de confiance
 
-| Entrée / frontière        | Exposition et protection                                                                                                                                                                                                                                               |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| HTTP, query et formulaire | Entrées externes contrôlées par le client ; parsing qs/Joi corrigé. Limites de corps, validation et erreurs existantes vérifiées par les suites HTTP.                                                                                                                  |
-| Adresse IP et proxy       | Express fait confiance à un seul saut en production. Le correctif proxy-addr ne remplace pas le proxy frontal et la protection contre l'accès direct au backend ; les tests de débit/CORS restent nécessaires.                                                         |
-| Courriel SMTP / SendGrid  | Adresses issues des parcours validés, configuration serveur de confiance. Le SDK SendGrid reste inchangé mais sa dépendance Axios est mise à jour. Les tests utilisent exclusivement localhost, un proxy désactivé, des délais bornés et des credentials synthétiques. |
-| Configuration Prisma      | Code de release/administration de confiance, pas corps HTTP utilisateur. L'override réduit le risque de récursion ; il ne rend pas sûr le chargement d'un fichier de configuration non fiable.                                                                         |
-| Watcher de développement  | Modules compilés du poste de développement, jamais un chemin fourni par l'API. Suppression de la chaîne de glob vulnérable, sans ajout de paquet.                                                                                                                      |
-| Installation et secrets   | Lockfile versionné et `npm ci` ; aucun token de registre, fichier d'environnement peuplé ou identifiant réel dans les preuves. Aucun accès SMTP/SendGrid distant pendant les tests.                                                                                    |
+| Entrée / frontière        | Exposition et protection                                                                                                                                                                                                                                                                  |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HTTP, query et formulaire | Entrées externes contrôlées par le client ; parsing qs/Joi corrigé. Limites de corps, validation et erreurs existantes vérifiées par les suites HTTP.                                                                                                                                     |
+| Adresse IP et proxy       | Express fait confiance à un seul saut en production. Le correctif proxy-addr ne remplace pas le proxy frontal et la protection contre l'accès direct au backend ; les tests de débit/CORS restent nécessaires.                                                                            |
+| Courriel SMTP / SendGrid  | Adresses issues des parcours validés, configuration serveur de confiance. Le SDK SendGrid a été remplacé le 28 octobre par le transport HTTP natif décrit ci-dessous. Les tests utilisent exclusivement localhost, un proxy désactivé, des délais bornés et des credentials synthétiques. |
+| Configuration Prisma      | Code de release/administration de confiance, pas corps HTTP utilisateur. L'override réduit le risque de récursion ; il ne rend pas sûr le chargement d'un fichier de configuration non fiable.                                                                                            |
+| Watcher de développement  | Modules compilés du poste de développement, jamais un chemin fourni par l'API. Suppression de la chaîne de glob vulnérable, sans ajout de paquet.                                                                                                                                         |
+| Installation et secrets   | Lockfile versionné et `npm ci` ; aucun token de registre, fichier d'environnement peuplé ou identifiant réel dans les preuves. Aucun accès SMTP/SendGrid distant pendant les tests.                                                                                                       |
 
 ## Baseline et nouvelle mesure d'audit
 
@@ -204,7 +204,7 @@ npm run build
 ```
 
 La nouvelle suite couvre le consommateur Prisma réel, le watcher, le protocole
-SMTP et le SDK SendGrid/Axios via un serveur HTTP local, y compris les erreurs
+SMTP et le transport SendGrid natif via un serveur HTTP local, y compris les erreurs
 assainies. Elle ne contacte pas les services de production. Suivre ensuite
 [l'environnement de test](test-environment.md) : toutes les suites API, MySQL,
 Redis et les deux exercices de sauvegarde/restauration restent exigés en CI.
@@ -215,3 +215,43 @@ les tests/scripts et documents de cette PR puis refaire `npm ci`. Le retour
 arrière remet les versions et leurs alertes précédentes : privilégier une
 correction en avant lorsque possible. Aucune migration SQL ni configuration
 JWT ne change ; aucun déploiement n'est déclenché par ce travail.
+
+## Correction SendGrid du 28 octobre 2026
+
+L'avis [GHSA-gcqx-w48m-w2h4](https://github.com/advisories/GHSA-gcqx-w48m-w2h4)
+(CVE-2026-93753) signale un empoisonnement du prototype du résultat de
+`deepmerge`. La version publiée `4.3.1` reste affectée ; les versions publiées
+de `@sendgrid/mail` et `@sendgrid/helpers` n'offrent pas de chemin corrigé à
+cette date. La nouvelle mesure avant correction donne quatre entrées faibles
+pour cette même chaîne transitive, dans les deux audits. La baseline du
+17 octobre ci-dessus demeure historique.
+
+L'application utilise uniquement l'envoi HTML simple. `SendGridMailer` appelle
+maintenant directement l'[API Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send)
+avec `fetch` natif de Node 22. Le SDK et ses dépendances inutilisées, dont
+`deepmerge` et Axios, sont retirés du lockfile. La surcharge **distincte**
+`deepmerge-ts` de Prisma reste inchangée.
+
+Le fournisseur, `MAILER_DRIVER`, `SENDGRID_API_KEY`, `EMAIL_SENDER`, le choix
+par défaut en production et les contrats de `IMailer` restent identiques.
+Le corps JSON contient le destinataire, l'expéditeur, le sujet, le HTML et les
+réglages de suivi existants (activés en production, désactivés ailleurs).
+Seul HTTP 202 retourne `true` ; une autre réponse 2xx retourne `false` comme
+auparavant. Les refus, erreurs réseau, redirections et délais expirés exposent
+uniquement `SendEmaillError` / `Email was not sent`.
+
+L'URL HTTPS est fixe, les redirections sont refusées, le délai est de dix
+secondes et aucun nouvel essai automatique ne risque de doubler un envoi.
+Le corps de réponse est libéré sans être analysé ni journalisé. Une
+configuration vide échoue localement. L'injection du transport et du délai
+est réservée au code des tests ; aucune variable ne permet de rediriger le
+fournisseur en production.
+
+`npm run test:mailer` et `npm run test:runtime-dependencies` exercent le même
+adaptateur avec un vrai serveur HTTP sur loopback, des identifiants
+synthétiques, les deux politiques de suivi, les statuts 202/200/4xx/5xx,
+les redirections 302/307 vers un second serveur (zéro requête reçue), les
+échecs réseau et un délai expiré. Aucun courriel réel n'est envoyé.
+Les audits doivent toujours être exécutés après `npm ci`, sans abaisser leur
+seuil ni utiliser `npm audit fix --force`. Cette correction ne nécessite
+aucune migration SQL ni nouvelle configuration.

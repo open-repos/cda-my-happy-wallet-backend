@@ -1,3 +1,4 @@
+import { reconciliationRouter } from "./routes/reconciliation";
 import {Router, Request, Response} from 'express';
 import { operationFixeRouter } from './routes/operationsFixes';
 import {renewAccessToken, swRenewAccessToken} from './modules/auth/accessTokenRenew'
@@ -55,6 +56,7 @@ mainRouter.use('/users',userRouter)
 
 mainRouter.use('/operations-fixes',operationFixeRouter)
 
+mainRouter.use('/', reconciliationRouter)
 mainRouter.use('/', oneOffOperationRouter)
 mainRouter.use('/', eventOccurrenceRouter)
 mainRouter.use('/', monthlyEventRouter)

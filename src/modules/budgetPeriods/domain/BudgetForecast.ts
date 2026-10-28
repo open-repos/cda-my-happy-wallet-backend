@@ -28,6 +28,7 @@ export type ForecastBudgetSummary = Readonly<{
   prudentDailyAllowanceMinorUnits: number | null;
   unresolvedCount: number;
   overdueCount: number;
+  envelopeReserveMinorUnits?: number;
   days: readonly DailyForecastPoint[];
 }>;
 
@@ -36,6 +37,7 @@ export type CalculateForecastBudgetInput = Readonly<{
   today: string;
   planned: readonly PlannedMovement[];
   goalSavingsMinorUnits: number;
+  envelopeReserveMinorUnits?: number;
 }>;
 
 const assertSafe = (value: number): void => {
@@ -53,6 +55,9 @@ export const calculateForecastBudget = (
   input: CalculateForecastBudgetInput
 ): ForecastBudgetSummary => {
   const { real } = input;
+  const reserve = input.envelopeReserveMinorUnits ?? 0;
+  if (!Number.isSafeInteger(reserve) || reserve < 0)
+    throw new BudgetPeriodError("INVALID_AMOUNT");
   if (
     !Number.isSafeInteger(input.goalSavingsMinorUnits) ||
     input.goalSavingsMinorUnits < 0
@@ -103,7 +108,7 @@ export const calculateForecastBudget = (
     byDate.set(movement.occurrenceDate, totals);
   }
 
-  let plannedRunning = -input.goalSavingsMinorUnits;
+  let plannedRunning = -input.goalSavingsMinorUnits - reserve;
   const days = real.days.map((day) => {
     const totals = byDate.get(day.date) ?? { income: 0, expense: 0, count: 0 };
     plannedRunning += totals.income - totals.expense;
@@ -123,7 +128,8 @@ export const calculateForecastBudget = (
     real.realRemainingMinorUnits +
     plannedIncomeMinorUnits -
     plannedExpenseMinorUnits -
-    input.goalSavingsMinorUnits;
+    input.goalSavingsMinorUnits -
+    reserve;
   assertSafe(forecastRemainingMinorUnits);
 
   return {
@@ -137,6 +143,7 @@ export const calculateForecastBudget = (
         : Math.round(forecastRemainingMinorUnits / real.remainingDays),
     unresolvedCount,
     overdueCount,
+    ...(reserve === 0 ? {} : { envelopeReserveMinorUnits: reserve }),
     days,
   };
 };

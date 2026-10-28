@@ -1,9 +1,12 @@
+import { reconciliationHttpError } from "../../reconciliation/presentation/reconciliationError";
+import { ReconciliationError } from "../../reconciliation/domain/Reconciliation";
 import { ErrorCode, ErrorException } from "../../../utils/errors";
 import { OneOffOperationError } from "../domain";
 import { OperationApplicationError } from "../application";
 
 export const toOperationHttpError = (error: unknown): Error => {
   if (error instanceof ErrorException) return error;
+  if (error instanceof ReconciliationError) return reconciliationHttpError(error);
 
   if (error instanceof OneOffOperationError) {
     return new ErrorException(

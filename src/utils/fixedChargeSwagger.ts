@@ -16,6 +16,12 @@ export const fixedChargeDtoSchema = {
   ],
   additionalProperties: false,
   properties: {
+    isBudgetEnvelope: {
+      type: "boolean",
+      default: false,
+      description:
+        "Explicit opt-in for monthly expense reconciliation. Ordinary charges and income are never payment targets.",
+    },
     categoryId: { type: "integer", minimum: 1, nullable: true },
     category: {
       type: "object",

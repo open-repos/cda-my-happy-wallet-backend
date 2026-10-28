@@ -80,13 +80,14 @@ export class BudgetPeriodEngine {
       throw new BudgetPeriodEngineError("FUTURE_PERIOD");
     }
 
-    const { period: resolved, budget } = await this.resolve(
+    const { period: resolved, budget: resolvedBudget } = await this.resolve(
       ownerId,
       month,
       normalizedCurrency,
       today
     );
     let period = resolved;
+    let budget = resolvedBudget;
     const origin = await this.periods.firstActivityMonth(
       ownerId,
       normalizedCurrency
@@ -97,6 +98,8 @@ export class BudgetPeriodEngine {
     if (month < currentMonth) {
       if (period.status === "OPEN") {
         period = await this.periods.close(period.id, ownerId, {
+          reconciliationAdjustmentMinorUnits:
+            budget.reconciliationAdjustmentMinorUnits,
           actualIncomeMinorUnits: budget.actualIncomeMinorUnits,
           actualExpenseMinorUnits: budget.actualExpenseMinorUnits,
           realRemainingMinorUnits: budget.realRemainingMinorUnits,
@@ -107,18 +110,29 @@ export class BudgetPeriodEngine {
           ),
         });
       }
+      if (
+        period.realRemainingMinorUnits !== budget.realRemainingMinorUnits ||
+        period.actualExpenseMinorUnits !== budget.actualExpenseMinorUnits ||
+        period.actualIncomeMinorUnits !== budget.actualIncomeMinorUnits
+      ) {
+        budget = (await this.resolve(ownerId, month, normalizedCurrency, today))
+          .budget;
+      }
       return { period, budget, forecast: null, carryFromMonth };
     }
 
-    const [planned, goalSavingsMinorUnits] = await Promise.all([
-      this.periods.plannedMovements(
-        ownerId,
-        month,
-        normalizedCurrency,
-        scenario
-      ),
-      this.periods.goalSavings(ownerId, normalizedCurrency),
-    ]);
+    const [planned, goalSavingsMinorUnits, envelopeReserveMinorUnits] =
+      await Promise.all([
+        this.periods.plannedMovements(
+          ownerId,
+          month,
+          normalizedCurrency,
+          scenario
+        ),
+        this.periods.goalSavings(ownerId, normalizedCurrency),
+        this.periods.envelopeReserve?.(ownerId, month, normalizedCurrency) ??
+          Promise.resolve(0),
+      ]);
     return {
       period,
       budget,
@@ -128,6 +142,7 @@ export class BudgetPeriodEngine {
         today,
         planned,
         goalSavingsMinorUnits,
+        envelopeReserveMinorUnits,
       }),
     };
   }
@@ -190,6 +205,9 @@ export class BudgetPeriodEngine {
         fixedIncomeMinorUnits: period.fixedIncomeMinorUnits,
         fixedExpenseMinorUnits: period.fixedExpenseMinorUnits,
         carryInMinorUnits,
+        frozenReconciliationAdjustmentMinorUnits:
+          period.reconciliationAdjustmentMinorUnits ?? 0,
+        closed: true,
         movements: await this.periods.actualMovements(
           ownerId,
           period.month,
@@ -238,12 +256,14 @@ export class BudgetPeriodEngine {
         today
       );
       const fixed =
-        previous != null && month < currentMonth
+        previous != null &&
+        month < currentMonth &&
+        !(await this.periods.hasReconciliationPlans?.(ownerId, month, currency))
           ? {
               incomeMinorUnits: previous.fixedIncomeMinorUnits,
               expenseMinorUnits: previous.fixedExpenseMinorUnits,
             }
-          : await this.periods.fixedTotals(ownerId, currency);
+          : await this.periods.fixedTotals(ownerId, currency, month);
       period = await this.periods.open(
         ownerId,
         month,
@@ -253,7 +273,7 @@ export class BudgetPeriodEngine {
         previous?.realRemainingMinorUnits ?? 0
       );
     } else if (period.status === "OPEN" && month === currentMonth) {
-      const fixed = await this.periods.fixedTotals(ownerId, currency);
+      const fixed = await this.periods.fixedTotals(ownerId, currency, month);
       if (
         fixed.incomeMinorUnits !== period.fixedIncomeMinorUnits ||
         fixed.expenseMinorUnits !== period.fixedExpenseMinorUnits
@@ -280,6 +300,13 @@ export class BudgetPeriodEngine {
       fixedExpenseMinorUnits: period.fixedExpenseMinorUnits,
       carryInMinorUnits: period.carryInMinorUnits,
       movements,
+      closed: period.status === "CLOSED" || month < currentMonth,
+      ...(period.status === "CLOSED"
+        ? {
+            frozenReconciliationAdjustmentMinorUnits:
+              period.reconciliationAdjustmentMinorUnits ?? 0,
+          }
+        : {}),
     });
     return { period, budget };
   }
@@ -305,6 +332,8 @@ export class BudgetPeriodEngine {
     );
     if (period.status === "CLOSED") return period;
     return this.periods.close(period.id, ownerId, {
+      reconciliationAdjustmentMinorUnits:
+        budget.reconciliationAdjustmentMinorUnits,
       actualIncomeMinorUnits: budget.actualIncomeMinorUnits,
       actualExpenseMinorUnits: budget.actualExpenseMinorUnits,
       realRemainingMinorUnits: budget.realRemainingMinorUnits,
