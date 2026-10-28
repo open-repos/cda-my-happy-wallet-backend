@@ -14,9 +14,9 @@ import {
 } from "../../../utils/civilDateClock";
 
 export const integration = {
-  mode: "TRACKING_ONLY",
-  globalBudgetAdjusted: false,
-  warning: "GLOBAL_RAV_FORECAST_SAVINGS_UNCHANGED",
+  mode: "INTEGRATED",
+  globalBudgetAdjusted: true,
+  policy: "OPEN_RESERVED_CLOSED_MATCHED_ACTUAL",
 };
 const monthSchema = Joi.string().pattern(
   /^(19[7-9]\d|[2-9]\d{3})-(0[1-9]|1[0-2])$/

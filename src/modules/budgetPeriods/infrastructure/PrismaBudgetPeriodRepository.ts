@@ -1,3 +1,8 @@
+import { lockReconciliationOwner } from "../../reconciliation/infrastructure/reconciliationLocks";
+import {
+  reconcileFixedTotals,
+  envelopeReserve,
+} from "../../reconciliation/infrastructure/budgetReconciliationRead";
 import {
   BudgetPeriodStatus,
   Prisma,
@@ -18,7 +23,11 @@ import {
   PaginationCursorCodec,
   PaginationRequest,
 } from "../../pagination";
-import { BudgetMovement, PlannedMovement } from "../domain";
+import {
+  calculateRealBudget,
+  BudgetMovement,
+  PlannedMovement,
+} from "../domain";
 import { monthBounds } from "../domain/BudgetPeriod";
 import { BudgetScenario } from "../../monthlyEvents/domain";
 import {
@@ -126,28 +135,78 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
     ownerId: number,
     totals: CloseBudgetPeriodInput
   ): Promise<BudgetPeriodState> {
-    await this.prisma.budgetPeriod.updateMany({
-      where: { id, userId: ownerId, status: BudgetPeriodStatus.OPEN },
-      data: {
-        status: BudgetPeriodStatus.CLOSED,
-        actualIncome: decimalOf(totals.actualIncomeMinorUnits),
-        actualExpense: decimalOf(totals.actualExpenseMinorUnits),
-        realRemaining: decimalOf(totals.realRemainingMinorUnits),
-        unresolvedEvents: totals.unresolvedEvents,
-        closedAt: new Date(),
-        revision: { increment: 1 },
-      },
-    });
-    return this.findById(id, ownerId);
+    const close = async (tx: Prisma.TransactionClient) => {
+      await lockReconciliationOwner(tx, ownerId);
+      const period = await tx.budgetPeriod.findFirst({
+        where: { id, userId: ownerId },
+      });
+      if (!period) throw new Error("BUDGET_PERIOD_NOT_FOUND");
+      if (period.status === "CLOSED") return this.toState(period);
+      const month = period.periodStart.toISOString().slice(0, 7);
+      const budget = calculateRealBudget({
+        month,
+        currency: period.currency,
+        today: this.today(),
+        closed: true,
+        fixedIncomeMinorUnits: minorUnitsOf(period.fixedIncome),
+        fixedExpenseMinorUnits: minorUnitsOf(period.fixedExpense),
+        carryInMinorUnits: minorUnitsOf(period.carryIn),
+        movements: await new PrismaBudgetPeriodRepository(
+          tx,
+          this.cursors,
+          this.today
+        ).actualMovements(ownerId, month, period.currency),
+      });
+      return this.toState(
+        await tx.budgetPeriod.update({
+          where: { id },
+          data: {
+            status: "CLOSED",
+            actualIncome: decimalOf(budget.actualIncomeMinorUnits),
+            actualExpense: decimalOf(budget.actualExpenseMinorUnits),
+            realRemaining: decimalOf(budget.realRemainingMinorUnits),
+            reconciliationAdjustment: decimalOf(
+              budget.reconciliationAdjustmentMinorUnits ?? 0
+            ),
+            unresolvedEvents: totals.unresolvedEvents,
+            closedAt: new Date(),
+            revision: { increment: 1 },
+          },
+        })
+      );
+    };
+    return "$transaction" in this.prisma
+      ? this.prisma.$transaction(close)
+      : close(this.prisma);
   }
 
   public async fixedTotals(
     ownerId: number,
-    currency: string
+    currency: string,
+    month?: string
   ): Promise<
     Readonly<{ incomeMinorUnits: number; expenseMinorUnits: number }>
   > {
-    return loadFixedTotals(this.prisma, ownerId, currency);
+    const raw = await loadFixedTotals(this.prisma, ownerId, currency, month);
+    return month === undefined
+      ? raw
+      : reconcileFixedTotals(this.prisma, ownerId, currency, month, raw);
+  }
+
+  public envelopeReserve(ownerId: number, month: string, currency: string) {
+    return envelopeReserve(this.prisma, ownerId, month, currency);
+  }
+
+  public async hasReconciliationPlans(
+    ownerId: number,
+    month: string,
+    currency: string
+  ) {
+    return (
+      (await this.prisma.reconciliationOccurrence.count({
+        where: { userId: ownerId, month: this.periodStart(month), currency },
+      })) > 0
+    );
   }
 
   public async actualMovements(
@@ -165,12 +224,34 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
           lte: new Date(`${bounds.end}T00:00:00.000Z`),
         },
       },
-      select: { amount: true, type: true, operationDate: true },
+      select: {
+        amount: true,
+        type: true,
+        operationDate: true,
+        reconciliation: {
+          select: {
+            occurrence: {
+              select: { id: true, sourceType: true, fixedSourceId: true, planned: true },
+            },
+          },
+        },
+      },
       orderBy: [{ operationDate: "asc" }, { id: "asc" }],
     });
     return rows.map((row) => ({
       operationDate: row.operationDate.toISOString().slice(0, 10),
       minorUnits: minorUnitsOf(row.amount),
+      ...(row.reconciliation &&
+      row.reconciliation.occurrence.fixedSourceId !== null
+        ? {
+            fixedReconciliation: {
+              occurrenceId: row.reconciliation.occurrence.id,
+              plannedMinorUnits: minorUnitsOf(
+                row.reconciliation.occurrence.planned
+              ),
+            },
+          }
+        : {}),
       kind:
         row.type === TypeOperationEnum.ENTREE
           ? ("ENTREE" as const)
@@ -377,6 +458,7 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
     revision: number;
     closedAt: Date | null;
     correctedAt: Date | null;
+    reconciliationAdjustment: DecimalValue;
   }): BudgetPeriodState {
     return {
       id: row.id,
@@ -394,6 +476,13 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
       revision: row.revision,
       closedAt: row.closedAt,
       correctedAt: row.correctedAt,
+      ...(minorUnitsOf(row.reconciliationAdjustment) !== 0
+        ? {
+            reconciliationAdjustmentMinorUnits: minorUnitsOf(
+              row.reconciliationAdjustment
+            ),
+          }
+        : {}),
     };
   }
 

@@ -70,6 +70,7 @@ export class UserRepo implements IUserRepository {
       await tx.reconciliationLink.deleteMany({ where: { userId } });
       await tx.reconciliationOccurrence.deleteMany({ where: { userId } });
       await tx.budgetEnvelope.deleteMany({ where: { userId } });
+      await tx.operationFixe.deleteMany({ where: { userId } });
       return tx.utilisateur.deleteMany({ where: { id: userId, email } });
     });
   }

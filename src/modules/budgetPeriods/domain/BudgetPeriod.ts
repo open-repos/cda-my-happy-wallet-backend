@@ -4,6 +4,10 @@ export type BudgetMovement = Readonly<{
   operationDate: string;
   minorUnits: number;
   kind: BudgetMovementKind;
+  fixedReconciliation?: Readonly<{
+    occurrenceId: number;
+    plannedMinorUnits: number;
+  }>;
 }>;
 
 export type DailyBudgetPoint = Readonly<{
@@ -31,6 +35,7 @@ export type RealBudgetSummary = Readonly<{
   balanceStatus: BudgetBalanceStatus;
   remainingDays: number;
   realDailyAllowanceMinorUnits: number | null;
+  reconciliationAdjustmentMinorUnits?: number;
   days: readonly DailyBudgetPoint[];
 }>;
 
@@ -42,6 +47,8 @@ export type CalculateRealBudgetInput = Readonly<{
   fixedExpenseMinorUnits: number;
   carryInMinorUnits?: number;
   movements: readonly BudgetMovement[];
+  closed?: boolean;
+  frozenReconciliationAdjustmentMinorUnits?: number;
 }>;
 
 export type BudgetPeriodErrorCode =
@@ -126,7 +133,26 @@ export const calculateRealBudget = (
   >();
   let actualIncomeMinorUnits = 0;
   let actualExpenseMinorUnits = 0;
-  for (const movement of input.movements) {
+  const adjustmentsByDate = new Map<string, number>();
+  const reconciled = new Map<
+    number,
+    { actual: number; planned: number; kind: BudgetMovementKind }
+  >();
+  let reconciliationAdjustmentMinorUnits = 0;
+  const adjust = (date: string, amount: number) => {
+    const total = (adjustmentsByDate.get(date) ?? 0) + amount;
+    reconciliationAdjustmentMinorUnits += amount;
+    if (
+      !Number.isSafeInteger(total) ||
+      !Number.isSafeInteger(reconciliationAdjustmentMinorUnits)
+    )
+      throw new BudgetPeriodError("INVALID_AMOUNT");
+    adjustmentsByDate.set(date, total);
+  };
+  // Allocate the covered amount chronologically, independent of repository order.
+  for (const movement of [...input.movements].sort((a, b) =>
+    a.operationDate.localeCompare(b.operationDate)
+  )) {
     parseDate(movement.operationDate);
     assertMinorUnits(movement.minorUnits);
     if (
@@ -161,8 +187,50 @@ export const calculateRealBudget = (
       throw new BudgetPeriodError("INVALID_AMOUNT");
     }
     byDate.set(movement.operationDate, totals);
+    const link = movement.fixedReconciliation;
+    if (link) {
+      assertMinorUnits(link.plannedMinorUnits);
+      if (!Number.isSafeInteger(link.occurrenceId) || link.occurrenceId <= 0)
+        throw new BudgetPeriodError("INVALID_AMOUNT");
+      const previous = reconciled.get(link.occurrenceId) ?? {
+        actual: 0,
+        planned: link.plannedMinorUnits,
+        kind: movement.kind,
+      };
+      if (
+        previous.planned !== link.plannedMinorUnits ||
+        previous.kind !== movement.kind
+      )
+        throw new BudgetPeriodError("INVALID_AMOUNT");
+      const coveredBefore = Math.min(previous.actual, previous.planned);
+      previous.actual += movement.minorUnits;
+      assertMinorUnits(previous.actual);
+      const covered =
+        Math.min(previous.actual, previous.planned) - coveredBefore;
+      adjust(
+        movement.operationDate,
+        movement.kind === "DEPENSE" ? covered : -covered
+      );
+      reconciled.set(link.occurrenceId, previous);
+    }
   }
 
+  if (input.closed ?? input.month < input.today.slice(0, 7)) {
+    // A known actual replaces its fixed plan at closure. Unmatched plans stay reserved.
+    for (const group of reconciled.values()) {
+      const unused = Math.max(group.planned - group.actual, 0);
+      adjust(bounds.end, group.kind === "DEPENSE" ? unused : -unused);
+    }
+  }
+  if (input.frozenReconciliationAdjustmentMinorUnits !== undefined) {
+    if (!Number.isSafeInteger(input.frozenReconciliationAdjustmentMinorUnits))
+      throw new BudgetPeriodError("INVALID_AMOUNT");
+    adjust(
+      bounds.end,
+      input.frozenReconciliationAdjustmentMinorUnits -
+        reconciliationAdjustmentMinorUnits
+    );
+  }
   const baseMinorUnits =
     input.fixedIncomeMinorUnits - input.fixedExpenseMinorUnits;
   let runningMinorUnits = baseMinorUnits + carryInMinorUnits;
@@ -173,7 +241,10 @@ export const calculateRealBudget = (
       incomeMinorUnits: 0,
       expenseMinorUnits: 0,
     };
-    runningMinorUnits += totals.incomeMinorUnits - totals.expenseMinorUnits;
+    runningMinorUnits +=
+      totals.incomeMinorUnits -
+      totals.expenseMinorUnits +
+      (adjustmentsByDate.get(date) ?? 0);
     if (!Number.isSafeInteger(runningMinorUnits)) {
       throw new BudgetPeriodError("INVALID_AMOUNT");
     }
@@ -181,7 +252,10 @@ export const calculateRealBudget = (
   }
 
   const monthResultMinorUnits =
-    baseMinorUnits + actualIncomeMinorUnits - actualExpenseMinorUnits;
+    baseMinorUnits +
+    actualIncomeMinorUnits -
+    actualExpenseMinorUnits +
+    reconciliationAdjustmentMinorUnits;
   const realRemainingMinorUnits = monthResultMinorUnits + carryInMinorUnits;
   const currentMonth = input.today.slice(0, 7);
   const remainingDays =
@@ -211,6 +285,9 @@ export const calculateRealBudget = (
       remainingDays === 0
         ? null
         : Math.round(realRemainingMinorUnits / remainingDays),
+    ...(reconciled.size > 0 || reconciliationAdjustmentMinorUnits !== 0
+      ? { reconciliationAdjustmentMinorUnits }
+      : {}),
     days,
   };
 };

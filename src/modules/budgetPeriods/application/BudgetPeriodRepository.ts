@@ -15,6 +15,7 @@ export type BudgetPeriodState = Readonly<{
   carryInMinorUnits: number;
   unresolvedEvents: number;
   revision: number;
+  reconciliationAdjustmentMinorUnits?: number;
   closedAt: Date | null;
   correctedAt: Date | null;
 }>;
@@ -34,9 +35,21 @@ export type CloseBudgetPeriodInput = Readonly<{
   actualExpenseMinorUnits: number;
   realRemainingMinorUnits: number;
   unresolvedEvents: number;
+  reconciliationAdjustmentMinorUnits?: number;
 }>;
 
 export interface BudgetPeriodRepository {
+  /** Remaining variable budget only; fixed plans already belong to the base. */
+  envelopeReserve?(
+    ownerId: number,
+    month: string,
+    currency: string
+  ): Promise<number>;
+  hasReconciliationPlans?(
+    ownerId: number,
+    month: string,
+    currency: string
+  ): Promise<boolean>;
   find(
     ownerId: number,
     month: string,
@@ -63,7 +76,8 @@ export interface BudgetPeriodRepository {
   ): Promise<BudgetPeriodState>;
   fixedTotals(
     ownerId: number,
-    currency: string
+    currency: string,
+    month?: string
   ): Promise<Readonly<{ incomeMinorUnits: number; expenseMinorUnits: number }>>;
   actualMovements(
     ownerId: number,

@@ -1,4 +1,8 @@
 import {
+  fixedChargeDtoSchema,
+  fixedIncomeDtoSchema,
+} from "./fixedChargeSwagger";
+import {
   paginatedCollectionResponse,
   paginationParameters,
 } from "./paginationSwagger";
@@ -34,6 +38,98 @@ const envelopeProperties = {
   endMonth: { ...month, nullable: true },
 };
 export const reconciliationSchemas = {
+  FixedMonthOperation: {
+    oneOf: [
+      {
+        ...fixedChargeDtoSchema,
+        properties: { ...fixedChargeDtoSchema.properties, id },
+        required: [...fixedChargeDtoSchema.required, "id", "typeOperation"],
+      },
+      {
+        ...fixedIncomeDtoSchema,
+        properties: { ...fixedIncomeDtoSchema.properties, id },
+        required: [...fixedIncomeDtoSchema.required, "id", "typeOperation"],
+      },
+    ],
+  },
+  EnvelopeStatistics: object({
+    sampleMonths: { type: "integer", minimum: 0 },
+    completedMonthsObserved: { type: "integer", minimum: 0 },
+    unreconciledMonthsExcluded: { type: "integer", minimum: 0 },
+    incompleteMonthsExcluded: { type: "integer", minimum: 0 },
+    meanActual: { ...amount, nullable: true },
+    meanPlanned: { ...amount, nullable: true },
+    meanVariance: {
+      type: "string",
+      nullable: true,
+      pattern: "^-?[0-9]+\\.[0-9]{2}$",
+    },
+    meanOverrun: { ...amount, nullable: true },
+    exceededMonths: { type: "integer", minimum: 0 },
+    overrunRate: { type: "number", nullable: true, minimum: 0, maximum: 100 },
+    samplePolicy: {
+      type: "string",
+      enum: ["COMPLETED_MONTHS_WITH_LINKED_OPERATIONS"],
+    },
+  }),
+  EnvelopeMonthOverview: object({
+    occurrenceId: id,
+    month,
+    categoryId: nullableId,
+    planned: amount,
+    actual: amount,
+    remaining: amount,
+    overrun: amount,
+    projected: amount,
+    progress: { type: "number", nullable: true },
+    status: { type: "string", enum: ["AVAILABLE", "REACHED", "EXCEEDED"] },
+    operationCount: { type: "integer", minimum: 0 },
+    paymentsPath: { type: "string" },
+    paymentsPreview: {
+      type: "array",
+      maxItems: 3,
+      items: object({
+        id,
+        title: { type: "string" },
+        amount,
+        operationDate: { type: "string", format: "date" },
+      }),
+    },
+  }),
+  EnvelopeOverview: object({
+    id,
+    title: { type: "string" },
+    currency,
+    category: { type: "object", nullable: true },
+    totals: {
+      type: "object",
+      description:
+        "Metrics on observed months, observedMonths, operationCount and sumMonthlyOverrun. Annual net overrun and sum of monthly overruns are distinct.",
+    },
+    months: {
+      type: "array",
+      maxItems: 12,
+      items: ref("EnvelopeMonthOverview"),
+    },
+    statistics: ref("EnvelopeStatistics"),
+  }),
+  EnvelopeCategoryAnalysis: object({
+    id: { type: "integer", minimum: 0 },
+    category: { type: "object", nullable: true },
+    statistics: ref("EnvelopeStatistics"),
+    months: {
+      type: "array",
+      maxItems: 12,
+      items: object({
+        month,
+        planned: amount,
+        actual: amount,
+        operationCount: { type: "integer", minimum: 0 },
+        unreconciledEnvelopes: { type: "integer", minimum: 0 },
+      }),
+    },
+  }),
+
   ReconciliationAssignment: object({
     operationId: id,
     occurrenceId: nullableId,
@@ -51,12 +147,9 @@ export const reconciliationSchemas = {
     archived: { type: "boolean" },
   }),
   ReconciliationIntegration: object({
-    mode: { type: "string", enum: ["TRACKING_ONLY"] },
-    globalBudgetAdjusted: { type: "boolean", enum: [false] },
-    warning: {
-      type: "string",
-      enum: ["GLOBAL_RAV_FORECAST_SAVINGS_UNCHANGED"],
-    },
+    mode: { type: "string", enum: ["INTEGRATED"] },
+    globalBudgetAdjusted: { type: "boolean", enum: [true] },
+    policy: { type: "string", enum: ["OPEN_RESERVED_CLOSED_MATCHED_ACTUAL"] },
   }),
   ReconciliationMetrics: object(
     {
@@ -145,7 +238,13 @@ export const reconciliationSchemas = {
     eligible: { type: "boolean" },
     reason: {
       type: "string",
-      enum: ["ELIGIBLE", "NON_MONTHLY_WITHOUT_DUE_DATE", "MISSING_CURRENCY"],
+      enum: [
+        "ELIGIBLE",
+        "NOT_BUDGET_ENVELOPE",
+        "INCOME_NOT_ELIGIBLE",
+        "NON_MONTHLY_WITHOUT_DUE_DATE",
+        "MISSING_CURRENCY",
+      ],
     },
   }),
   ReconciliationSummary: object({
@@ -248,6 +347,55 @@ const idParam = parameter("id", "path", id);
 const monthParam = parameter("month", "path", month);
 const currencyParam = parameter("currency", "query", currency);
 export const swReconciliationRouter = {
+  "/envelope-overview": {
+    get: action(
+      "Monthly/yearly envelope overview with three-payment previews; observed history only",
+      [
+        parameter("month", "query", month, false),
+        parameter(
+          "year",
+          "query",
+          { type: "integer", minimum: 1970, maximum: 9999 },
+          false
+        ),
+        currencyParam,
+        ...paginationParameters,
+      ],
+      {
+        "200": list("EnvelopeOverview", {
+          range: object({ from: month, to: month, currency }),
+          historyPolicy: { type: "string", enum: ["OBSERVED_ONLY"] },
+        }),
+      }
+    ),
+  },
+  "/envelope-analytics": {
+    get: action(
+      "Means and overrun frequency by envelope category on at most 12 months; excludes incomplete and unreconciled months",
+      [
+        parameter("from", "query", month),
+        parameter("to", "query", month),
+        currencyParam,
+        ...paginationParameters,
+      ],
+      {
+        "200": list("EnvelopeCategoryAnalysis", {
+          range: object({ from: month, to: month, currency }),
+          historyPolicy: { type: "string", enum: ["OBSERVED_ONLY"] },
+        }),
+      }
+    ),
+  },
+  "/operations-fixes/months/{month}": {
+    get: action(
+      "Dated view of fixed charges and income, applying scheduled versions without changing past periods",
+      [monthParam, ...paginationParameters],
+      {
+        "200": list("FixedMonthOperation"),
+      }
+    ),
+  },
+
   "/budget-envelopes": {
     get: action(
       "List definitions; optional month selects active definitions, historical snapshots are in occurrences",
@@ -255,7 +403,7 @@ export const swReconciliationRouter = {
       { "200": list("BudgetEnvelope") }
     ),
     post: action(
-      "Create a recurring monthly variable expense envelope (zero allowed)",
+      "Create a monthly fixed charge explicitly marked as a budget envelope (alias; zero allowed)",
       [],
       { "201": response("BudgetEnvelope") },
       body(ref("BudgetEnvelopeInput"))
@@ -266,13 +414,13 @@ export const swReconciliationRouter = {
       "200": response("BudgetEnvelope"),
     }),
     put: action(
-      "Replace definition for unmaterialized months only; existing snapshots remain unchanged",
+      "Edit an opted-in fixed charge; open occurrences update from the effective month, closed snapshots remain unchanged",
       [idParam],
       { "200": response("BudgetEnvelope") },
       body(ref("BudgetEnvelopeInput"))
     ),
     delete: action(
-      "Archive idempotently; retain all existing occurrences and financial operations",
+      "Archive an opted-in fixed charge idempotently; reject open linked payments; preserve closed history",
       [idParam],
       { "204": { description: "Archived" } }
     ),
@@ -307,9 +455,13 @@ export const swReconciliationRouter = {
     ),
   },
   "/reconciliation/occurrences/{id}": {
-    get: action("Read snapshot and exact personal-basis metrics", [idParam], {
-      "200": response("ReconciliationOccurrence", true),
-    }),
+    get: action(
+      "Read snapshot and exact personal-basis envelope metrics",
+      [idParam],
+      {
+        "200": response("ReconciliationOccurrence", true),
+      }
+    ),
     patch: action(
       "Explicitly override planned amount for an open occurrence; reference snapshot remains intact",
       [idParam],

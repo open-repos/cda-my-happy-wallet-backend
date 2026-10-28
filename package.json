@@ -89,10 +89,10 @@
     "test:fixed-charges": "ts-node test/modules/operationsFixes/FixedCharges.test.ts && ts-node test/modules/operationsFixes/FixedChargesApi.test.ts && ts-node test/modules/operationsFixes/FixedCategoriesDefaults.test.ts",
     "test:fixed-charge-migration": "ts-node test/modules/operationsFixes/FixedChargesMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/operationsFixes/FixedChargesMigration.test.ts verify",
     "test:fixed-charge-persistence": "ts-node test/modules/operationsFixes/FixedChargesPersistence.test.ts",
-    "test:reconciliation-domain": "ts-node test/modules/reconciliation/Reconciliation.test.ts",
+    "test:reconciliation-domain": "ts-node test/modules/reconciliation/Reconciliation.test.ts && ts-node test/modules/reconciliation/IntegratedBudget.test.ts",
     "test:reconciliation-api": "ts-node test/modules/reconciliation/ReconciliationApi.test.ts",
-    "test:reconciliation-persistence": "ts-node test/modules/reconciliation/ReconciliationPersistence.test.ts",
-    "test:reconciliation-migration": "ts-node test/modules/reconciliation/ReconciliationMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/reconciliation/ReconciliationMigration.test.ts verify && prisma migrate deploy"
+    "test:reconciliation-persistence": "ts-node test/modules/reconciliation/ReconciliationPersistence.test.ts && ts-node test/modules/reconciliation/IntegratedBudgetPersistence.test.ts",
+    "test:reconciliation-migration": "ts-node test/modules/reconciliation/ReconciliationMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/reconciliation/ReconciliationMigration.test.ts verify && prisma migrate deploy && ts-node test/modules/reconciliation/ReconciliationIntegrationMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/reconciliation/ReconciliationIntegrationMigration.test.ts verify"
   },
   "repository": {
     "type": "git",

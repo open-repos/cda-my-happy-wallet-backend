@@ -17,6 +17,8 @@ export type BudgetForecastReads = Pick<
   | "fixedTotals"
   | "actualMovements"
   | "plannedMovements"
+  | "hasReconciliationPlans"
+  | "envelopeReserve"
   | "goalSavings"
 >;
 
@@ -35,6 +37,8 @@ export type MonthlyBudgetForecast = Readonly<{
   prudentDailyAllowanceMinorUnits: number;
   prudentWeeklyAllowanceMinorUnits: number;
   prudentMonthlyAllowanceMinorUnits: number;
+  envelopeReserveMinorUnits?: number;
+  reconciliationAdjustmentMinorUnits?: number;
 }>;
 
 const monthIndex = (month: string) =>
@@ -77,7 +81,7 @@ export class BudgetForecastService {
     if (!/^[A-Z]{3}$/.test(normalizedCurrency))
       throw new BudgetPeriodError("INVALID_CURRENCY");
     const [fixed, savings, actual, carry] = await Promise.all([
-      this.periods.fixedTotals(ownerId, normalizedCurrency),
+      this.periods.fixedTotals(ownerId, normalizedCurrency, currentMonth),
       this.periods.goalSavings(ownerId, normalizedCurrency),
       this.periods.actualMovements(ownerId, currentMonth, normalizedCurrency),
       this.currentCarry(ownerId, currentMonth, normalizedCurrency, today),
@@ -98,6 +102,10 @@ export class BudgetForecastService {
       const month = shiftMonth(currentMonth, index);
       const bounds = monthBounds(month);
       const carryInMinorUnits = remaining;
+      const monthlyFixed =
+        index === 0
+          ? fixed
+          : await this.periods.fixedTotals(ownerId, normalizedCurrency, month);
       const real =
         index === 0
           ? current
@@ -105,10 +113,18 @@ export class BudgetForecastService {
               month,
               currency: normalizedCurrency,
               today: bounds.start,
-              fixedIncomeMinorUnits: fixed.incomeMinorUnits,
-              fixedExpenseMinorUnits: fixed.expenseMinorUnits,
+              fixedIncomeMinorUnits: monthlyFixed.incomeMinorUnits,
+              fixedExpenseMinorUnits: monthlyFixed.expenseMinorUnits,
               carryInMinorUnits,
-              movements: [],
+              movements: (
+                await this.periods.actualMovements(
+                  ownerId,
+                  month,
+                  normalizedCurrency
+                )
+              ).filter(
+                (movement) => movement.fixedReconciliation !== undefined
+              ),
             });
       const forecast = calculateForecastBudget({
         real,
@@ -120,6 +136,12 @@ export class BudgetForecastService {
           scenario
         ),
         goalSavingsMinorUnits: savings,
+        envelopeReserveMinorUnits:
+          (await this.periods.envelopeReserve?.(
+            ownerId,
+            month,
+            normalizedCurrency
+          )) ?? 0,
       });
       remaining = forecast.forecastRemainingMinorUnits;
       const forecastResultMinorUnits = remaining - carryInMinorUnits;
@@ -128,8 +150,8 @@ export class BudgetForecastService {
       if (index >= offset)
         result.push({
           month,
-          fixedIncomeMinorUnits: fixed.incomeMinorUnits,
-          fixedExpenseMinorUnits: fixed.expenseMinorUnits,
+          fixedIncomeMinorUnits: monthlyFixed.incomeMinorUnits,
+          fixedExpenseMinorUnits: monthlyFixed.expenseMinorUnits,
           baseMinorUnits: real.baseMinorUnits,
           carryInMinorUnits,
           plannedIncomeMinorUnits: forecast.plannedIncomeMinorUnits,
@@ -150,6 +172,17 @@ export class BudgetForecastService {
                 real.remainingDays
             ),
           prudentMonthlyAllowanceMinorUnits: remaining,
+          ...(forecast.envelopeReserveMinorUnits === undefined
+            ? {}
+            : {
+                envelopeReserveMinorUnits: forecast.envelopeReserveMinorUnits,
+              }),
+          ...(real.reconciliationAdjustmentMinorUnits === undefined
+            ? {}
+            : {
+                reconciliationAdjustmentMinorUnits:
+                  real.reconciliationAdjustmentMinorUnits,
+              }),
         });
     }
     return {
@@ -179,7 +212,7 @@ export class BudgetForecastService {
     let carry = latestClosed?.realRemainingMinorUnits ?? 0;
     let fixed =
       latestClosed == null
-        ? await this.periods.fixedTotals(owner, currency)
+        ? await this.periods.fixedTotals(owner, currency, origin)
         : {
             incomeMinorUnits: latestClosed.fixedIncomeMinorUnits,
             expenseMinorUnits: latestClosed.fixedExpenseMinorUnits,
@@ -191,6 +224,12 @@ export class BudgetForecastService {
           incomeMinorUnits: state.fixedIncomeMinorUnits,
           expenseMinorUnits: state.fixedExpenseMinorUnits,
         };
+      if (
+        state == null &&
+        (await this.periods.hasReconciliationPlans?.(owner, cursor, currency))
+      ) {
+        fixed = await this.periods.fixedTotals(owner, currency, cursor);
+      }
       carry = calculateRealBudget({
         month: cursor,
         currency,
@@ -199,6 +238,12 @@ export class BudgetForecastService {
         fixedExpenseMinorUnits: fixed.expenseMinorUnits,
         carryInMinorUnits: carry,
         movements: await this.periods.actualMovements(owner, cursor, currency),
+        ...(state?.status === "CLOSED"
+          ? {
+              frozenReconciliationAdjustmentMinorUnits:
+                state.reconciliationAdjustmentMinorUnits ?? 0,
+            }
+          : {}),
       }).realRemainingMinorUnits;
       cursor = shiftMonth(cursor, 1);
     }

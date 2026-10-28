@@ -6,6 +6,8 @@ const phase = process.argv[2];
 const fixtureEmail = "operation-migration@example.test";
 const fixtureCategory = "Migration test";
 const migrationNames = [
+  "20261028100000_fixed_envelope_versions",
+  "20261028090000_integrate_reconciliation_budget",
   "20261027120000_add_budget_reconciliation",
   "20260809210000_expand_personal_operation_categories",
   "20260809211000_backfill_personal_operation_categories",
@@ -113,6 +115,9 @@ const prepare = async () => {
   await prisma.$executeRawUnsafe(
     "DROP INDEX `OperationFixe_userId_typeOperation_idOperationFixe_idx` ON `OperationFixe`"
   );
+  assert.strictEqual(await prisma.fixedOperationVersion.count(), 0);
+  await prisma.$executeRawUnsafe("DROP TABLE FixedOperationVersion");
+  await prisma.$executeRawUnsafe("ALTER TABLE OperationFixe DROP INDEX OperationFixe_idOperationFixe_userId_key, DROP COLUMN isBudgetEnvelope, DROP COLUMN budgetStartMonth, DROP COLUMN budgetEndMonth, DROP COLUMN budgetArchived");
   // New additive tables reference the schema reconstructed below. Refuse to
   // discard reconciliation fixtures if this suite is called in the wrong order.
   assert.strictEqual(await prisma.reconciliationLink.count(), 0);

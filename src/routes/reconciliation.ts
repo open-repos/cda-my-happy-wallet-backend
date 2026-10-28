@@ -1,3 +1,5 @@
+import { EnvelopeReportingController } from "../modules/reconciliation/presentation/EnvelopeReportingController";
+import { PrismaEnvelopeReporting } from "../modules/reconciliation/infrastructure/PrismaEnvelopeReporting";
 import { RequestHandler, Router } from "express";
 import { tokenJwtTAuth } from "../middlewares/authenticateToken.middleware";
 import { ReconciliationController } from "../modules/reconciliation/presentation/ReconciliationController";
@@ -7,9 +9,24 @@ import { prisma } from "../database";
 
 export function createReconciliationRouter(
   controller: ReconciliationController,
-  authenticate: RequestHandler = tokenJwtTAuth
+  authenticate: RequestHandler = tokenJwtTAuth,
+  reports = new EnvelopeReportingController(new PrismaEnvelopeReporting(prisma))
 ) {
   const router = Router();
+  const reporting =
+    (method: "overview" | "analytics" | "fixedMonth"): RequestHandler =>
+    (req, res, next) => {
+      Promise.resolve(reports[method](req, res)).catch((error) =>
+        next(reconciliationHttpError(error))
+      );
+    };
+  router.get("/envelope-overview", authenticate, reporting("overview"));
+  router.get("/envelope-analytics", authenticate, reporting("analytics"));
+  router.get(
+    "/operations-fixes/months/:month",
+    authenticate,
+    reporting("fixedMonth")
+  );
   const action =
     (method: keyof ReconciliationController): RequestHandler =>
     (req, res, next) => {

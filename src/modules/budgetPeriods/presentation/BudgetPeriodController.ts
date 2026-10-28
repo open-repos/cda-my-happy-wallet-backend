@@ -82,6 +82,13 @@ export class BudgetPeriodController {
       actualIncome: amountOf(budget.actualIncomeMinorUnits),
       actualExpense: amountOf(budget.actualExpenseMinorUnits),
       monthResult: amountOf(budget.monthResultMinorUnits),
+      ...(budget.reconciliationAdjustmentMinorUnits === undefined
+        ? {}
+        : {
+            reconciliationAdjustment: amountOf(
+              budget.reconciliationAdjustmentMinorUnits
+            ),
+          }),
       realRemaining: amountOf(budget.realRemainingMinorUnits),
       remainingDays: budget.remainingDays,
       realDailyAllowance: optionalAmountOf(budget.realDailyAllowanceMinorUnits),
@@ -96,6 +103,13 @@ export class BudgetPeriodController {
               plannedIncome: amountOf(forecast.plannedIncomeMinorUnits),
               plannedExpense: amountOf(forecast.plannedExpenseMinorUnits),
               goalSavings: amountOf(forecast.goalSavingsMinorUnits),
+              ...(forecast.envelopeReserveMinorUnits === undefined
+                ? {}
+                : {
+                    envelopeReserve: amountOf(
+                      forecast.envelopeReserveMinorUnits
+                    ),
+                  }),
               forecastRemaining: amountOf(forecast.forecastRemainingMinorUnits),
               prudentDailyAllowance: optionalAmountOf(
                 forecast.prudentDailyAllowanceMinorUnits
@@ -132,6 +146,13 @@ export class BudgetPeriodController {
       period.fixedIncomeMinorUnits - period.fixedExpenseMinorUnits
     ),
     carryIn: amountOf(period.carryInMinorUnits),
+    ...(period.reconciliationAdjustmentMinorUnits === undefined
+      ? {}
+      : {
+          reconciliationAdjustment: amountOf(
+            period.reconciliationAdjustmentMinorUnits
+          ),
+        }),
     actualIncome: amountOf(period.actualIncomeMinorUnits),
     actualExpense: amountOf(period.actualExpenseMinorUnits),
     monthResult: amountOf(

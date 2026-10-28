@@ -1,13 +1,14 @@
 import {
-  Prisma,
-  PrismaClient,
-  BudgetEnvelope,
-  ReconciliationOccurrence,
-} from "@prisma/client";
-import {
-  CivilDateClock,
-  parisCivilDateClock,
-} from "../../../utils/civilDateClock";
+  effectiveFixedRows,
+  resolvedFixedRow,
+  snapshotOf,
+  scheduleFixedVersion,
+  monthDate,
+  fixedCategorySelect,
+} from "../../operationsFixes/infrastructure/fixedVersions";
+import { parisCivilDateClock } from "../../../utils/civilDateClock";
+import { Prisma, PrismaClient, ReconciliationOccurrence } from "@prisma/client";
+import { CivilDateClock } from "../../../utils/civilDateClock";
 import {
   createCursorPage,
   decodePositiveIntegerCursor,
@@ -21,7 +22,6 @@ import {
   Occurrence,
 } from "../application/ReconciliationRepository";
 import {
-  assertCompatible,
   cents,
   metrics,
   money,
@@ -29,6 +29,7 @@ import {
   ReconciliationError,
 } from "../domain/Reconciliation";
 import {
+  applyReconciliationLink,
   assertOpen,
   lockReconciliationOwner,
   periodClosed,
@@ -36,16 +37,20 @@ import {
 
 const date = (month: string) => new Date(`${month}-01T00:00:00Z`);
 const monthOf = (value: Date) => value.toISOString().slice(0, 7);
-const envelopeDto = (row: BudgetEnvelope) => ({
-  id: row.id,
-  title: row.title,
-  amount: row.amount.toFixed(2),
-  currency: row.currency,
-  categoryId: row.categoryId,
-  startMonth: monthOf(row.startMonth),
-  endMonth: row.endMonth ? monthOf(row.endMonth) : null,
-  archived: row.archived,
-});
+const envelopeDto = (row: any) => {
+  const snapshot = snapshotOf(row);
+  return {
+    id: row.idOperationFixe,
+    title: snapshot.titre,
+    amount: new Prisma.Decimal(snapshot.montant).toFixed(2),
+    currency: snapshot.devise!,
+    categoryId: snapshot.categoryId,
+    startMonth:
+      snapshot.budgetStartMonth ?? row.created_at.toISOString().slice(0, 7),
+    endMonth: snapshot.budgetEndMonth,
+    archived: snapshot.budgetArchived,
+  };
+};
 
 export class PrismaReconciliationRepository
   implements ReconciliationRepository
@@ -118,11 +123,22 @@ export class PrismaReconciliationRepository
     owner: number,
     id: number
   ) {
-    const row = await tx.budgetEnvelope.findFirst({
-      where: { id, userId: owner },
+    const row = await tx.operationFixe.findFirst({
+      where: { idOperationFixe: id, userId: owner, typeOperation: "CHARGE" },
+      include: {
+        category: { select: fixedCategorySelect },
+        versions: {
+          where: {
+            effectiveMonth: { lte: monthDate(this.today().slice(0, 7)) },
+          },
+          orderBy: { effectiveMonth: "desc" },
+          take: 1,
+        },
+      },
     });
-    if (!row) throw new ReconciliationError("NOT_FOUND");
-    return row;
+    const resolved = row && resolvedFixedRow(row);
+    if (!resolved?.isBudgetEnvelope) throw new ReconciliationError("NOT_FOUND");
+    return resolved;
   }
   private async occurrence(
     tx: Prisma.TransactionClient,
@@ -154,22 +170,35 @@ export class PrismaReconciliationRepository
       month ?? "",
       page
     );
-    const rows = await this.prisma.budgetEnvelope.findMany({
+    const current = month ?? this.today().slice(0, 7);
+    const rows = await this.prisma.operationFixe.findMany({
       where: {
         userId: owner,
-        ...where,
-        ...(month
-          ? {
-              archived: false,
-              startMonth: { lte: date(month) },
-              OR: [{ endMonth: null }, { endMonth: { gte: date(month) } }],
-            }
-          : {}),
+        typeOperation: "CHARGE",
+        ...("id" in where ? { idOperationFixe: where.id } : {}),
       },
-      orderBy: { id: "asc" },
-      take: page.limit + 1,
+      include: {
+        category: { select: fixedCategorySelect },
+        versions: {
+          where: { effectiveMonth: { lte: monthDate(current) } },
+          orderBy: { effectiveMonth: "desc" },
+          take: 1,
+        },
+      },
+      orderBy: { idOperationFixe: "asc" },
     });
-    return this.page(rows.map(envelopeDto), page, context);
+    const result = rows
+      .map(resolvedFixedRow)
+      .filter((row) => row.isBudgetEnvelope)
+      .map(envelopeDto)
+      .filter(
+        (row) =>
+          month === undefined ||
+          (!row.archived &&
+            row.startMonth <= month &&
+            (!row.endMonth || row.endMonth >= month))
+      );
+    return this.page(result.slice(0, page.limit + 1), page, context);
   }
   async getEnvelope(owner: number, id: number) {
     return this.transaction(owner, async (tx) =>
@@ -177,39 +206,66 @@ export class PrismaReconciliationRepository
     );
   }
   async saveEnvelope(owner: number, input: EnvelopeInput, id?: number) {
+    if (id !== undefined) {
+      const existing = await this.getEnvelope(owner, id);
+      if (existing.archived) throw new ReconciliationError("ARCHIVED_ENVELOPE");
+      await scheduleFixedVersion(
+        this.prisma,
+        owner,
+        id,
+        "CHARGE",
+        {
+          titre: input.title,
+          montant: input.amount,
+          devise: input.currency,
+          categoryId: input.categoryId,
+          isBudgetEnvelope: true,
+          budgetStartMonth: input.startMonth,
+          budgetEndMonth: input.endMonth,
+        },
+        this.today()
+      );
+      return this.getEnvelope(owner, id);
+    }
     return this.transaction(owner, async (tx) => {
-      if (id !== undefined && (await this.envelope(tx, owner, id)).archived)
-        throw new ReconciliationError("ARCHIVED_ENVELOPE");
-      if (input.categoryId !== null) {
-        const category = await tx.operationCategory.findFirst({
-          where: { id: input.categoryId, userId: owner },
-        });
-        if (!category) throw new ReconciliationError("NOT_FOUND");
-        if (category.fixedKind === "REVENU")
-          throw new ReconciliationError("INVALID_CATEGORY");
-      }
-      // Definitions never rewrite existing occurrence snapshots, even in an open month.
-      const data = {
-        ...input,
-        userId: owner,
-        startMonth: date(input.startMonth),
-        endMonth: input.endMonth ? date(input.endMonth) : null,
-      };
-      const row =
-        id === undefined
-          ? await tx.budgetEnvelope.create({ data })
-          : await tx.budgetEnvelope.update({ where: { id }, data });
-      return envelopeDto(row);
+      const category =
+        input.categoryId === null
+          ? null
+          : await tx.operationCategory.findFirst({
+              where: { id: input.categoryId, userId: owner },
+              select: fixedCategorySelect,
+            });
+      if (input.categoryId !== null && !category)
+        throw new ReconciliationError("NOT_FOUND");
+      if (category?.fixedKind === "REVENU")
+        throw new ReconciliationError("INVALID_CATEGORY");
+      return envelopeDto(
+        await tx.operationFixe.create({
+          data: {
+            userId: owner,
+            titre: input.title,
+            montant: input.amount,
+            devise: input.currency,
+            categoryId: input.categoryId,
+            isBudgetEnvelope: true,
+            budgetStartMonth: date(input.startMonth),
+            budgetEndMonth: input.endMonth ? date(input.endMonth) : null,
+          },
+        })
+      );
     });
   }
   async archiveEnvelope(owner: number, id: number) {
-    await this.transaction(owner, async (tx) => {
-      await this.envelope(tx, owner, id);
-      await tx.budgetEnvelope.update({
-        where: { id },
-        data: { archived: true },
-      });
-    });
+    const row = await this.getEnvelope(owner, id);
+    if (row.archived) return;
+    await scheduleFixedVersion(
+      this.prisma,
+      owner,
+      id,
+      "CHARGE",
+      { budgetArchived: true },
+      this.today()
+    );
   }
 
   /** First read materializes snapshots once; never invent past forecasts from today's rules. */
@@ -220,60 +276,29 @@ export class PrismaReconciliationRepository
     currency: string
   ) {
     if (await periodClosed(tx, owner, month, currency, this.today())) return;
-    const [envelopes, fixed] = await Promise.all([
-      tx.budgetEnvelope.findMany({
-        where: {
-          userId: owner,
-          currency,
-          archived: false,
-          startMonth: { lte: date(month) },
-          OR: [{ endMonth: null }, { endMonth: { gte: date(month) } }],
-        },
-      }),
-      tx.operationFixe.findMany({
-        where: { userId: owner, devise: currency, periodicite: "MENSUELLE" },
-      }),
-    ]);
-    const data: Prisma.ReconciliationOccurrenceCreateManyInput[] = [
-      ...envelopes.map((row) => ({
-        userId: owner,
-        month: date(month),
-        sourceKey: `ENVELOPE:${row.id}`,
-        sourceType: "ENVELOPE" as const,
-        envelopeId: row.id,
-        title: row.title,
-        currency,
-        kind: "DEPENSE" as const,
-        referenceTotal: row.amount,
-        personalShare: "100.00",
-        planned: row.amount,
-        categoryId: row.categoryId,
-      })),
-      ...fixed.map((row) => ({
+    const fixed = (await effectiveFixedRows(tx, owner, month)).filter(
+      (row) =>
+        row.isBudgetEnvelope &&
+        row.typeOperation === "CHARGE" &&
+        row.periodicite === "MENSUELLE" &&
+        row.devise?.toUpperCase() === currency
+    );
+    const data: Prisma.ReconciliationOccurrenceCreateManyInput[] = fixed.map(
+      (row) => ({
         userId: owner,
         month: date(month),
         sourceKey: `FIXED:${row.idOperationFixe}`,
-        sourceType:
-          row.typeOperation === "CHARGE"
-            ? ("FIXED_EXPENSE" as const)
-            : ("FIXED_INCOME" as const),
+        sourceType: "ENVELOPE",
         fixedSourceId: row.idOperationFixe,
         title: row.titre,
         currency,
-        kind:
-          row.typeOperation === "CHARGE"
-            ? ("DEPENSE" as const)
-            : ("ENTREE" as const),
+        kind: "DEPENSE",
         referenceTotal: row.montant,
-        personalShare:
-          row.typeOperation === "CHARGE" ? row.pourcentagePersonnel : "100.00",
-        planned:
-          row.typeOperation === "CHARGE"
-            ? money(personalChargeMinorUnits(row))
-            : row.montant,
+        personalShare: row.pourcentagePersonnel,
+        planned: money(personalChargeMinorUnits(row)),
         categoryId: row.categoryId,
-      })),
-    ];
+      })
+    );
     // Avoid consuming AUTO_INCREMENT IDs on repeated INSERT IGNORE replays.
     const existing = await tx.reconciliationOccurrence.findMany({
       where: { userId: owner, month: date(month) },
@@ -451,57 +476,16 @@ export class PrismaReconciliationRepository
     occurrenceId: number | null,
     expectedOccurrenceId: number | null
   ) {
-    await this.transaction(owner, async (tx) => {
-      const operation = await this.operation(tx, owner, operationId);
-      const current = operation.reconciliation?.occurrenceId ?? null;
-      const destination =
-        occurrenceId === null
-          ? null
-          : await this.occurrence(tx, owner, occurrenceId);
-      // Read-only replay is safe even after closure. Stale commands never overwrite a different assignment.
-      if (current === occurrenceId) return;
-      if (current !== expectedOccurrenceId)
-        throw new ReconciliationError("ASSOCIATION_CONFLICT");
-      if (current !== null) {
-        const previous = await this.occurrence(tx, owner, current);
-        await assertOpen(
-          tx,
-          owner,
-          monthOf(previous.month),
-          previous.currency,
-          this.today()
-        );
-      }
-      if (destination) {
-        await assertOpen(
-          tx,
-          owner,
-          monthOf(destination.month),
-          destination.currency,
-          this.today()
-        );
-        assertCompatible(
-          {
-            month: monthOf(destination.month),
-            currency: destination.currency,
-            kind: destination.kind,
-          },
-          {
-            operationDate: operation.operationDate.toISOString().slice(0, 10),
-            currency: operation.currency,
-            kind: operation.type,
-          }
-        );
-        await tx.reconciliationLink.upsert({
-          where: { operationId },
-          create: { operationId, userId: owner, occurrenceId: destination.id },
-          update: { occurrenceId: destination.id },
-        });
-      } else
-        await tx.reconciliationLink.deleteMany({
-          where: { operationId, userId: owner },
-        });
-    });
+    await this.transaction(owner, (tx) =>
+      applyReconciliationLink(
+        tx,
+        owner,
+        operationId,
+        occurrenceId,
+        expectedOccurrenceId,
+        this.today()
+      )
+    );
   }
   async suggestions(
     owner: number,
@@ -609,24 +593,30 @@ export class PrismaReconciliationRepository
     const { context, where } = this.after(owner, "fixed-eligibility", "", page);
     // Fixed IDs use their legacy column name.
     const afterId = "id" in where ? where.id : undefined;
-    const rows = await this.prisma.operationFixe.findMany({
-      where: {
-        userId: owner,
-        ...(afterId ? { idOperationFixe: afterId } : {}),
-      },
-      orderBy: { idOperationFixe: "asc" },
-      take: page.limit + 1,
-    });
+    const rows = (
+      await effectiveFixedRows(this.prisma, owner, this.today().slice(0, 7))
+    )
+      .filter((row) => !afterId || row.idOperationFixe > afterId.gt)
+      .sort((a, b) => a.idOperationFixe - b.idOperationFixe)
+      .slice(0, page.limit + 1);
     return this.page(
       rows.map((row) => ({
         id: row.idOperationFixe,
         title: row.titre,
         currency: row.devise,
         periodicity: row.periodicite,
-        eligible: row.periodicite === "MENSUELLE" && row.devise !== null,
+        eligible:
+          row.typeOperation === "CHARGE" &&
+          row.isBudgetEnvelope &&
+          row.periodicite === "MENSUELLE" &&
+          row.devise !== null,
         reason:
-          row.periodicite !== "MENSUELLE"
+          row.typeOperation === "REVENU"
+            ? "INCOME_NOT_ELIGIBLE"
+            : row.periodicite !== "MENSUELLE"
             ? "NON_MONTHLY_WITHOUT_DUE_DATE"
+            : !row.isBudgetEnvelope
+            ? "NOT_BUDGET_ENVELOPE"
             : row.devise === null
             ? "MISSING_CURRENCY"
             : "ELIGIBLE",

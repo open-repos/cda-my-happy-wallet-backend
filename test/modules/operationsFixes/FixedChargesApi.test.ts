@@ -67,6 +67,7 @@ async function run() {
     category: categories.find((c) => c.id === row.categoryId) ?? null,
   });
   const entities = {
+    fixedOperationVersion: { count: async () => 0 },
     operationCategory: {
       findFirst: async ({ where }: any) => {
         return (
@@ -91,7 +92,7 @@ async function run() {
         rows
           .filter((row) => matches(row, where))
           .sort((a, b) => b.idOperationFixe - a.idOperationFixe)
-          .slice(0, take)
+          .slice(0, take ?? rows.length)
           .map(hydrate),
       updateMany: async ({ where, data }: any) => {
         const found = rows.filter((row) => matches(row, where));
@@ -213,6 +214,7 @@ async function run() {
     category: null,
     montantPersonnel: "60.00",
     montantMensuelPersonnel: "5.00",
+    isBudgetEnvelope: false,
   });
   assert.strictEqual(rows[0].userId, 42);
   assert.strictEqual(legacyExpense, 5);

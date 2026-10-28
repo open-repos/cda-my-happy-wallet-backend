@@ -1,3 +1,4 @@
+import { analyzeEnvelopeMonths } from "../../../src/modules/reconciliation/domain/EnvelopeAnalysis";
 import assert from "assert";
 import {
   assertCompatible,
@@ -91,3 +92,35 @@ for (const [override, code] of [
 console.log(
   "Reconciliation domain: acceptance amounts, half-up cents, shared personal basis, zeros and incompatibilities passed"
 );
+
+const analysis = analyzeEnvelopeMonths(
+  [
+    {
+      month: "2026-07",
+      planned: "300.00",
+      actual: "400.00",
+      operationCount: 4,
+    },
+    {
+      month: "2026-08",
+      planned: "300.00",
+      actual: "200.00",
+      operationCount: 2,
+    },
+    { month: "2026-09", planned: "300.00", actual: "0.00", operationCount: 0 },
+    {
+      month: "2026-10",
+      planned: "300.00",
+      actual: "100.00",
+      operationCount: 1,
+    },
+  ],
+  "2026-10"
+);
+assert.strictEqual(analysis.meanActual, "300.00");
+assert.strictEqual(analysis.meanVariance, "0.00");
+assert.strictEqual(analysis.meanOverrun, "50.00");
+assert.strictEqual(analysis.overrunRate, 50);
+assert.strictEqual(analysis.unreconciledMonthsExcluded, 1);
+assert.strictEqual(analysis.incompleteMonthsExcluded, 1);
+assert.strictEqual(analyzeEnvelopeMonths([], "2026-10").meanActual, null);

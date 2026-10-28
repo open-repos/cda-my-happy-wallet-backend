@@ -9,6 +9,8 @@ export interface OperationFixeProps {
   montant: number;
   devise: string;
   categoryId?: number | null;
+  isBudgetEnvelope?: boolean;
+  effectiveMonth?: string;
   periodicite?: FixedChargePeriodicity;
   pourcentagePersonnel?: number;
 }
@@ -23,6 +25,10 @@ export const operationFixeSchema = Joi.object<OperationFixeProps>({
     .max(2147483647)
     .allow(null)
     .example(10),
+  isBudgetEnvelope: Joi.forbidden(),
+  effectiveMonth: Joi.string().pattern(
+    /^(19[7-9]\d|[2-9]\d{3})-(0[1-9]|1[0-2])$/
+  ),
   periodicite: Joi.forbidden(),
   pourcentagePersonnel: Joi.forbidden(),
 });
@@ -47,6 +53,10 @@ export const chargeSchema = Joi.object<OperationFixeProps>({
     .max(2147483647)
     .allow(null)
     .example(10),
+  isBudgetEnvelope: Joi.boolean().strict(),
+  effectiveMonth: Joi.string().pattern(
+    /^(19[7-9]\d|[2-9]\d{3})-(0[1-9]|1[0-2])$/
+  ),
   periodicite: Joi.string()
     .valid(...Object.keys(FIXED_CHARGE_MONTHS))
     .example("ANNUELLE"),
@@ -72,6 +82,9 @@ const revenuSchema = Joi.object<OperationFixeProps>({
     .max(2147483647)
     .allow(null)
     .example(10),
+  effectiveMonth: Joi.string().pattern(
+    /^(19[7-9]\d|[2-9]\d{3})-(0[1-9]|1[0-2])$/
+  ),
 });
 
 export const revenuSchemaSwg = j2s(revenuSchema).swagger;

@@ -29,6 +29,11 @@ model OperationFixe {
   userId Int
   created_at  DateTime @default(now()) @db.Timestamp(0)
   updated_at  DateTime @default(now()) @db.DateTime(0)
+  isBudgetEnvelope Boolean @default(false)
+  budgetStartMonth DateTime? @db.Date
+  budgetEndMonth DateTime? @db.Date
+  budgetArchived Boolean @default(false)
+  versions FixedOperationVersion[]
   categoryId Int?
   category OperationCategory? @relation(fields: [categoryId, userId], references: [id, userId], onDelete: Restrict)
   @@index([categoryId, userId])
@@ -36,6 +41,7 @@ model OperationFixe {
   // Revenu Revenu? @relation(fields: [idRevenu],references: [typeOperation])
   // idChargeFixe String?
   // idRevenu String?
+  @@unique([idOperationFixe, userId])
   @@index([userId, idOperationFixe])
   @@index([userId, typeOperation, idOperationFixe])
 }
@@ -125,6 +131,8 @@ model BudgetPeriod {
   actualIncome     Decimal            @default(0) @db.Decimal(10, 2)
   actualExpense    Decimal            @default(0) @db.Decimal(10, 2)
   realRemaining    Decimal            @default(0) @db.Decimal(10, 2)
+  /// Signed offset that prevents fixed forecast/payment duplication; frozen at closure.
+  reconciliationAdjustment Decimal @default(0) @db.Decimal(14, 2)
   /// Reste réel signé du mois précédent clôturé, reporté sur cette période.
   carryIn          Decimal            @default(0) @db.Decimal(10, 2)
   unresolvedEvents Int                @default(0)
@@ -421,4 +429,18 @@ enum ReconciliationSourceType {
   ENVELOPE
   FIXED_EXPENSE
   FIXED_INCOME
+}
+
+
+/// Dated replacement of a fixed definition; only current/future months writable.
+model FixedOperationVersion {
+  id Int @id @default(autoincrement())
+  userId Int
+  operationId Int
+  effectiveMonth DateTime @db.Date
+  payload Json
+  createdAt DateTime @default(now()) @db.Timestamp(0)
+  operation OperationFixe @relation(fields: [operationId, userId], references: [idOperationFixe, userId], onDelete: Cascade)
+  @@unique([operationId, effectiveMonth])
+  @@index([userId, effectiveMonth, operationId])
 }

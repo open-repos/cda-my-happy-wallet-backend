@@ -1,256 +1,268 @@
-# Rapprochement prévu / réalisé (#139)
+# Enveloppes mensuelles, solde et analyse (#139)
 
-Contrat backend pour frontend #314 (parent #313). Toutes les routes ci-dessous
-sont privées et préfixées par `/v1`. OpenAPI : tag `Reconciliation`.
+Contrat backend pour frontend #314, parent #313. Toutes les routes sont privées,
+préfixées par `/v1`. La clarification propriétaire du 28 octobre remplace le
+périmètre initial : **seules les charges mensuelles explicitement marquées comme
+enveloppes peuvent recevoir des opérations**. Revenus, charges ordinaires et
+charges non mensuelles gardent leur traitement existant. Aucune association
+par simple catégorie. Aucun changement frontend dans ce dépôt.
 
-## Décision financière et périmètre
+## Parcours et modèle unique
 
-Le suivi est **isolé** du moteur global, conformément à l'option de repli de
-l'issue #139. Chaque lecture de rapprochement expose :
+Dans le formulaire de charge existant :
 
 ```json
 {
-  "integration": {
-    "mode": "TRACKING_ONLY",
-    "globalBudgetAdjusted": false,
-    "warning": "GLOBAL_RAV_FORECAST_SAVINGS_UNCHANGED"
+  "titre": "Alimentation",
+  "montant": 300,
+  "devise": "EUR",
+  "periodicite": "MENSUELLE",
+  "pourcentagePersonnel": 100,
+  "categoryId": 12,
+  "isBudgetEnvelope": true
+}
+```
+
+`isBudgetEnvelope` vaut **false par défaut** pour toutes les anciennes charges
+et les nouvelles créations sans choix explicite. Omission sur PUT : conserver.
+Le flag est refusé pour les revenus ; `true` exige une charge mensuelle.
+Les GET/POST de charges exposent ce booléen. La catégorie est indépendante du
+mode de suivi. Les montants des paiements représentent la part personnelle ;
+le pourcentage n'est appliqué qu'une fois au montant prévu.
+
+Une enveloppe est une `OperationFixe` marquée, pas une seconde définition à
+additionner à la charge. Les routes `/budget-envelopes` restent des alias de
+compatibilité : elles créent/lisent/modifient une charge mensuelle marquée.
+Leur ID est celui de la charge. Aucun objet `BudgetEnvelope` indépendant n'est
+créé. Cette ancienne table reste en place pour respecter la migration publiée.
+
+À la première lecture d'un mois courant/futur, les charges marquées produisent
+une occurrence `sourceType=ENVELOPE`, `sourceId=idOperationFixe`, une seule fois
+par source/mois. Une occurrence contient le prévu personnel, le total de
+référence, la participation et la catégorie. Une ancienne période jamais suivie
+n'est pas reconstruite depuis les définitions d'aujourd'hui.
+
+## Saisie depuis calendrier ou opérations
+
+Les deux formulaires Web doivent utiliser le même contrat POST/PUT `/operations` :
+
+```json
+{
+  "title": "Courses du samedi",
+  "amount": "85.00",
+  "currency": "EUR",
+  "kind": "DEPENSE",
+  "operationDate": "2026-10-10",
+  "categoryId": 12,
+  "reconciliation": {
+    "occurrenceId": 41,
+    "expectedOccurrenceId": null
   }
 }
 ```
 
-Le frontend doit afficher « Suivi prévu/réalisé — non intégré au reste à vivre ».
-Il ne doit pas remplacer RaV, prévision, report ou capacité d'épargne par les
-totaux de ce module, ni soustraire à nouveau les enveloppes de ces indicateurs.
-Le lien n'ajoute, ne modifie et ne supprime aucune opération réelle. Les
-agrégats existants des opérations restent donc strictement identiques.
+Le calendrier fournit sa date sélectionnée. Le champ « Rattacher à une enveloppe »
+charge les occurrences du mois et de la devise ; aucune charge ordinaire ni
+entrée fixe n'est proposée. Une catégorie peut suggérer un choix, jamais le
+confirmer automatiquement, y compris si un seul candidat correspond.
 
-Le moteur historique applique `revenus fixes - charges personnelles mensualisées
+L'opération et son lien sont enregistrés dans **une transaction** : en cas de
+période, devise, type, propriétaire ou association incompatible, tout est annulé.
+Aucune opération orpheline n'est créée à la suite d'un échec de rattachement.
+Sur PUT, omettre `reconciliation` conserve le lien ; fournir un autre ID
+réaffecte ; `occurrenceId:null` dissocie. `expectedOccurrenceId` est toujours
+obligatoire dans cet objet ; POST exige `null`. Un PUT normal peut modifier
+montant/titre/catégorie ; changer mois/devise/sens exige une dissociation ou une
+réaffectation explicite compatible dans la même transaction.
 
-- entrées réelles - dépenses réelles`, puis les événements non résolus et
-  l'effort d'épargne. Une opération saisie pour payer une charge fixe est déjà
-  comptée en plus du socle fixe. **Cette limite préexistante reste présente dans
-  les routes globales**, même après rapprochement ; ce module ne prétend pas la
-  corriger. Une intégration complète nécessiterait une décision propriétaire sur
-  le socle, les mouvements quotidiens, les anciens snapshots et la propagation
-  des corrections aux reports et aux trajectoires. Aucune de ces formules n'a été
-  modifiée. Le bilan de rapprochement compte en revanche chaque paiement une fois.
+Les anciennes réponses d'opérations restent inchangées. Lire au besoin
+`GET /operations/:id/reconciliation` pour préparer une réaffectation.
+Les POST ordinaires conservent leur contrat existant : aucun mécanisme général
+de rejeu d'un POST n'est ajouté. Le frontend empêche le double clic de création.
 
-Tableau préalable des cas et invariants :
+## Calcul validé : réserve ouverte, réalisé à la clôture
 
-| Cas                                                | API de suivi                                               | Moteur global conservé / risque                                                                     |
-| -------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Enveloppe variable 300, achats liés 223            | Réalisé 223, disponible 77, projeté 300                    | Les achats réels sont comptés comme avant ; enveloppe absente du socle                              |
-| Enveloppe 300, achats liés 333                     | Réalisé/projeté 333, dépassement 33, jamais 633            | Aucun nouvel événement ou débit                                                                     |
-| Charge mensuelle personnelle 800, paiement lié 820 | Payé 820, dépassement 20, projeté 820                      | Socle fixe + opération toujours distincts dans RaV existant ; ne pas utiliser comme bilan rapproché |
-| Charge partagée 800 à 50 %                         | Prévu personnel 400 ; opération saisie de 400 = réglé      | Mensualisation existante inchangée ; pourcentage appliqué une fois au prévu                         |
-| Charge annuelle 120 à 100 %                        | Non éligible : `NON_MONTHLY_WITHOUT_DUE_DATE`              | Coût mensuel de 10 conservé ; pas de faux dépassement de 110                                        |
-| Revenu mensuel 2200, reçu lié 2180                 | Manquant 20, pas une dépense ; projeté 2200                | Revenu fixe et réel gardent leur sens dans le moteur actuel                                         |
-| Opération non associée                             | Toujours réelle ; ajoutée une fois au projeté du suivi     | Jamais masquée des statistiques réelles                                                             |
-| Confirmé non réalisé / potentiel                   | Ni paiement ni candidat                                    | Événement confirmé dans la prévision ; potentiel en Simulation seulement                            |
-| Événement réalisé explicitement                    | Son opération réelle peut être choisie                     | Sa résolution existante empêche le double comptage de son événement                                 |
-| Mois futur (jusqu'à +23)                           | Snapshot à la première lecture ; aucune opération inventée | Aucun `BudgetPeriod`, report ou objectif créé/modifié                                               |
-| Mois passé / `BudgetPeriod.CLOSED`                 | Prévu matérialisé conservé, associations immuables         | Anciens bilans et corrections réelles existantes préservés                                          |
+Exemple sans report, autres opérations ou épargne : revenus fixes 2 000 €, loyer
+ordinaire 800 €, enveloppe Alimentation 300 €.
 
-Les tests de non-régression vérifient l'invariance des mouvements, prévisions,
-RaV et épargne avant/après association. Ils ne valident pas une nouvelle
-formule globale.
+| Situation                       | Dépenses Alimentation retenues                      | Solde mensuel |
+| ------------------------------- | --------------------------------------------------- | ------------- |
+| Aucun paiement rattaché         | 300 € réservés                                      | 900 €         |
+| 223 € rattachés pendant le mois | 300 € réservés                                      | 900 €         |
+| 400 € rattachés pendant le mois | 400 €, dont 100 € supplémentaires                   | 800 €         |
+| Clôture avec 223 € rattachés    | 223 €, libération des 77 € inutilisés               | 977 €         |
+| Clôture avec 400 € rattachés    | 400 €                                               | 800 €         |
+| Clôture sans paiement rattaché  | Prévision de 300 € conservée faute de réalisé connu | 900 €         |
 
-## Bases de comparaison et arrondis
+Les statistiques réelles gardent tous les paiements bruts : 400 € reste une
+dépense de 400 €, jamais une opération artificiellement réduite à 100 €.
+Le moteur expose un ajustement signé distinct :
 
-Tous les montants de sortie sont des chaînes à deux décimales, par devise, sans
-conversion. Les entrées acceptent nombres ou chaînes décimales exactes de 0 à
-99 999 999,99, au plus deux décimales ; aucun arrondi de saisie. Les sommes
-utilisent des centimes entiers avec contrôle d'entier sûr ; les sommes SQL sont
-`DECIMAL`. Les achats réels gardent leur montant positif existant.
+```text
+résultat du mois = socle fixe + entrées réelles - dépenses réelles
+                  + reconciliationAdjustment
+solde = résultat du mois + report entrant
+```
 
-Pour chaque occurrence :
+Pour chaque enveloppe ouverte, l'ajustement compense la partie déjà couverte
+par son prévu : `min(prévu personnel, somme réelle liée)`. Les paiements sont
+alloués chronologiquement pour les points journaliers. À la clôture, si au moins
+un paiement est lié, toute la prévision de cette enveloppe est remplacée par le
+réalisé ; la libération éventuelle intervient le dernier jour du mois. Une
+opération non liée reste déduite une fois, sans correction implicite.
+Les enveloppes font déjà partie du socle fixe : aucune seconde réserve n'est
+ajoutée au prévisionnel ou à la capacité d'épargne.
 
-- `planned` : budget personnel ; `actual` : somme des opérations liées ;
-- `remaining = max(planned - actual, 0)` ; `overrun = max(actual - planned, 0)` ;
-- `progress = actual / planned × 100`, arrondi à deux décimales (demi vers le
-  haut), `null` si prévu nul, sans plafond à 100 % ;
-- `projected = max(planned, actual)`, pour dépenses et revenus : l'hypothèse
-  conserve le montant encore attendu, sans garantir qu'il arrivera.
+Les routes de synthèse, prévisions multi-mois, Simulation, capacité et
+trajectoires d'épargne utilisent le même ajustement. Les événements confirmés
+non réalisés et les potentiels restent séparés des paiements ; une réalisation
+explicite garde son mécanisme existant. Les règles des objectifs et de leur
+réservation restent inchangées. Une opération déjà rattachée à une enveloppe
+d’un mois futur participe à sa projection une seule fois ; le traitement
+existant des opérations futures non rattachées est conservé.
 
-Les revenus ajoutent `expected`, `received`, `missing`, `surplus` ; ne pas
-présenter leur `overrun` comme une dépense. États : enveloppe `AVAILABLE`,
-`REACHED`, `EXCEEDED` ; charge `DUE`, `PARTIAL`, `PAID`, `EXCEEDED` ; revenu
-`EXPECTED`, `PARTIAL`, `RECEIVED`, `SURPLUS`. Prévu et réel nuls : `REACHED`,
-`PAID` ou `RECEIVED`, taux `null`.
+Le champ monétaire optionnel `reconciliationAdjustment` apparaît dans les
+synthèses et prévisions concernées. L'ancien RaV sans mois reste un indicateur
+du socle configuré, pas un relevé bancaire ; pour le solde final utiliser
+`/budget-periods/:month/summary`, et non la table historique arrondie en euros.
 
-`referenceTotal` et `personalShare` conservent la référence de la source. Pour
-une charge, `planned` utilise le calcul existant de part personnelle arrondie
-au centime, demi vers le haut. **Les opérations réelles doivent représenter la
-part personnelle réellement payée**, comme les autres opérations ponctuelles.
-Le rapprochement ne remultiplie jamais leur montant par `personalShare`.
-Un débit total de 800 lié à une prévision personnelle de 400 est donc bien un
-réalisé de 800 : le serveur n'invente ni remboursement ni allocation.
-
-La synthèse de suivi expose `actualIncome/Expense` sur toutes les opérations du
-mois et de la devise, `unassociatedIncome/Expense`, `trackedPlannedIncome/Expense`
-et `projectedIncome/Expense`. Projeté = somme des `max(prévu, réalisé lié)`
-par occurrence + réel non associé, une seule fois. Son scope explicite est
-`TRACKED_OCCURRENCES_AND_UNASSOCIATED_ACTUALS` : les charges non mensuelles,
-événements, épargne et reports sont hors de cette synthèse. Ce n'est pas un solde.
-
-## Routes et intégration Web
-
-| Action                               | Route                                                         | Réponse                                                                              |
-| ------------------------------------ | ------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Lister les définitions               | `GET /budget-envelopes?limit=50&cursor=...`                   | `{data, meta}` ; inclut les archives                                                 |
-| Définitions actives pour un mois     | `GET /budget-envelopes?month=2026-10`                         | Filtre actif + dates d'effet, pas un historique                                      |
-| Créer une enveloppe                  | `POST /budget-envelopes`                                      | 201 `{data}`, `Location`                                                             |
-| Lire / remplacer la définition       | `GET/PUT /budget-envelopes/:id`                               | 200 `{data}`                                                                         |
-| Archiver                             | `DELETE /budget-envelopes/:id`                                | 204, idempotent, conservation de l'historique                                        |
-| Occurrences d'un mois                | `GET /reconciliation/months/2026-10/occurrences?currency=EUR` | `{data, meta, integration, historyPolicy}`                                           |
-| Synthèse du suivi                    | `GET /reconciliation/months/2026-10/summary?currency=EUR`     | `{data, integration}`                                                                |
-| Lire une occurrence                  | `GET /reconciliation/occurrences/:id`                         | `{data, integration}`                                                                |
-| Ajustement explicite du prévu ouvert | `PATCH /reconciliation/occurrences/:id`                       | `{planned:"320.00"}` → `{data, integration}`                                         |
-| Paiements associés                   | `GET /reconciliation/occurrences/:id/operations`              | `{data, meta}`                                                                       |
-| Paiements éligibles non associés     | Même route avec `unassociated=true`                           | Même mois/devise/sens ; catégorie libre                                              |
-| Lire le lien courant                 | `GET /operations/:id/reconciliation`                          | `{data:{operationId,occurrenceId}, integration}` ; lien absent : `occurrenceId:null` |
-| Associer, réaffecter, dissocier      | `PUT /operations/:id/reconciliation`                          | 204 ; voir comparaison ci-dessous                                                    |
-| Suggestions par opération            | `GET /operations/:id/reconciliation-suggestions`              | `{data, meta, automatic:false, selectionRequired:true, ambiguous}`                   |
-| Éligibilité des opérations fixes     | `GET /reconciliation/fixed-eligibility`                       | `{data, meta}` ; raison explicite pour chaque source                                 |
-
-Toutes les collections suivent la pagination existante (`limit` 1..100, défaut
-50 ; `meta.hasNext`, `meta.nextCursor`), tri ID croissant. Les curseurs sont
-opaques et liés au propriétaire, à la ressource et à tous ses filtres. La
-synthèse donne des totaux complets, jamais des sommes de la seule page visible.
-Les paramètres répétés, inconnus et les champs propriétaires sont refusés.
-
-Corps d'une définition mensuelle (les montants nuls sont autorisés) :
+L'intégration est annoncée par :
 
 ```json
 {
-  "title": "Courses",
-  "amount": "300.00",
-  "currency": "EUR",
-  "categoryId": 12,
-  "startMonth": "2026-10",
-  "endMonth": null
+  "integration": {
+    "mode": "INTEGRATED",
+    "globalBudgetAdjusted": true,
+    "policy": "OPEN_RESERVED_CLOSED_MATCHED_ACTUAL"
+  }
 }
 ```
 
-`categoryId` est personnel et facultatif (`null` par défaut) ; une catégorie de
-revenus fixes est refusée pour une enveloppe de dépenses. `endMonth` est inclusif.
-La périodicité est toujours mensuelle dans ce MVP. Les IDs sont ceux renvoyés par
-l'API, jamais ceux des modèles de catégories.
+Montants en centimes entiers/Decimal, sortie en chaînes à deux décimales,
+contrôle des entiers sûrs, pas de conversion de devises. Taux arrondis demi
+vers le haut, `progress=null` si prévu nul. Les champs de suivi conservent
+`planned`, `actual`, `remaining`, `overrun`, `progress`, `projected` ; ce dernier
+reste l'hypothèse de réserve `max(prévu,réalisé)` et **ne remplace pas** le solde
+clôturé. Les états d'enveloppe sont `AVAILABLE`, `REACHED`, `EXCEEDED`.
 
-Une première lecture des occurrences crée les snapshots du mois courant ou
-futur pour les enveloppes actives et les opérations fixes mensuelles. Répéter
-la lecture ne les duplique ni ne les actualise. Aucun lien automatique, même si
-une seule catégorie correspond. Deux enveloppes de même catégorie restent deux
-candidats distincts. Choix explicite obligatoire dans tous les cas.
+## Préparer le mois suivant sans réécrire le passé
 
-Exemple de paiement et réaffectation :
+Le PUT habituel d'une charge ou d'un revenu accepte un mois d'effet :
 
 ```json
-{ "occurrenceId": 41, "expectedOccurrenceId": null }
+{
+  "titre": "Alimentation",
+  "montant": 350,
+  "devise": "EUR",
+  "isBudgetEnvelope": true,
+  "effectiveMonth": "2026-11"
+}
 ```
 
-Puis, pour le déplacer de 41 à 42 :
+Utiliser le même champ pour un revenu, sans `isBudgetEnvelope`. La date doit
+être le mois courant ou l'un des 23 suivants. Sans date, l'édition conserve sa
+portée actuelle ; pour une définition déjà versionnée ou une enveloppe, une
+version du mois courant est créée. Aucun effet rétroactif autorisé.
 
-```json
-{ "occurrenceId": 42, "expectedOccurrenceId": 41 }
-```
+Une version garde titre, montant, devise, participation, périodicité, catégorie
+et mode de suivi. La première modification datée conserve la définition
+précédente comme référence de compatibilité ; ce n'est pas une reconstitution
+des anciens budgets réels. La lecture choisit la dernière version applicable.
 
-Pour le dissocier de 42 :
+- Les GET historiques de définitions affichent la version applicable aujourd'hui.
+- `GET /operations-fixes/months/2026-11` affiche les valeurs prévues pour novembre,
+  avec pagination, avant leur entrée en vigueur.
+- Les prévisions utilisent ces versions dans chaque mois, y compris les mois
+  intermédiaires et les trajectoires d'épargne.
+- Une modification datée met à jour les occurrences **ouvertes** à partir de ce
+  mois, en respectant les versions ultérieures déjà programmées. Un snapshot
+  futur déjà consulté ne bloque donc pas un changement explicite de budget.
+- Les mois précédents et les bilans clôturés restent inchangés. L'ajustement
+  financier est figé à la clôture ; les corrections d'opérations non liées
+  peuvent recalculer les reports en conservant cet ajustement.
 
-```json
-{ "occurrenceId": null, "expectedOccurrenceId": 42 }
-```
+Une clôture relit ses paiements sous le verrou propriétaire commun à la saisie
+et au rattachement, avant d'enregistrer ses totaux. Après clôture, les liens et
+opérations liées ne sont plus modifiables. Aucun endpoint de réouverture ajouté.
+Changer/désactiver/supprimer une enveloppe avec des paiements ouverts
+incompatibles est refusé (`ENVELOPE_IN_USE`) ; préparer plutôt une modification
+à partir d'un mois sans paiements liés. Les snapshots passés survivent à la
+suppression de la définition.
 
-`expectedOccurrenceId` est obligatoire, même à `null`. L'état courant doit
-correspondre ou la commande renvoie 409 `ASSOCIATION_CONFLICT`. Un rejeu dont la
-cible est déjà atteinte renvoie 204 sans écriture, y compris après clôture.
-Un ancien rejeu après une autre réaffectation échoue si l'état attendu diffère.
-Le client relit `GET /operations/:id/reconciliation` avant de proposer une nouvelle commande.
-Une occurrence accepte plusieurs opérations ; une opération ne peut appartenir
-qu'à une occurrence. La catégorie différente n'empêche pas un choix manuel.
+## Accueil et Analyse : contrat Web
 
-## Historisation, modifications et clôture
+| Besoin                                     | Route                                                          |
+| ------------------------------------------ | -------------------------------------------------------------- |
+| Toutes les enveloppes du mois courant      | `GET /envelope-overview?currency=EUR`                          |
+| Choisir un mois                            | `GET /envelope-overview?month=2026-10&currency=EUR`            |
+| Afficher l'année                           | `GET /envelope-overview?year=2026&currency=EUR`                |
+| Moyennes par catégorie sur 3, 6 ou 12 mois | `GET /envelope-analytics?from=2026-01&to=2026-12&currency=EUR` |
+| Prévisions et métriques d'un mois          | `GET /reconciliation/months/2026-10/occurrences?currency=EUR`  |
+| Totaux du seul suivi                       | `GET /reconciliation/months/2026-10/summary?currency=EUR`      |
+| Tous les paiements d'une enveloppe         | `GET /reconciliation/occurrences/:id/operations`               |
+| Paiements éligibles non liés               | Même route, `unassociated=true`                                |
+| Lire / changer un lien                     | `GET/PUT /operations/:id/reconciliation`                       |
+| Suggestions explicites                     | `GET /operations/:id/reconciliation-suggestions`               |
+| Raisons d'inéligibilité des fixes          | `GET /reconciliation/fixed-eligibility`                        |
 
-Les occurrences sont **matérialisées et figées à la première lecture**, y
-compris dans un mois futur. Modifier le titre, le budget, les dates ou la
-catégorie d'une définition ne réécrit aucune occurrence existante. Une correction
-ouverte du prévu se fait explicitement par PATCH de l'occurrence ; la référence
-et le pourcentage d'origine restent visibles. La suppression d'une définition
-via DELETE l'archive : elle ne produit plus de nouvelles occurrences, conserve
-celles déjà matérialisées (même futures) et tous leurs paiements. Une archive
-est terminale dans ce MVP. Pour arrêter un mois déjà matérialisé, ajuster
-explicitement son prévu à zéro ; un réalisé éventuel reste visible.
+Accueil recommandé : cartes compactes « Alimentation · 400 / 300 € · +100 € »,
+barre de progression, accès « Voir les dépenses » ouvrant la liste complète.
+Analyse : même vue avec sélecteur mois/année et comparaison prévu/réalisé.
+Les deux écrans utilisent les mêmes données, sans recalcul financier côté Web.
+La vue renvoie chaque enveloppe avec ses mois observés, métriques, nombre de
+paiements, aperçu des trois dernières opérations et chemin de liste paginée.
 
-Les sources fixes suivent la même règle : édition ou suppression par les routes
-historiques conserve leurs snapshots existants ; les mois non matérialisés
-utilisent la source courante. Le `fixedSourceId` historique est sans FK, comme
-la référence d'événement des résolutions existantes. L'ID ne garantit donc pas
-que la définition existe encore. La catégorie de l'occurrence est aussi une
-référence historique ; la catégorie de définition reste protégée par une FK.
+Les moyennes par enveloppe et par catégorie exposent :
 
-Un mois devient immuable dès qu'il est passé à Paris ou que son `BudgetPeriod`
-est `CLOSED`. Pas de reconstruction d'un ancien prévu depuis les définitions
-actuelles : un ancien mois jamais matérialisé renvoie une liste vide avec
-`historyPolicy=MATERIALIZED_SNAPSHOTS_ONLY`. Les anciens snapshots `BudgetPeriod`
-restent lisibles et inchangés. Les métriques des liens fermés sont stables,
-car l'édition/suppression des opérations liées et leurs associations est bloquée.
-Aucun endpoint de réouverture ni correction rétroactive de lien n'est ajouté.
-Les corrections des opérations **non liées** gardent leur contrat historique,
-y compris les recalculs explicites de bilans ; la synthèse du suivi relit ces
-faits réels et n'est pas un nouveau snapshot de clôture du RaV.
+- `meanActual`, dépense réelle mensuelle moyenne ;
+- `meanPlanned`, budget moyen et `meanVariance`, écart moyen signé ;
+- `exceededMonths`, `overrunRate` et `meanOverrun` (dépassements positifs moyens) ;
+- `sampleMonths`, nombre de mois utilisés, et exclusions explicites.
 
-Opération liée ouverte : titre, montant ou catégorie modifiables via l'API
-existante ; métriques actualisées à la lecture suivante. Changer le mois, le
-sens ou la devise exige de dissocier d'abord (`409 LINKED_OPERATION_INCOMPATIBLE`).
-La supprimer retire son lien, jamais son occurrence. La même opération fermée
-est protégée (`409 PERIOD_CLOSED`). Les créations et opérations non liées
-conservent leurs règles préexistantes. La suppression authentifiée du compte
-retire d'abord les liens, occurrences et enveloppes dans la transaction du
-compte : elle ne dépend pas d'un ordre de cascades MySQL avec `RESTRICT`. Une
-adresse de compte erronée ne retire aucune métadonnée.
+Le mois courant et les mois futurs sont exclus. Un ancien mois sans opérations
+rattachées n'est pas traité comme un zéro : il est exclu. Pour une catégorie
+contenant plusieurs enveloppes, un mois n'est inclus que si chacune a des
+opérations liées. Une vraie dépense nulle sans paiement ne peut pas encore être
+confirmée explicitement : elle reste exclue. Ces chiffres décrivent les
+paiements **rattachés**, pas une garantie d'exhaustivité bancaire.
 
-## Erreurs et transactions
+La réponse porte `historyPolicy=OBSERVED_ONLY` : les mois historiques absents ne
+sont pas inventés. Aucun relevé ancien à zéro ne sera créé pour remplir un
+graphique annuel. Les catégories et devises sont séparées ; catégorie absente :
+`category:null`, groupe technique ID 0. Pour l'affichage, libellé « Sans catégorie ».
+Toutes les collections acceptent `limit` 1..100 (défaut 50), curseur opaque lié au
+propriétaire, à la ressource et aux filtres. Pour les totaux complets du budget,
+utiliser la synthèse dédiée, pas la somme d'une page.
 
-Authentification 401 ; ID de chemin mal formé 400 ; ressource absente/étrangère
-404 sans fuite de propriétaire ; validation 422 ; conflits 409. Codes dans
-`error.details.code` : `PERIOD_CLOSED`, `ASSOCIATION_CONFLICT`,
-`ARCHIVED_ENVELOPE`, `LINKED_OPERATION_INCOMPATIBLE`, `RETRY_CONFLICT`,
-`CURRENCY_MISMATCH`, `TYPE_MISMATCH`, `PERIOD_MISMATCH`, `INVALID_CATEGORY`,
-`INVALID_REQUEST`, `MONTH_TOO_FAR`. Pagination : contrat `ValidationFailed`
-existant. Les IDs positifs inconnus ne révèlent jamais de données tierces.
+## Erreurs, migrations et revue
 
-Toutes les mutations d'associations, la matérialisation, les définitions et
-l'édition/suppression d'opérations utilisent une transaction et un verrou
-propriétaire commun. Les périodes concernées sont verrouillées avant décision
-d'ouverture. La contrainte primaire sur `operationId` garantit l'unicité ; les
-FK composites interdisent les propriétaires différents jusque dans MySQL.
-Réaffectation et contrôles sont atomiques, sans état intermédiaire sans lien.
-Les deadlocks de transaction de rapprochement sont réessayés au plus deux fois,
-puis renvoient un conflit explicite. Les agrégats de paiements utilisent une
-requête par page, sans N+1 ni chargement de tous les paiements en mémoire.
+401 sans authentification ; 404 pour ressource absente ou étrangère ; 400 pour
+ID de chemin invalide ; 422 pour validation/incompatibilité ; 409 pour conflit.
+Codes : `NOT_BUDGET_ENVELOPE`, `INVALID_BUDGET_ENVELOPE`, `INCOME_NOT_ELIGIBLE`,
+`NON_MONTHLY_WITHOUT_DUE_DATE`, `INVALID_EFFECTIVE_MONTH`, `ENVELOPE_IN_USE`,
+`PERIOD_CLOSED`, `ASSOCIATION_CONFLICT`, `CURRENCY_MISMATCH`, `TYPE_MISMATCH`,
+`PERIOD_MISMATCH`, `LINKED_OPERATION_INCOMPATIBLE`, `INVALID_CATEGORY`.
+Le lien est unique par opération, plusieurs opérations peuvent partager une
+occurrence. Le propriétaire est imposé par le jeton et les FK composites.
+La suppression du compte retire les métadonnées et définitions dans leur ordre
+de dépendance. Aucun accès ou changement de données de production.
 
-## Migration, validation et contrat futur
+Migrations additives immuables :
 
-`20261027120000_add_budget_reconciliation` crée `BudgetEnvelope`,
-`ReconciliationOccurrence`, `ReconciliationLink`, leurs index et FK composites,
-et l'index unique redondant `(id,userId)` des opérations pour ces FK. Aucun
-montant historique, aucune ligne réelle ou période n'est modifié. Aucun backfill
-ni reset. La migration précède le backend et n'est pas annulée par rollback.
-Un ancien backend peut ignorer les tables, mais n'applique pas les protections
-des opérations liées : ne pas revenir à cette version avec des liens actifs
-sans procédure propriétaire préservant leur historique. Préférer un correctif
-en avant ; ne pas supprimer les tables ou modifier une migration déployée.
+1. `20261027120000_add_budget_reconciliation` : tables et index initiaux.
+2. `20261028090000_integrate_reconciliation_budget` : ajustement figé de bilan,
+   défaut 0 pour préserver les anciens bilans.
+3. `20261028100000_fixed_envelope_versions` : opt-in faux par défaut, dates de
+   vie de l'enveloppe et versions datées ; aucun backfill de montants existants.
+
+Les migrations précèdent le backend et ne sont pas annulées avec l'application.
+Après usage des liens/versions, un ancien backend ne connaîtrait ni les gardes
+ni les dates d'effet : préférer un correctif compatible ; ne pas revenir
+silencieusement à une version ignorant ces règles ni supprimer les tables.
+Les échéances réelles non mensuelles et leur rapprochement restent hors scope.
 
 Tests : `test:reconciliation-domain`, `test:reconciliation-api`,
-`test:reconciliation-persistence`, `test:reconciliation-migration`. Ces quatre
-tests sont appelés par les suites existantes de CI sans modifier les
-workflows. Les tests SQL exigent `NODE_ENV=test` et MySQL jetable sur
-`my-happy-wallet-mysql-test`, base `myhappywallet_test`.
-
-Contrat futur proposé, non implémenté : une source périodique aurait une
-règle d'échéance explicite (`nextDueDate`, `recurrenceAnchor`, fréquence), puis
-des occurrences `dueDate`, `totalDue`, `personalDue` et une réserve/provision
-mensuelle distincte. Le paiement de 120 annuels serait comparé à `personalDue`
-à l'échéance, jamais à une provision de 10. L'allocation d'une provision à
-plusieurs mois, les remboursements et leur effet sur RaV/reports exigent une
-décision propriétaire séparée. Le MVP ne fait aucune conversion implicite.
+`test:reconciliation-persistence`, `test:reconciliation-migration`, branchés
+sur les suites existantes sans modifier les workflows. Les tests SQL refusent
+toute base autre que la MySQL jetable gardée. Revue propriétaire requise pour
+le contrat, les calculs validés et les migrations. Ne pas fusionner ni déployer.

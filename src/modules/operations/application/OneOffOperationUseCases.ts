@@ -1,18 +1,17 @@
-import {
-  CreateOneOffOperationProps,
-  OneOffOperation,
-} from "../domain";
+import { CreateOneOffOperationProps, OneOffOperation } from "../domain";
 import { OperationApplicationError } from "./OperationApplicationError";
 import { OperationCategoryRepository } from "./OperationCategoryRepository.interface";
 import {
   OneOffOperationRepository,
   OperationListFilter,
+  OperationReconciliationInput,
 } from "./OneOffOperationRepository.interface";
 import { CursorPage, PaginationRequest } from "../../pagination";
 
 export type SaveOneOffOperationInput = Readonly<
   Omit<CreateOneOffOperationProps, "id" | "ownerId" | "category"> & {
     categoryId: number;
+    reconciliation?: OperationReconciliationInput;
   }
 >;
 
@@ -61,7 +60,8 @@ export class OneOffOperationUseCases {
     input: SaveOneOffOperationInput
   ): Promise<OneOffOperation> {
     const operation = await this.operations.create(
-      await this.toDomain(ownerId, input)
+      await this.toDomain(ownerId, input),
+      input.reconciliation
     );
     await this.corrections.afterOperationChange(ownerId, [changeOf(operation)]);
     return operation;
@@ -76,7 +76,10 @@ export class OneOffOperationUseCases {
     const operation =
       before == null
         ? null
-        : await this.operations.update(await this.toDomain(ownerId, input, id));
+        : await this.operations.update(
+            await this.toDomain(ownerId, input, id),
+            input.reconciliation
+          );
     if (before == null || operation == null) {
       throw new OperationApplicationError("OPERATION_NOT_FOUND");
     }

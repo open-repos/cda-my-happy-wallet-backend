@@ -187,6 +187,11 @@ const swagger = {
           kind: { type: "string", enum: ["DEPENSE", "ENTREE"] },
           operationDate: { type: "string", format: "date" },
           categoryId: { type: "integer", minimum: 1 },
+          reconciliation: {
+            type: "object", additionalProperties: false, required: ["occurrenceId", "expectedOccurrenceId"],
+            description: "Optional atomic assignment on POST/PUT, usable by calendar and operations forms. Omitted on PUT: preserve current link. Null occurrenceId: unlink. Expected previous ID prevents lost reassignments. Failure rolls back payment and assignment.",
+            properties: { occurrenceId: { type: "integer", minimum: 1, maximum: 2147483647, nullable: true }, expectedOccurrenceId: { type: "integer", minimum: 1, maximum: 2147483647, nullable: true } },
+          },
         },
       },
       MonthlyEventInput: {

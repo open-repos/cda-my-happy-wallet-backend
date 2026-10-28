@@ -40,6 +40,16 @@ export class BudgetForecastController {
           plannedIncome: amountOf(month.plannedIncomeMinorUnits),
           plannedExpense: amountOf(month.plannedExpenseMinorUnits),
           goalSavings: amountOf(month.goalSavingsMinorUnits),
+          ...(month.envelopeReserveMinorUnits === undefined
+            ? {}
+            : { envelopeReserve: amountOf(month.envelopeReserveMinorUnits) }),
+          ...(month.reconciliationAdjustmentMinorUnits === undefined
+            ? {}
+            : {
+                reconciliationAdjustment: amountOf(
+                  month.reconciliationAdjustmentMinorUnits
+                ),
+              }),
           forecastResult: amountOf(month.forecastResultMinorUnits),
           forecastRemaining: amountOf(month.forecastRemainingMinorUnits),
           remainingDays: month.remainingDays,

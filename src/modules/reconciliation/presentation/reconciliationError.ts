@@ -8,6 +8,7 @@ export function reconciliationHttpError(error: unknown): Error {
         ? ErrorCode.NotFound
         : [
             "PERIOD_CLOSED",
+            "ENVELOPE_IN_USE",
             "ASSOCIATION_CONFLICT",
             "ARCHIVED_ENVELOPE",
             "RETRY_CONFLICT",

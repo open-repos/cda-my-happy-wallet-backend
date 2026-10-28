@@ -1,4 +1,5 @@
 /// <reference path="../../../src/utils/custom.d.ts" />
+import { EnvelopeReportingController } from "../../../src/modules/reconciliation/presentation/EnvelopeReportingController";
 import assert from "assert";
 import express, { RequestHandler } from "express";
 import supertest from "supertest";
@@ -34,7 +35,24 @@ app.use(express.json());
 app.use(
   createReconciliationRouter(
     new ReconciliationController(repo, () => "2026-10-27"),
-    auth
+    auth,
+    new EnvelopeReportingController(
+      {
+        overview: async (owner, query, pagination) => {
+          calls.push(["overview", owner, query, pagination]);
+          return page;
+        },
+        analytics: async (owner, query, pagination) => {
+          calls.push(["analytics", owner, query, pagination]);
+          return page;
+        },
+        fixedMonth: async (owner, month, pagination) => {
+          calls.push(["fixedMonth", owner, month, pagination]);
+          return page;
+        },
+      },
+      () => "2026-10-27"
+    )
   )
 );
 app.use(errorHandler);
@@ -109,7 +127,7 @@ async function run() {
     "/reconciliation/months/2026-10/occurrences?currency=eur"
   );
   assert.strictEqual(occurrences.status, 200);
-  assert.strictEqual(occurrences.body.integration.globalBudgetAdjusted, false);
+  assert.strictEqual(occurrences.body.integration.globalBudgetAdjusted, true);
   assert.deepStrictEqual(calls.pop(), [
     "listOccurrences",
     7,
@@ -131,6 +149,45 @@ async function run() {
   assert.strictEqual(
     (await get("/operations/8/reconciliation-suggestions")).body.automatic,
     false
+  );
+  for (const url of [
+    "/envelope-overview?month=2026-10&year=2026&currency=EUR",
+    "/envelope-overview?year=2026&currency=EUR&currency=USD",
+    "/envelope-overview?month=2026-13&currency=EUR",
+    "/envelope-analytics?from=2025-01&to=2026-12&currency=EUR",
+    "/envelope-analytics?from=2026-10&to=2026-09&currency=EUR",
+    "/operations-fixes/months/2026-13",
+  ]) {
+    assert.strictEqual((await get(url)).status, 422, url);
+  }
+  assert.strictEqual(
+    (await get("/envelope-overview?currency=EUR")).status,
+    200
+  );
+  assert.deepStrictEqual(calls.pop(), [
+    "overview",
+    7,
+    { from: "2026-10", to: "2026-10", currency: "EUR" },
+    { limit: 50, cursor: null },
+  ]);
+  assert.strictEqual(
+    (await get("/envelope-overview?year=2026&currency=EUR")).status,
+    200
+  );
+  assert.deepStrictEqual(calls.pop(), [
+    "overview",
+    7,
+    { from: "2026-01", to: "2026-12", currency: "EUR" },
+    { limit: 50, cursor: null },
+  ]);
+  assert.strictEqual(
+    (await get("/envelope-analytics?from=2026-01&to=2026-12&currency=EUR"))
+      .status,
+    200
+  );
+  assert.strictEqual(
+    (await get("/operations-fixes/months/2026-11")).status,
+    200
   );
   const paths = swagger.paths as Record<string, any>;
   assert.ok(paths["/operations/{id}/reconciliation"].put.requestBody);
