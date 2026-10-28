@@ -24,6 +24,26 @@ Les compteurs des routes d'authentification sont partages par Redis. La
 [politique de rate limiting distribue](distributed-rate-limiting.md) decrit le
 modele de menace, le comportement en panne et le retour arriere.
 
+## Runner GitLab
+
+Tous les jobs heritent du tag `server_runner` defini dans `default.tags`, y
+compris la validation, les tests, le build, la construction de l'image et la
+publication des notes de release. Le deploiement conserve son tag explicite
+et reste manuel. Les jobs ne ciblent plus les runners GitLab heberges sans tag.
+
+Le runner de projet ou de groupe portant ce tag doit etre actif et disponible
+pour la ref executee. Son executeur doit prendre en charge les images de jobs,
+les services MySQL/Redis et BuildKit rootless. Si le runner est reserve aux
+refs protegees, les branches non protegees attendront un runner compatible ;
+ne pas supprimer cette protection pour debloquer une merge request. Utiliser
+un runner CI isole et autorise pour ces refs si elles doivent etre executees.
+Ne pas exposer les secrets de production ou le socket Docker de l'hote aux
+jobs de validation.
+
+Un retry de l'ancienne pipeline reutilise son ancienne configuration. Apres
+fusion du correctif sur la branche cible, creer une nouvelle pipeline pour le
+nouveau commit afin de prendre en compte le tag.
+
 ## Variables GitLab
 
 Configurer ces variables avec la portee `production` et l'option `Protected` :
