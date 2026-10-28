@@ -5,6 +5,12 @@ Les tableaux décrivent les routes actuellement montées, sans changement de
 comportement. Les liens spécialisés détaillent les règles et leurs limites.
 Pour reproduire les exemples, préparer [l'environnement de test](test-environment.md).
 
+Le [rapprochement des enveloppes](budget-reconciliation.md) est réservé aux
+charges mensuelles explicitement marquées. Il ajuste les soldes et reports,
+avec saisie atomique des paiements, suivi mensuel/annuel, moyennes par catégorie
+et modifications datées des charges/revenus. `integration.globalBudgetAdjusted`
+vaut `true` ; les anciens bilans clôturés restent préservés.
+
 ## Adresse, formats et authentification
 
 Les chemins métier sont relatifs à `APP_BASE_URL`, `/v1` par défaut ; le port

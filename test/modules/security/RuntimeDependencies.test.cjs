@@ -210,82 +210,8 @@ async function smtpCompatibility() {
 }
 
 async function sendGridCompatibility() {
-  const {
-    SendGridMailer,
-  } = require("../../../src/modules/user/mail/SendGridMailer");
-  const { Client } = require("@sendgrid/client");
-  const sgMail = require("@sendgrid/mail");
-  let status = 202;
-  const received = [];
-  const server = http.createServer((request, response) => {
-    let body = "";
-    request.on("data", (chunk) => {
-      body += chunk;
-    });
-    request.on("end", () => {
-      received.push({
-        url: request.url,
-        body: JSON.parse(body),
-        authorization: request.headers.authorization,
-      });
-      response.writeHead(status, { "Content-Type": "application/json" });
-      response.end(
-        status === 202
-          ? "{}"
-          : '{"errors":[{"message":"synthetic private provider failure"}]}'
-      );
-    });
-  });
-  server.listen(0, "127.0.0.1");
-  await once(server, "listening");
-  const baseUrl = `http://127.0.0.1:${server.address().port}/`;
-  class LocalClient extends Client {
-    setApiKey(key) {
-      super.setApiKey(key);
-      // setApiKey resets the SDK base URL: force loopback on every call.
-      this.setDefaultRequest("baseUrl", baseUrl);
-      this.setDefaultRequest("proxy", false);
-      this.setDefaultRequest("timeout", 2_000);
-      this.setDefaultRequest("maxRedirects", 0);
-    }
-  }
-  sgMail.setClient(new LocalClient());
-  try {
-    const mailer = new SendGridMailer();
-    assert.equal(
-      await mailer.sendMail(
-        "recipient@example.test",
-        "Local SDK test",
-        "<p>Synthetic</p>"
-      ),
-      true
-    );
-    assert.equal(received[0].url, "/v3/mail/send");
-    assert.equal(
-      received[0].authorization,
-      "Bearer SG.synthetic-local-tests-only"
-    );
-    assert.equal(
-      received[0].body.personalizations[0].to[0].email,
-      "recipient@example.test"
-    );
-    assert.equal(received[0].body.from.email, "no-reply@myhappywallet.local");
-    assert.deepEqual(received[0].body.content, [
-      { value: "<p>Synthetic</p>", type: "text/html" },
-    ]);
-    status = 500;
-    await assert.rejects(
-      () => mailer.sendMail("recipient@example.test", "Rejected", "Synthetic"),
-      (error) =>
-        error.name === "SendEmaillError" &&
-        error.message === "Email was not sent"
-    );
-  } finally {
-    const closed = once(server, "close");
-    server.closeAllConnections();
-    server.close();
-    await closed;
-  }
+  const { runSendGridMailerTests } = require("../user/SendGridMailer.test");
+  await runSendGridMailerTests();
 }
 
 async function run() {

@@ -232,6 +232,7 @@ async function runOperationFixeResultTests() {
     message: "CHARGE Successfully Created",
     data: {
       ...operationFixeFixtures.charge.result,
+      isBudgetEnvelope: false,
       categoryId: null,
       category: null,
     },

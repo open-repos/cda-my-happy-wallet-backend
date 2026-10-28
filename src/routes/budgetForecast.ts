@@ -41,6 +41,7 @@ const monthlyProperties = {
   plannedIncome: amount,
   plannedExpense: amount,
   goalSavings: amount,
+  reconciliationAdjustment: amount,
   forecastResult: amount,
   forecastRemaining: amount,
   remainingDays: { type: "integer", minimum: 1, maximum: 31 },
@@ -107,7 +108,9 @@ export const swBudgetForecastRouter = {
                         maxItems: 24,
                         items: {
                           type: "object",
-                          required: Object.keys(monthlyProperties),
+                          required: Object.keys(monthlyProperties).filter(
+                            (key) => key !== "reconciliationAdjustment"
+                          ),
                           properties: monthlyProperties,
                         },
                       },

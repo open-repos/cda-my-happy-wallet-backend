@@ -35,9 +35,26 @@ const operationBodySchema = Joi.object({
     .pattern(/^\d{4}-\d{2}-\d{2}$/)
     .required(),
   categoryId: Joi.number().integer().positive().required(),
+  reconciliation: Joi.object({
+    occurrenceId: Joi.number()
+      .integer()
+      .positive()
+      .max(2147483647)
+      .allow(null)
+      .required(),
+    expectedOccurrenceId: Joi.number()
+      .integer()
+      .positive()
+      .max(2147483647)
+      .allow(null)
+      .required(),
+  })
+    .unknown(false)
+    .optional(),
 }).unknown(false);
 
-const validateBody = (schema: ObjectSchema) =>
+const validateBody =
+  (schema: ObjectSchema) =>
   async (req: Request, _: Response, next: NextFunction): Promise<void> => {
     try {
       req.body = await schema.validateAsync(req.body, {

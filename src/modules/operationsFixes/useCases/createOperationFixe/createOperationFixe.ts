@@ -36,7 +36,7 @@ export class CreateOperationFixe {
       category: operationFixe.category ?? null,
     };
     if (typeOperationFixe === "CHARGE") {
-      Object.assign(result.data, chargeAmountFields(operationFixe));
+      Object.assign(result.data, chargeAmountFields(operationFixe), { isBudgetEnvelope: operationFixe.isBudgetEnvelope ?? false });
     }
 
     const [isRaVpastMonth, idRav] =

@@ -1,11 +1,39 @@
+import { effectiveFixedRows } from "./fixedVersions";
+import { cents, safe } from "../../reconciliation/domain/Reconciliation";
+import { personalChargeMinorUnits } from "../services/fixedChargeAmounts";
 import { Prisma, PrismaClient } from "@prisma/client";
 
 /** Aggregate in SQL so totals do not depend on collection pagination. */
 export async function loadFixedTotals(
-  prisma: Pick<PrismaClient, "$queryRaw">,
+  prisma: Pick<PrismaClient, "$queryRaw"> &
+    Partial<Pick<PrismaClient, "operationFixe">>,
   ownerId: number,
-  currency?: string
+  currency?: string,
+  month?: string
 ): Promise<{ incomeMinorUnits: number; expenseMinorUnits: number }> {
+  if (month !== undefined) {
+    const fixed = await effectiveFixedRows(
+      prisma as PrismaClient,
+      ownerId,
+      month
+    );
+    let incomeMinorUnits = 0,
+      expenseMinorUnits = 0;
+    for (const row of fixed) {
+      if (
+        currency !== undefined &&
+        row.devise?.toUpperCase() !== currency.toUpperCase()
+      )
+        continue;
+      if (row.typeOperation === "CHARGE")
+        expenseMinorUnits = safe(
+          expenseMinorUnits + personalChargeMinorUnits(row)
+        );
+      else
+        incomeMinorUnits = safe(incomeMinorUnits + cents(String(row.montant)));
+    }
+    return { incomeMinorUnits, expenseMinorUnits };
+  }
   const rows = await prisma.$queryRaw<
     { typeOperation: string; total: Prisma.Decimal | null }[]
   >(Prisma.sql`

@@ -1,3 +1,11 @@
+import {
+  assertEnvelopeFlag,
+  resolvedFixedRow,
+  scheduleFixedVersion,
+  monthDate,
+} from "./infrastructure/fixedVersions";
+import { parisCivilDateClock } from "../../utils/civilDateClock";
+import { reconciliationHttpError } from "../reconciliation/presentation/reconciliationError";
 import { ErrorCode, ErrorException } from "../../utils/errors";
 import { TypeOperationFixeEnum } from "@prisma/client";
 import { OperationFixeProps } from "./../../utils/validators/operationFixe.validator";
@@ -53,6 +61,21 @@ export class OperationFixeRepo implements IOperationFixeRepository {
       idUser,
       typeOperationFixe
     );
+    try {
+      assertEnvelopeFlag(
+        operationProps.isBudgetEnvelope ?? false,
+        typeOperationFixe,
+        operationProps.periodicite ?? "MENSUELLE"
+      );
+    } catch (error) {
+      throw reconciliationHttpError(error);
+    }
+    if (operationProps.effectiveMonth !== undefined)
+      throw new ErrorException(
+        ErrorCode.ValidationFailed,
+        "Schedule an existing fixed operation",
+        { code: "SCHEDULE_EXISTING_OPERATION" }
+      );
     const response = await OperationFixeEntity.create({
       include: { category: { select: categorySelect } },
       data: {
@@ -66,6 +89,7 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         userId: idUser,
         ...(typeOperationFixe === "CHARGE"
           ? {
+              isBudgetEnvelope: operationProps.isBudgetEnvelope ?? false,
               periodicite: operationProps.periodicite ?? "MENSUELLE",
               pourcentagePersonnel: operationProps.pourcentagePersonnel ?? 100,
             }
@@ -99,12 +123,24 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         typeOperation: true,
         categoryId: true,
         category: { select: categorySelect },
+        isBudgetEnvelope: true,
+        versions: {
+          where: {
+            effectiveMonth: {
+              lte: monthDate(parisCivilDateClock().slice(0, 7)),
+            },
+          },
+          orderBy: { effectiveMonth: "desc" },
+          take: 1,
+        },
         periodicite: true,
         pourcentagePersonnel: true,
       },
       take: 1,
     });
-    return resultOperationFixeById.map((row: any) => this.publicRow(row));
+    return resultOperationFixeById.map((row: any) =>
+      this.publicRow(resolvedFixedRow(row))
+    );
 
     // }
 
@@ -125,6 +161,65 @@ export class OperationFixeRepo implements IOperationFixeRepository {
       idUser,
       typeOperationFixe
     );
+    const existing = (
+      await OperationFixeEntity.findMany({
+        where: {
+          idOperationFixe: operationProps.id,
+          userId: idUser,
+          typeOperation: typeOperationFixe,
+        },
+        take: 1,
+      })
+    )[0];
+    if (!existing) return { count: 0 };
+    if (
+      existing.isBudgetEnvelope ||
+      operationProps.isBudgetEnvelope ||
+      operationProps.effectiveMonth !== undefined ||
+      (await this.entities.fixedOperationVersion.count({
+        where: { operationId: operationProps.id, userId: idUser },
+      })) > 0
+    ) {
+      return scheduleFixedVersion(
+        this.entities,
+        idUser,
+        operationProps.id,
+        typeOperationFixe,
+        {
+          titre: operationProps.titre,
+          montant: String(operationProps.montant),
+          devise: operationProps.devise,
+          ...(operationProps.categoryId === undefined
+            ? {}
+            : { categoryId: operationProps.categoryId }),
+          ...(operationProps.periodicite === undefined
+            ? {}
+            : { periodicite: operationProps.periodicite }),
+          ...(operationProps.pourcentagePersonnel === undefined
+            ? {}
+            : {
+                pourcentagePersonnel: String(
+                  operationProps.pourcentagePersonnel
+                ),
+              }),
+          ...(operationProps.isBudgetEnvelope === undefined
+            ? {}
+            : { isBudgetEnvelope: operationProps.isBudgetEnvelope }),
+          effectiveMonth: operationProps.effectiveMonth,
+        }
+      ).catch((error) => {
+        throw reconciliationHttpError(error);
+      });
+    }
+    try {
+      assertEnvelopeFlag(
+        operationProps.isBudgetEnvelope ?? existing.isBudgetEnvelope ?? false,
+        typeOperationFixe,
+        operationProps.periodicite ?? existing.periodicite ?? "MENSUELLE"
+      );
+    } catch (error) {
+      throw reconciliationHttpError(error);
+    }
     const response = await OperationFixeEntity.updateMany({
       where: {
         idOperationFixe: operationProps.id,
@@ -140,6 +235,9 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         devise: operationProps.devise,
         ...(typeOperationFixe === "CHARGE"
           ? {
+              ...(operationProps.isBudgetEnvelope === undefined
+                ? {}
+                : { isBudgetEnvelope: operationProps.isBudgetEnvelope }),
               ...(operationProps.periodicite === undefined
                 ? {}
                 : { periodicite: operationProps.periodicite }),
@@ -164,6 +262,43 @@ export class OperationFixeRepo implements IOperationFixeRepository {
     const OperationFixeEntity = this.entities.operationFixe;
     const idUser = parseInt(userId);
     operationProps.id = +idOperationFixe;
+    const rows = await OperationFixeEntity.findMany({
+      where: {
+        idOperationFixe: operationProps.id,
+        userId: idUser,
+        typeOperation: typeOperationFixe,
+      },
+      include: {
+        versions: {
+          where: {
+            effectiveMonth: {
+              lte: monthDate(parisCivilDateClock().slice(0, 7)),
+            },
+          },
+          orderBy: { effectiveMonth: "desc" },
+          take: 1,
+        },
+      },
+      take: 1,
+    });
+    if (
+      rows[0] &&
+      resolvedFixedRow(rows[0]).isBudgetEnvelope &&
+      (await this.entities.reconciliationOccurrence.count({
+        where: {
+          userId: idUser,
+          fixedSourceId: operationProps.id,
+          month: { gte: monthDate(parisCivilDateClock().slice(0, 7)) },
+          links: { some: {} },
+        },
+      })) > 0
+    ) {
+      throw new ErrorException(
+        ErrorCode.Conflict,
+        "Envelope has current or future linked payments",
+        { code: "ENVELOPE_IN_USE" }
+      );
+    }
     const response = await OperationFixeEntity.deleteMany({
       where: {
         idOperationFixe: operationProps.id,
@@ -339,6 +474,16 @@ export class OperationFixeRepo implements IOperationFixeRepository {
         typeOperation: true,
         categoryId: true,
         category: { select: categorySelect },
+        isBudgetEnvelope: true,
+        versions: {
+          where: {
+            effectiveMonth: {
+              lte: monthDate(parisCivilDateClock().slice(0, 7)),
+            },
+          },
+          orderBy: { effectiveMonth: "desc" },
+          take: 1,
+        },
         periodicite: true,
         pourcentagePersonnel: true,
       },
@@ -346,7 +491,7 @@ export class OperationFixeRepo implements IOperationFixeRepository {
       take: pagination.limit + 1,
     });
     return createCursorPage(
-      rows.map((row: any) => this.publicRow(row, true)),
+      rows.map((row: any) => this.publicRow(resolvedFixedRow(row), true)),
       pagination,
       context,
       (row: OperationFixeListItem) => [row.idOperationFixe],
@@ -365,7 +510,12 @@ export class OperationFixeRepo implements IOperationFixeRepository {
   }
 
   private async calculateRav(userId: string) {
-    const totals = await loadFixedTotals(this.entities, parseInt(userId));
+    const totals = await loadFixedTotals(
+      this.entities,
+      parseInt(userId),
+      undefined,
+      parisCivilDateClock().slice(0, 7)
+    );
     return {
       montantRaV: (totals.incomeMinorUnits - totals.expenseMinorUnits) / 100,
       montantTotalEntree: totals.incomeMinorUnits / 100,
@@ -413,7 +563,12 @@ export class OperationFixeRepo implements IOperationFixeRepository {
           }
         : null,
       ...(includeType ? { typeOperation: row.typeOperation } : {}),
-      ...(row.typeOperation === "CHARGE" ? chargeAmountFields(row) : {}),
+      ...(row.typeOperation === "CHARGE"
+        ? {
+            ...chargeAmountFields(row),
+            isBudgetEnvelope: row.isBudgetEnvelope ?? false,
+          }
+        : {}),
     };
   }
 }
