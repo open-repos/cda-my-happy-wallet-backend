@@ -19,7 +19,11 @@ The auto-merge workflow checks the author, repository, explicit selection and
 changed paths without checking out or executing pull request code. GitHub then
 waits for all branch protection requirements before performing a merge commit.
 The primary Issue declared as `Primary issue: Refs #N` is closed after the merge
-to `develop`; related Issues remain open.
+to `develop`; related Issues remain open. The `Primary Issue declared` check
+(`pr-primary-issue.yml`) fails a pull request to `develop` that does not carry
+exactly one such line naming an Issue, because any other wording leaves the
+Issue open after the merge. Release sync pull requests from `main` are exempt.
+Make this check required in the `develop` branch protection.
 
 ## GitLab mirror
 
