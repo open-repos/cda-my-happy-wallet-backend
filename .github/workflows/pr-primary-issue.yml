@@ -1,0 +1,54 @@
+name: Primary Issue declared
+
+# close-primary-issue.yml only closes the Issue named on an exact
+# "Primary issue: Refs #N" line and silently skips any other wording.
+# Fail early so a pull request cannot reach develop without it.
+on:
+  pull_request:
+    branches:
+      - develop
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  check:
+    name: Primary Issue declared
+    # Release sync pull requests come from main and carry no Issue.
+    if: github.head_ref != 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Check the primary Issue line
+        run: |
+          numbers="$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH" |
+            tr -d '\r' |
+            sed -nE 's/^Primary issue:[[:space:]]*Refs[[:space:]]+#([0-9]+)[[:space:]]*$/\1/p')"
+          count="$(printf '%s' "$numbers" | grep -c . || true)"
+          if [[ "$count" -ne 1 ]]; then
+            echo "::error::Declare exactly one line 'Primary issue: Refs #<number>' in the pull request body (found $count). Other wording is ignored by close-primary-issue.yml, so the Issue would stay open after the merge."
+            exit 1
+          fi
+          # Assigned first so that a missing number (404) stops the step.
+          kind="$(gh api "repos/$REPOSITORY/issues/$numbers" \
+            --jq 'if has("pull_request") then "pull-request" else .state end')"
+          if [[ "$kind" == 'pull-request' ]]; then
+            echo "::error::#$numbers is a pull request: the primary reference must be an Issue."
+            exit 1
+          fi
+          if [[ "$kind" != 'open' ]]; then
+            echo "::error::Issue #$numbers is $kind: the primary Issue must still be open."
+            exit 1
+          fi
+          echo "Primary Issue: #$numbers"
