@@ -29,7 +29,8 @@ de l'audit. État vérifié le 17 octobre 2026 :
 
 Les autres dépendances directes et les versions du client/CLI Prisma
 `6.19.3` restent inchangées. Les mises à jour transitives restent dans les
-plages acceptées par leurs parents, sauf la surcharge Prisma décrite ci-dessous.
+plages acceptées par leurs parents, sauf les surcharges Prisma et `minimatch`
+décrites ci-dessous.
 Les propositions Dependabot visant `main` ne sont pas fusionnées par cette PR.
 
 ## Compatibilité à surveiller
@@ -255,3 +256,17 @@ les redirections 302/307 vers un second serveur (zéro requête reçue), les
 Les audits doivent toujours être exécutés après `npm ci`, sans abaisser leur
 seuil ni utiliser `npm audit fix --force`. Cette correction ne nécessite
 aucune migration SQL ni nouvelle configuration.
+
+## Surcharge `minimatch` du 31 octobre 2026
+
+L'avis [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)
+couvre `minimatch` avant 11.0.1, sans correctif 10.x, alors que les parents
+déclarent `^10` ([#147](https://github.com/open-repos/cda-my-happy-wallet-backend/issues/147)).
+La version 11.0.3 est donc imposée à `eslint`, `@eslint/config-array` et
+`@typescript-eslint/typescript-estree`, uniquement en développement. La surcharge
+reste limitée à ces parents pour ne pas toucher une future dépendance.
+
+La version 11 retire notamment `makeRe` et `AST`. Ces parents consomment
+`Minimatch`, `.match()`, `.pattern` et `minimatch()`, qui restent disponibles.
+ESLint analyse les mêmes 243 fichiers avant et après la surcharge, sans erreur.
+Retirer chaque entrée dès que le parent concerné déclare une version corrigée.
