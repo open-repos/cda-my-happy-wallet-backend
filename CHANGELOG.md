@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.8.1 (2026-10-31)
+
+### Security
+
+- Overrode minimatch to 11.0.3 in the lint toolchain to fix a development-only denial of service advisory (#147).
+- Updated Joi to 17.13.9 to fix a denial of service advisory on an email option the API does not use (#148).
+
 ## 1.8.0 (2026-10-28)
 
 ### Added

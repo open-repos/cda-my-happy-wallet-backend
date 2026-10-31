@@ -1,6 +1,6 @@
 {
   "name": "projet-00-myhappywallet-backend",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Dans ce projet je mettrais toutes les tâches liées au Backend de mon projet \"Chef d'oeuvre\" CDA .",
   "main": "index.js",
   "scripts": {
@@ -127,7 +127,7 @@
     "express": "4.22.3",
     "express-rate-limit": "8.6.1",
     "helmet": "8.3.0",
-    "joi": "17.13.8",
+    "joi": "17.13.9",
     "joi-to-swagger": "6.2.0",
     "jsonwebtoken": "9.0.3",
     "morgan": "1.12.1",
@@ -144,6 +144,15 @@
   "overrides": {
     "@prisma/config@6.19.3": {
       "deepmerge-ts": "8.0.2"
+    },
+    "eslint": {
+      "minimatch": "11.0.3"
+    },
+    "@eslint/config-array": {
+      "minimatch": "11.0.3"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "11.0.3"
     }
   }
 }
