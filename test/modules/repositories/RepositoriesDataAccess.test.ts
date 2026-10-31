@@ -80,12 +80,41 @@ async function runRepositoryDataAccessTests() {
     },
   });
 
+  const otherUser = await prisma.utilisateur.create({
+    data: {
+      email: `other-${user.email}`,
+      firstname: "Other",
+      lastname: "User",
+      password: "hashed-password",
+    },
+  });
+  const sessionExpiry = new Date(Date.now() + 60_000);
+  const createSession = (id: string, userId: number) =>
+    prisma.refreshSession.create({
+      data: { id, userId, tokenHash: id.repeat(64), expiresAt: sessionExpiry },
+    });
+  await createSession("a", user.id);
+  await createSession("b", user.id);
+  await createSession("c", otherUser.id);
+  const isRevoked = async (id: string) =>
+    (await prisma.refreshSession.findUnique({ where: { id } }))?.revokedAt !=
+    null;
+
+  await assert.rejects(
+    () => userRepo.newPassword("rejected-password", "e".repeat(128)),
+    (error: ErrorException) => error.name === ErrorCode.Unauthorized
+  );
+  assert.strictEqual(await isRevoked("a"), false);
+
   assert.strictEqual(await userRepo.hasValidResetToken(resetToken), true);
   const passwordUpdate = await userRepo.newPassword(
     "new-hashed-password",
     resetToken
   );
   assert.strictEqual(passwordUpdate.count, 1);
+  assert.strictEqual(await isRevoked("a"), true);
+  assert.strictEqual(await isRevoked("b"), true);
+  assert.strictEqual(await isRevoked("c"), false);
   assert.strictEqual(await userRepo.hasValidResetToken(resetToken), false);
   await assert.rejects(
     () => userRepo.newPassword("second-password", resetToken),
@@ -101,11 +130,46 @@ async function runRepositoryDataAccessTests() {
     },
   });
 
+  await createSession("d", user.id);
   assert.strictEqual(await userRepo.hasValidResetToken(expiredResetToken), false);
   await assert.rejects(
     () => userRepo.newPassword("expired-password", expiredResetToken),
     (error: ErrorException) => error.name === ErrorCode.Unauthorized
   );
+  assert.strictEqual(await isRevoked("d"), false);
+
+  // A failed revocation must roll back the password change.
+  const rollbackToken = "f".repeat(128);
+  await prisma.utilisateur.update({
+    where: { id: user.id },
+    data: {
+      resetToken: rollbackToken,
+      resetTokenExpiration: new Date(Date.now() + 60_000),
+    },
+  });
+  const failingRevocationRepo = new UserRepo({
+    utilisateur: prisma.utilisateur,
+    $transaction: (work: (transaction: unknown) => Promise<unknown>) =>
+      prisma.$transaction((transaction) =>
+        work({
+          utilisateur: transaction.utilisateur,
+          refreshSession: {
+            updateMany: async () => {
+              throw new Error("revocation failed");
+            },
+          },
+        })
+      ),
+  }, new FakeMailer());
+  await assert.rejects(
+    () => failingRevocationRepo.newPassword("rolled-back", rollbackToken),
+    /revocation failed/
+  );
+  const afterRollback = await prisma.utilisateur.findUnique({
+    where: { id: user.id },
+  });
+  assert.strictEqual(afterRollback?.password, "new-hashed-password");
+  assert.strictEqual(afterRollback?.resetToken, rollbackToken);
 
   assert.strictEqual(
     await userRepo.confirmRegistration(String(user.id), user.email),

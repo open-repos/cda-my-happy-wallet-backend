@@ -87,6 +87,8 @@ expiration. La révocation s'applique à un rejeu ou à un jeton encore valide
 d'une session déjà plus ancienne que la limite. Le
 client conserve le nouveau jeton et
 évite les renouvellements concurrents : un rejeu n'est pas un succès idempotent.
+Une réinitialisation de mot de passe réussie révoque toutes les sessions de
+renouvellement de l'utilisateur.
 Voir [RefreshSessionService](../src/modules/auth/refreshSession/RefreshSessionService.ts).
 
 Sur le Web, `refresh_token` et `id_user` sont `HttpOnly`, `SameSite=Strict`,
