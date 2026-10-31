@@ -115,26 +115,34 @@ export class UserRepo implements IUserRepository {
       throw new ErrorException(ErrorCode.Unauthorized)
     }
 
-    const resultUpdate = await UserEntity.updateMany({
-      where: {
-        id: users[0].id,
-        resetToken: resetToken,
-        resetTokenExpiration: {
-          gte: new Date(),
+    return this.entities.$transaction(async (transaction: any) => {
+      const resultUpdate = await transaction.utilisateur.updateMany({
+        where: {
+          id: users[0].id,
+          resetToken: resetToken,
+          resetTokenExpiration: {
+            gte: new Date(),
+          },
         },
-      },
-      data: {
-        password: newpassword,
-        resetToken: null,
-        resetTokenExpiration: null,
-      },
+        data: {
+          password: newpassword,
+          resetToken: null,
+          resetTokenExpiration: null,
+        },
+      });
+
+      if (resultUpdate.count !== 1) {
+        throw new ErrorException(ErrorCode.Unauthorized)
+      }
+
+      // Sessions opened with the former password must not survive the change.
+      await transaction.refreshSession.updateMany({
+        where: { userId: users[0].id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+
+      return resultUpdate
     });
-
-    if (resultUpdate.count !== 1) {
-      throw new ErrorException(ErrorCode.Unauthorized)
-    }
-
-    return resultUpdate
     // return { success: true, message: `New password created` };
   }
 
