@@ -15,6 +15,7 @@ export type RenewedSession = {
   accessTokenExpires: string;
   accessTokenExpiresIn: number;
   refreshToken: string;
+  refreshTokenExpiresIn: number;
 };
 
 export class RenewSession {
@@ -61,6 +62,7 @@ export class RenewSession {
       accessTokenExpires: RENEWED_ACCESS_TOKEN_EXPIRES_IN,
       accessTokenExpiresIn: RENEWED_ACCESS_TOKEN_EXPIRES_IN_SECONDS,
       refreshToken: rotation.refreshToken,
+      refreshTokenExpiresIn: rotation.refreshTokenExpiresIn,
     };
   }
 }

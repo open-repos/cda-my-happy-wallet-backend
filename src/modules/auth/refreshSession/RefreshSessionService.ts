@@ -10,9 +10,8 @@ import {
   RefreshTokenPayload,
 } from "./RefreshTokenPayload";
 
-export const REFRESH_TOKEN_TTL_SECONDS = 15 * 60;
-const REFRESH_TOKEN_TTL_MS = REFRESH_TOKEN_TTL_SECONDS * 1000;
-const REFRESH_TOKEN_EXPIRES_IN = "15min";
+export const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
+export const SESSION_ABSOLUTE_LIFETIME_SECONDS = 30 * 24 * 60 * 60;
 
 export class RefreshSessionService implements IRefreshSessionService {
   constructor(
@@ -25,13 +24,13 @@ export class RefreshSessionService implements IRefreshSessionService {
 
   public async issue(userId: number): Promise<string> {
     const sessionId = this.generateId();
-    const refreshToken = this.sign(userId, sessionId);
+    const refreshToken = this.sign(userId, sessionId, REFRESH_TOKEN_TTL_SECONDS);
 
     await this.repository.create({
       id: sessionId,
       userId,
       tokenHash: this.hash(refreshToken),
-      expiresAt: this.expiresAt(),
+      expiresAt: this.expiresAt(REFRESH_TOKEN_TTL_SECONDS),
     });
 
     return refreshToken;
@@ -53,15 +52,30 @@ export class RefreshSessionService implements IRefreshSessionService {
 
   public async rotate(
     token: string
-  ): Promise<{ userId: number; refreshToken: string }> {
+  ): Promise<{
+    userId: number;
+    refreshToken: string;
+    refreshTokenExpiresIn: number;
+  }> {
     const payload = this.verify(token);
-    const refreshToken = this.sign(payload.id, payload.sessionId);
+    const now = this.now();
+    const refreshTokenExpiresIn = await this.renewedLifetimeSeconds(payload, now);
+    if (refreshTokenExpiresIn <= 0) {
+      await this.repository.revoke(payload.sessionId, payload.id);
+      throw new ErrorException(ErrorCode.Unauthorized);
+    }
+
+    const refreshToken = this.sign(
+      payload.id,
+      payload.sessionId,
+      refreshTokenExpiresIn
+    );
     const rotated = await this.repository.rotate({
       id: payload.sessionId,
       userId: payload.id,
       currentTokenHash: this.hash(token),
       nextTokenHash: this.hash(refreshToken),
-      nextExpiresAt: this.expiresAt(),
+      nextExpiresAt: this.expiresAt(refreshTokenExpiresIn, now),
     });
 
     if (!rotated) {
@@ -69,7 +83,7 @@ export class RefreshSessionService implements IRefreshSessionService {
       throw new ErrorException(ErrorCode.Unauthorized);
     }
 
-    return { userId: payload.id, refreshToken };
+    return { userId: payload.id, refreshToken, refreshTokenExpiresIn };
   }
 
   public async revoke(token: string): Promise<void> {
@@ -77,12 +91,35 @@ export class RefreshSessionService implements IRefreshSessionService {
     await this.repository.revoke(payload.sessionId, payload.id);
   }
 
-  private sign(userId: number, sessionId: string): string {
+  private async renewedLifetimeSeconds(
+    payload: RefreshTokenPayload,
+    now: Date
+  ): Promise<number> {
+    const createdAt = await this.repository.findCreatedAt(
+      payload.sessionId,
+      payload.id
+    );
+    if (createdAt == null) {
+      return 0;
+    }
+
+    const elapsedSeconds = (now.getTime() - createdAt.getTime()) / 1000;
+    return Math.min(
+      REFRESH_TOKEN_TTL_SECONDS,
+      Math.floor(SESSION_ABSOLUTE_LIFETIME_SECONDS - elapsedSeconds)
+    );
+  }
+
+  private sign(
+    userId: number,
+    sessionId: string,
+    expiresInSeconds: number
+  ): string {
     return this.tokenService.sign(
       { id: userId, sessionId },
       this.secret,
       {
-        expiresIn: REFRESH_TOKEN_EXPIRES_IN,
+        expiresIn: expiresInSeconds,
         jwtid: this.generateId(),
       }
     );
@@ -92,7 +129,7 @@ export class RefreshSessionService implements IRefreshSessionService {
     return createHash("sha256").update(token).digest("hex");
   }
 
-  private expiresAt(): Date {
-    return new Date(this.now().getTime() + REFRESH_TOKEN_TTL_MS);
+  private expiresAt(expiresInSeconds: number, now: Date = this.now()): Date {
+    return new Date(now.getTime() + expiresInSeconds * 1000);
   }
 }

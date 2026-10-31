@@ -55,7 +55,7 @@ export class NativeSessionController {
         expires: result.accessTokenExpires,
         accessTokenExpiresIn: result.accessTokenExpiresIn,
         refreshToken: result.refreshToken,
-        refreshTokenExpiresIn: REFRESH_TOKEN_TTL_SECONDS,
+        refreshTokenExpiresIn: result.refreshTokenExpiresIn,
       },
     });
   }

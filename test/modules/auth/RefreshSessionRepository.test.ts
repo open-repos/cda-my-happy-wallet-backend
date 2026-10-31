@@ -1,6 +1,7 @@
 import assert from "assert";
 import { PrismaClient } from "@prisma/client";
 import { PrismaRefreshSessionRepository } from "../../../src/modules/auth/refreshSession/PrismaRefreshSessionRepository";
+import { RefreshSessionService } from "../../../src/modules/auth/refreshSession/RefreshSessionService";
 
 const databaseUrl = process.env.DATABASE_URL || "";
 
@@ -93,6 +94,73 @@ async function runRefreshSessionRepositoryTests() {
     }),
     false
   );
+
+  const stored = await prisma.refreshSession.findUnique({
+    where: { id: sessionId },
+  });
+  assert.strictEqual(
+    (await repository.findCreatedAt(sessionId, user.id))?.getTime(),
+    stored?.createdAt.getTime()
+  );
+  assert.strictEqual(await repository.findCreatedAt(sessionId, user.id + 1), null);
+  assert.strictEqual(
+    await repository.findCreatedAt("33333333-3333-4333-8333-333333333333", user.id),
+    null
+  );
+
+  const service = new RefreshSessionService(repository);
+  const dayMs = 24 * 60 * 60 * 1000;
+  const sessionOf = async (token: string) => {
+    const session = await prisma.refreshSession.findUnique({
+      where: { id: service.verify(token).sessionId },
+    });
+    assert.ok(session);
+    return session;
+  };
+
+  // Issued through the real clock and the database default for createdAt.
+  const fresh = await service.issue(user.id);
+  const freshRow = await sessionOf(fresh);
+  assert.ok(Math.abs(freshRow.createdAt.getTime() - Date.now()) < 60_000);
+  assert.ok(
+    Math.abs(freshRow.expiresAt.getTime() - (Date.now() + 7 * dayMs)) < 60_000
+  );
+
+  const nearLimit = await service.issue(user.id);
+  const createdAt = new Date(Date.now() - 29 * dayMs);
+  await prisma.refreshSession.update({
+    where: { id: service.verify(nearLimit).sessionId },
+    data: { createdAt },
+  });
+  const capped = await service.rotate(nearLimit);
+  assert.ok(capped.refreshTokenExpiresIn <= dayMs / 1000);
+  const cappedRow = await sessionOf(capped.refreshToken);
+  assert.ok(cappedRow.expiresAt.getTime() <= createdAt.getTime() + 30 * dayMs);
+  assert.ok(cappedRow.expiresAt.getTime() > Date.now());
+  assert.strictEqual(cappedRow.revokedAt, null);
+
+  // An existing active session already past the limit ends at its next renewal.
+  const pastLimit = await service.issue(user.id);
+  await prisma.refreshSession.update({
+    where: { id: service.verify(pastLimit).sessionId },
+    data: { createdAt: new Date(Date.now() - 31 * dayMs) },
+  });
+  await assert.rejects(() => service.rotate(pastLimit));
+  assert.ok((await sessionOf(pastLimit)).revokedAt);
+
+  // Two simultaneous renewals presenting the same token (two browser tabs
+  // sharing one cookie): the replay protection revokes the whole session.
+  const shared = await service.issue(user.id);
+  const results = await Promise.allSettled([
+    service.rotate(shared),
+    service.rotate(shared),
+  ]);
+  const winners = results.flatMap((result) =>
+    result.status === "fulfilled" ? [result.value] : []
+  );
+  assert.strictEqual(winners.length, 1);
+  assert.ok((await sessionOf(shared)).revokedAt);
+  await assert.rejects(() => service.rotate(winners[0].refreshToken));
 }
 
 runRefreshSessionRepositoryTests()

@@ -119,7 +119,7 @@ async function runApiCharacterizationTests() {
           lastname: authenticatedUser.lastname,
         },
         accessToken: "fake.access.token",
-        expires: "60s",
+        expires: "300s",
       },
       refreshToken: "fake.refresh.token",
       userId: authenticatedUser.id,
@@ -201,6 +201,7 @@ async function runApiCharacterizationTests() {
   refreshSessionService.rotate = async () => ({
     userId: authenticatedUser.id,
     refreshToken: "rotated.refresh.token",
+    refreshTokenExpiresIn: 86400,
   });
   const revokedRefreshTokens: string[] = [];
   refreshSessionService.revoke = async (token: string) => {
@@ -228,6 +229,19 @@ async function runApiCharacterizationTests() {
           cookie.includes("Path=/") &&
           cookie.includes("SameSite=Strict")
       )
+  );
+
+  const sessionCookies = (response: Parameters<typeof getSetCookies>[0]) =>
+    getSetCookies(response).filter(
+      (cookie) =>
+        !cookie.includes("Expires=Thu, 01 Jan 1970") &&
+        /^(refresh_token|id_user)=/.test(cookie)
+    );
+  assert.strictEqual(sessionCookies(loginResponse).length, 2);
+  assert.ok(
+    sessionCookies(loginResponse).every((cookie) =>
+      cookie.includes("Max-Age=604800;")
+    )
   );
 
   const invalidLoginResponse = await supertest(app)
@@ -261,6 +275,13 @@ async function runApiCharacterizationTests() {
   assert.strictEqual(refreshResponse.body.payload.user.email, authenticatedUser.email);
   assert.ok(refreshResponse.body.payload.accessToken);
   assert.deepStrictEqual(requestedUserIds, [authenticatedUser.id]);
+  // Renewal cookies carry the remaining lifetime returned by the rotation.
+  assert.strictEqual(sessionCookies(refreshResponse).length, 2);
+  assert.ok(
+    sessionCookies(refreshResponse).every((cookie) =>
+      cookie.includes("Max-Age=86400;")
+    )
+  );
   assert.ok(
     getSetCookies(refreshResponse).every(
       (cookie) =>

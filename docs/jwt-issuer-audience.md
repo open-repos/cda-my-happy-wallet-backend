@@ -16,8 +16,8 @@ les anciens jetons sans ces claims.
 
 | Usage                      | Audience                                | Secret existant  | Durée existante                                 |
 | -------------------------- | --------------------------------------- | ---------------- | ----------------------------------------------- |
-| Accès Web/natif            | `JWT_AUDIENCE`                          | `ACCESS_TOKEN`   | 60 s à la connexion, 300 s après renouvellement |
-| Renouvellement Web/natif   | `JWT_AUDIENCE` suivi de `:refresh`      | `REFRESH_TOKEN`  | 900 s et rotation persistée                     |
+| Accès Web/natif            | `JWT_AUDIENCE`                          | `ACCESS_TOKEN`   | 300 s à la connexion et après renouvellement    |
+| Renouvellement Web/natif   | `JWT_AUDIENCE` suivi de `:refresh`      | `REFRESH_TOKEN`  | 7 j glissants, 30 j au plus, rotation persistée |
 | Confirmation d'inscription | `JWT_AUDIENCE` suivi de `:registration` | `REGISTER_TOKEN` | 300 s                                           |
 
 L'émetteur de ces trois usages vaut `JWT_ISSUER`. Les vérifications utilisent

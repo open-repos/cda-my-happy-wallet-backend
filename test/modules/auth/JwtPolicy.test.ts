@@ -117,9 +117,16 @@ async function verifyPolicy() {
 class MemorySessions implements IRefreshSessionRepository {
   readonly sessions = new Map<string, CreateRefreshSessionProps>();
   readonly revoked = new Set<string>();
+  readonly createdAt = new Map<string, Date>();
   rotations = 0;
   async create(session: CreateRefreshSessionProps) {
     this.sessions.set(session.id, session);
+    this.createdAt.set(session.id, new Date());
+  }
+  async findCreatedAt(id: string, userId: number) {
+    return this.sessions.get(id)?.userId === userId
+      ? (this.createdAt.get(id) ?? null)
+      : null;
   }
   async rotate(props: RotateRefreshSessionProps) {
     this.rotations++;
@@ -198,8 +205,16 @@ async function verifyHttpAndSessions() {
     .send({ email: user.email, password });
   assert.equal(first.status, 200);
   assert.equal(first.headers["set-cookie"], undefined);
-  assert.equal(first.body.payload.accessTokenExpiresIn, 60);
-  assert.equal(first.body.payload.refreshTokenExpiresIn, 900);
+  assert.equal(first.body.payload.accessTokenExpiresIn, 300);
+  assert.equal(first.body.payload.expires, "300s");
+  const firstAccessClaims = jwt.decode(
+    first.body.payload.accessToken
+  ) as jwt.JwtPayload;
+  assert.equal(
+    Number(firstAccessClaims.exp) - Number(firstAccessClaims.iat),
+    300
+  );
+  assert.equal(first.body.payload.refreshTokenExpiresIn, 604800);
   const firstAccess = first.body.payload.accessToken;
   const firstRefresh = first.body.payload.refreshToken;
   assert.equal(
@@ -274,7 +289,7 @@ async function verifyHttpAndSessions() {
   assert.equal(rotated.status, 200);
   assert.equal(rotated.headers["set-cookie"], undefined);
   assert.equal(rotated.body.payload.accessTokenExpiresIn, 300);
-  assert.equal(rotated.body.payload.refreshTokenExpiresIn, 900);
+  assert.equal(rotated.body.payload.refreshTokenExpiresIn, 604800);
   assert.notEqual(rotated.body.payload.refreshToken, firstRefresh);
   assert.equal(
     (

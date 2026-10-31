@@ -14,6 +14,15 @@ export class PrismaRefreshSessionRepository
     await this.prisma.refreshSession.create({ data: props });
   }
 
+  public async findCreatedAt(id: string, userId: number): Promise<Date | null> {
+    const session = await this.prisma.refreshSession.findFirst({
+      where: { id, userId },
+      select: { createdAt: true },
+    });
+
+    return session?.createdAt ?? null;
+  }
+
   public async rotate(props: RotateRefreshSessionProps): Promise<boolean> {
     const result = await this.prisma.refreshSession.updateMany({
       where: {

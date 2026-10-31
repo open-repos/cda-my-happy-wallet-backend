@@ -37,7 +37,7 @@ const nestedUserSchema = Joi.object<userProps>({
 const nestedPayloadrSchema = Joi.object<payloadProps>({
   user: nestedUserSchema,
   accessToken: Joi.string().example("accesstokenXXXXXXXXXXXXXXXXXXXXXXXX"),
-  expires: Joi.string().example("60s"),
+  expires: Joi.string().example("300s"),
 });
 
 const resultAuthSchema = Joi.object<resultAuthProps>({
