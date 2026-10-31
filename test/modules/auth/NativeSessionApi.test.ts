@@ -34,7 +34,7 @@ async function runNativeSessionApiTests() {
           payload: {
             user: { email: "user@example.com", firstname: "Test" },
             accessToken: "native.access.token",
-            expires: "60s",
+            expires: "300s",
           },
           refreshToken: "native.refresh.token",
         };
@@ -50,6 +50,7 @@ async function runNativeSessionApiTests() {
           accessTokenExpires: "5min",
           accessTokenExpiresIn: 300,
           refreshToken: "rotated.refresh.token",
+          refreshTokenExpiresIn: 86400,
         };
       },
     },
@@ -75,8 +76,8 @@ async function runNativeSessionApiTests() {
   assert.strictEqual(loginResponse.headers["set-cookie"], undefined);
   assert.strictEqual(loginResponse.body.payload.accessToken, "native.access.token");
   assert.strictEqual(loginResponse.body.payload.refreshToken, "native.refresh.token");
-  assert.strictEqual(loginResponse.body.payload.accessTokenExpiresIn, 60);
-  assert.strictEqual(loginResponse.body.payload.refreshTokenExpiresIn, 900);
+  assert.strictEqual(loginResponse.body.payload.accessTokenExpiresIn, 300);
+  assert.strictEqual(loginResponse.body.payload.refreshTokenExpiresIn, 604800);
 
   const invalidLoginResponse = await supertest(app)
     .post("/auth/native/sessions")
@@ -94,7 +95,7 @@ async function runNativeSessionApiTests() {
   assert.strictEqual(refreshResponse.body.payload.accessToken, "renewed.access.token");
   assert.strictEqual(refreshResponse.body.payload.refreshToken, "rotated.refresh.token");
   assert.strictEqual(refreshResponse.body.payload.accessTokenExpiresIn, 300);
-  assert.strictEqual(refreshResponse.body.payload.refreshTokenExpiresIn, 900);
+  assert.strictEqual(refreshResponse.body.payload.refreshTokenExpiresIn, 86400);
 
   const invalidRefreshResponse = await supertest(app)
     .post("/auth/native/sessions/refresh")

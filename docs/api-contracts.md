@@ -78,16 +78,22 @@ utilisent `400 IncompleteRequestBody`, pas le `422` des nouveaux modules.
 `grant_type` vaut `refresh_token` ; voir le
 [schéma](../src/utils/validators/renewRefreshToken.validator.ts).
 Les orthographes `succes` et `success` sont existantes et doivent être
-préservées. Le JWT d'accès initial dure 60 secondes ; après renouvellement il
-dure 300 secondes. Les sessions de renouvellement durent 900 secondes et sont
-tournées à chaque renouvellement. Le client conserve le nouveau jeton et
+préservées. Le JWT d'accès dure 300 secondes, à la connexion comme
+après renouvellement. Les sessions de renouvellement durent 7 jours glissants et
+sont tournées à chaque renouvellement, sans jamais dépasser 30 jours après leur
+création : la base, le JWT, les cookies et `refreshTokenExpiresIn` s'arrêtent à
+cette limite, puis le renouvellement répond `401` : la session se termine par
+expiration. La révocation s'applique à un rejeu ou à un jeton encore valide
+d'une session déjà plus ancienne que la limite. Le
+client conserve le nouveau jeton et
 évite les renouvellements concurrents : un rejeu n'est pas un succès idempotent.
 Voir [RefreshSessionService](../src/modules/auth/refreshSession/RefreshSessionService.ts).
 
 Sur le Web, `refresh_token` et `id_user` sont `HttpOnly`, `SameSite=Strict`,
 `Path=/`, et `Secure` en production. Le cookie d'identifiant n'est pas une
 preuve d'identité. Le client natif reçoit explicitement le jeton de
-renouvellement et les durées `accessTokenExpiresIn` / `refreshTokenExpiresIn`.
+renouvellement et les durées `accessTokenExpiresIn` / `refreshTokenExpiresIn`
+(durée réellement restante, donc parfois inférieure à 7 jours).
 Les réponses métier ne doivent jamais réexposer ces secrets.
 
 La confirmation réussie redirige vers le login. Un lien déjà utilisé ou

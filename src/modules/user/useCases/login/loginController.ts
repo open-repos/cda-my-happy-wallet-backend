@@ -3,7 +3,7 @@ import { NextFunction } from 'express';
 import { Login } from './login'
 import { Request, Response } from 'express'
 import { ErrorException,ErrorCode } from './../../../../utils/errors/';
-import { authCookieOptions, clearAuthCookie } from '../../../auth/authCookieOptions';
+import { sessionCookieOptions, clearAuthCookie } from '../../../auth/authCookieOptions';
 
 export const swLoginUser = {
     tags: ["Users"],
@@ -84,8 +84,8 @@ export class LoginController {
                 // return res.status(400).json({ message: result.message })
                 throw new ErrorException(ErrorCode.UnknownError)
             }
-            res.cookie("id_user",result.userId,authCookieOptions(900000))
-            res.cookie("refresh_token",result.refreshToken,authCookieOptions(900000))
+            res.cookie("id_user",result.userId,sessionCookieOptions())
+            res.cookie("refresh_token",result.refreshToken,sessionCookieOptions())
 
           //   res.cookie("role_user",result.payload.user.role,{
           //     httpOnly:true,
