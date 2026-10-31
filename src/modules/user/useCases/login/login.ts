@@ -9,7 +9,7 @@ import { ITokenService } from '../../../auth/token/TokenService.interface';
 import { JsonWebTokenService } from '../../../auth/token/JsonWebTokenService';
 import { IRefreshSessionService } from '../../../auth/refreshSession/RefreshSessionService.interface';
 
-export const LOGIN_ACCESS_TOKEN_EXPIRES_IN_SECONDS = 60;
+export const LOGIN_ACCESS_TOKEN_EXPIRES_IN_SECONDS = 5 * 60;
 const LOGIN_ACCESS_TOKEN_EXPIRES_IN = `${LOGIN_ACCESS_TOKEN_EXPIRES_IN_SECONDS}s`;
 
 //Equivalent to a specific service in a CRUD API

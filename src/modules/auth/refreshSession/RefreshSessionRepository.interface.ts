@@ -15,6 +15,7 @@ export type RotateRefreshSessionProps = {
 
 export interface IRefreshSessionRepository {
   create(props: CreateRefreshSessionProps): Promise<void>;
+  findCreatedAt(id: string, userId: number): Promise<Date | null>;
   rotate(props: RotateRefreshSessionProps): Promise<boolean>;
   revoke(id: string, userId: number): Promise<void>;
 }

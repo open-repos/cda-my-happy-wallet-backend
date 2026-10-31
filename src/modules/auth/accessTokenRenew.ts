@@ -1,7 +1,7 @@
 import { Result, ResultCode } from "./../../utils/results/";
 import { ErrorException, ErrorCode } from "./../../utils/errors";
 import { Request, Response, NextFunction } from "express";
-import { authCookieOptions, clearAuthCookie } from "./authCookieOptions";
+import { clearAuthCookie, sessionCookieOptions } from "./authCookieOptions";
 import { refreshSessionService } from "./refreshSession";
 import { renewSession } from "./renewSession";
 
@@ -106,8 +106,9 @@ export const renewAccessToken = async (
 
   try {
     const result = await renewSession.execute(refreshToken, email);
-    res.cookie("id_user", result.userId, authCookieOptions(900000));
-    res.cookie("refresh_token", result.refreshToken, authCookieOptions(900000));
+    const cookieOptions = sessionCookieOptions(result.refreshTokenExpiresIn);
+    res.cookie("id_user", result.userId, cookieOptions);
+    res.cookie("refresh_token", result.refreshToken, cookieOptions);
     return res.status(200).json({
       success: true,
       payload: {

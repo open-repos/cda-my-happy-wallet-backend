@@ -20,13 +20,28 @@ const firstTokenId = "22222222-2222-4222-8222-222222222222";
 const secondTokenId = "33333333-3333-4333-8333-333333333333";
 const replayTokenId = "44444444-4444-4444-8444-444444444444";
 const fixedNow = new Date("2026-07-31T20:00:00.000Z");
+const DAY_SECONDS = 24 * 60 * 60;
+const SEVEN_DAYS_SECONDS = 7 * DAY_SECONDS;
+const afterSeconds = (seconds: number): Date =>
+  new Date(fixedNow.getTime() + seconds * 1000);
+const afterDays = (days: number): Date => afterSeconds(days * DAY_SECONDS);
 
 class InMemoryRefreshSessionRepository implements IRefreshSessionRepository {
   public session: CreateRefreshSessionProps | null = null;
   public revoked = false;
+  public createdAt: Date | null = null;
+
+  constructor(private readonly clock: () => Date = () => fixedNow) {}
 
   public async create(props: CreateRefreshSessionProps): Promise<void> {
     this.session = props;
+    this.createdAt = this.clock();
+  }
+
+  public async findCreatedAt(id: string, userId: number): Promise<Date | null> {
+    return this.session?.id === id && this.session.userId === userId
+      ? this.createdAt
+      : null;
   }
 
   public async rotate(props: RotateRefreshSessionProps): Promise<boolean> {
@@ -36,7 +51,7 @@ class InMemoryRefreshSessionRepository implements IRefreshSessionRepository {
       this.session.id !== props.id ||
       this.session.userId !== props.userId ||
       this.session.tokenHash !== props.currentTokenHash ||
-      this.session.expiresAt < fixedNow
+      this.session.expiresAt < this.clock()
     ) {
       return false;
     }
@@ -62,6 +77,126 @@ const hash = (token: string): string =>
 const isUnauthorized = (error: unknown): boolean =>
   error instanceof ErrorException && error.name === ErrorCode.Unauthorized;
 
+const jwtLifetimeSeconds = (token: string): number => {
+  const { exp, iat } = jwt.decode(token) as { exp: number; iat: number };
+  return exp - iat;
+};
+
+async function runSessionLifetimeTests() {
+  let now = fixedNow;
+  const clock = () => now;
+  // jsonwebtoken reads Date.now: both clocks must move, as they do in production.
+  const realDateNow = Date.now;
+  Date.now = () => now.getTime();
+  const repository = new InMemoryRefreshSessionRepository(clock);
+  const service = new RefreshSessionService(repository, undefined, secret, clock);
+
+  let token = await service.issue(42);
+  assert.strictEqual(jwtLifetimeSeconds(token), SEVEN_DAYS_SECONDS);
+  assert.strictEqual(
+    repository.session?.expiresAt.toISOString(),
+    afterDays(7).toISOString()
+  );
+
+  // Each renewal slides the expiry by seven full days.
+  for (const day of [6, 12, 18]) {
+    now = afterDays(day);
+    const rotation = await service.rotate(token);
+    token = rotation.refreshToken;
+    assert.strictEqual(rotation.refreshTokenExpiresIn, SEVEN_DAYS_SECONDS);
+    assert.strictEqual(jwtLifetimeSeconds(token), SEVEN_DAYS_SECONDS);
+    assert.strictEqual(
+      repository.session?.expiresAt.toISOString(),
+      afterDays(day + 7).toISOString()
+    );
+  }
+
+  // From day 23 the sliding window reaches the absolute limit: every expiry
+  // (database, JWT, value exposed to callers) stops at creation + 30 days.
+  for (const [day, remainingDays] of [
+    [24, 6],
+    [29, 1],
+  ]) {
+    now = afterDays(day);
+    const rotation = await service.rotate(token);
+    token = rotation.refreshToken;
+    assert.strictEqual(rotation.refreshTokenExpiresIn, remainingDays * DAY_SECONDS);
+    assert.strictEqual(jwtLifetimeSeconds(token), remainingDays * DAY_SECONDS);
+    assert.strictEqual(
+      repository.session?.expiresAt.toISOString(),
+      afterDays(30).toISOString()
+    );
+  }
+
+  // At the limit the token itself has expired: the session ends by expiry and
+  // the refusal never reaches the repository.
+  now = afterDays(30);
+  assert.strictEqual(jwtLifetimeSeconds(token), DAY_SECONDS);
+  await assert.rejects(() => service.rotate(token), isUnauthorized);
+  assert.strictEqual(repository.revoked, false);
+  assert.strictEqual(
+    repository.session?.expiresAt.toISOString(),
+    afterDays(30).toISOString()
+  );
+
+  // A still valid token of a session already past the limit is revoked.
+  now = fixedNow;
+  const oldRepository = new InMemoryRefreshSessionRepository(clock);
+  const oldService = new RefreshSessionService(
+    oldRepository,
+    undefined,
+    secret,
+    clock
+  );
+  const oldToken = await oldService.issue(42);
+  oldRepository.createdAt = afterDays(-30);
+  await assert.rejects(() => oldService.rotate(oldToken), isUnauthorized);
+  assert.strictEqual(oldRepository.revoked, true);
+
+  // A session unused for more than seven days cannot be renewed.
+  now = fixedNow;
+  const idleService = new RefreshSessionService(
+    new InMemoryRefreshSessionRepository(clock),
+    undefined,
+    secret,
+    clock
+  );
+  const idleToken = await idleService.issue(42);
+  now = afterSeconds(SEVEN_DAYS_SECONDS + 1);
+  await assert.rejects(() => idleService.rotate(idleToken), isUnauthorized);
+
+  // A replay stays revoked, including during the capped period.
+  now = fixedNow;
+  const replayRepository = new InMemoryRefreshSessionRepository(clock);
+  const replayService = new RefreshSessionService(
+    replayRepository,
+    undefined,
+    secret,
+    clock
+  );
+  let current = await replayService.issue(42);
+  let replayed = current;
+  for (const day of [6, 12, 18, 24]) {
+    now = afterDays(day);
+    replayed = current;
+    current = (await replayService.rotate(current)).refreshToken;
+  }
+  await assert.rejects(() => replayService.rotate(replayed), isUnauthorized);
+  assert.strictEqual(replayRepository.revoked, true);
+  await assert.rejects(() => replayService.rotate(current), isUnauthorized);
+
+  // A valid signature without a stored session is refused.
+  const orphanService = new RefreshSessionService(
+    new InMemoryRefreshSessionRepository(clock),
+    undefined,
+    secret,
+    clock
+  );
+  await assert.rejects(() => orphanService.rotate(current), isUnauthorized);
+
+  Date.now = realDateNow;
+}
+
 async function runRefreshSessionServiceTests() {
   const repository = new InMemoryRefreshSessionRepository();
   const generatedIds = [sessionId, firstTokenId, secondTokenId, replayTokenId];
@@ -86,7 +221,7 @@ async function runRefreshSessionServiceTests() {
   assert.strictEqual(repository.session?.tokenHash, hash(firstToken));
   assert.strictEqual(
     repository.session?.expiresAt.toISOString(),
-    "2026-07-31T20:15:00.000Z"
+    "2026-08-07T20:00:00.000Z"
   );
 
   const rotation = await service.rotate(firstToken);
@@ -145,6 +280,8 @@ async function runRefreshSessionServiceTests() {
 
   assert.deepStrictEqual(issuedUserIds, [42]);
   assert.strictEqual(loginResult.refreshToken, "persisted.refresh.token");
+
+  await runSessionLifetimeTests();
 }
 
 runRefreshSessionServiceTests();

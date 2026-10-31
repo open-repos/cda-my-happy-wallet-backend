@@ -32,7 +32,11 @@ async function runRenewSessionTests() {
     }),
     rotate: async (refreshToken: string) => {
       rotatedTokens.push(refreshToken);
-      return { userId: user.id, refreshToken: "rotated.refresh.token" };
+      return {
+        userId: user.id,
+        refreshToken: "rotated.refresh.token",
+        refreshTokenExpiresIn: 86400,
+      };
     },
   } as unknown as IRefreshSessionService;
   const userRepository = {
@@ -57,6 +61,7 @@ async function runRenewSessionTests() {
   assert.strictEqual(result.accessToken, "fake.jwt.token");
   assert.strictEqual(result.accessTokenExpires, "5min");
   assert.strictEqual(result.accessTokenExpiresIn, 300);
+  assert.strictEqual(result.refreshTokenExpiresIn, 86400);
   assert.deepStrictEqual(result.user, {
     email: user.email,
     firstname: user.firstname,
