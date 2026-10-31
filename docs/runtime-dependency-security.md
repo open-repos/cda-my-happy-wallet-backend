@@ -270,3 +270,10 @@ La version 11 retire notamment `makeRe` et `AST`. Ces parents consomment
 `Minimatch`, `.match()`, `.pattern` et `minimatch()`, qui restent disponibles.
 ESLint analyse les mêmes 243 fichiers avant et après la surcharge, sans erreur.
 Retirer chaque entrée dès que le parent concerné déclare une version corrigée.
+
+## Joi 17.13.9 du 31 octobre 2026
+
+L'avis [GHSA-4528-x5fx-h6hg](https://github.com/advisories/GHSA-4528-x5fx-h6hg)
+concerne `string().email({ multiple: true })`, une option que les validateurs
+n'utilisent pas ([#148](https://github.com/open-repos/cda-my-happy-wallet-backend/issues/148)).
+Joi passe de 17.13.8 à 17.13.9 sans changement de validateur ni de contrat d'API.
