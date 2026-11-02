@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.9.0 (2026-10-31)
+
+### Changed
+
+- Extended refresh sessions to seven sliding days with an absolute limit of thirty days after creation; `refreshTokenExpiresIn` now reports the remaining lifetime. The access token issued at login now lasts five minutes, like a renewed one (#153).
+
+### Security
+
+- A successful password reset now revokes every refresh session of the user in the same transaction (#154).
+
 ## 1.8.1 (2026-10-31)
 
 ### Security
