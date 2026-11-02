@@ -108,6 +108,13 @@ SENDGRID_API_KEY=<secret>
 EMAIL_SENDER=<verified-sender>
 ```
 
+`MAILER_DRIVER=smtp` remplace `SENDGRID_API_KEY` par `SMTP_HOST`, `SMTP_PORT`,
+`SMTP_SECURE` ou `SMTP_REQUIRE_TLS`, et optionnellement `SMTP_USER`,
+`SMTP_PASSWORD` et `SMTP_RETURN_PATH`. En production, `EMAIL_SENDER` est requis
+et le TLS est obligatoire sauf vers une adresse privée, où STARTTLS est alors
+ignoré ; une configuration refusée fait échouer l'envoi avec la catégorie
+`configuration`.
+
 Les trois secrets JWT doivent etre distincts. Le wrapper de deploiement charge
 la configuration depuis l'image candidate avant les migrations et interrompt
 le deploiement si une valeur est absente, trop courte ou dupliquee. Il
