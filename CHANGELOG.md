@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.10.0 (2026-11-02)
+
+### Added
+
+- Added production-ready SMTP delivery settings with optional authentication, enforced TLS, bounded timeouts, a bounce address and privacy-safe failure diagnostics (#43).
+
 ## 1.9.0 (2026-10-31)
 
 ### Changed
