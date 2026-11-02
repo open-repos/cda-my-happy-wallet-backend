@@ -26,6 +26,10 @@ export const MAILER_DRIVER=process.env.MAILER_DRIVER || (NODE_ENV === "productio
 export const SMTP_HOST=process.env.SMTP_HOST || "mailpit"
 export const SMTP_PORT=Number(process.env.SMTP_PORT || 1025)
 export const SMTP_SECURE=process.env.SMTP_SECURE === "true"
+export const SMTP_REQUIRE_TLS=process.env.SMTP_REQUIRE_TLS === "true"
+export const SMTP_USER=process.env.SMTP_USER
+export const SMTP_PASSWORD=process.env.SMTP_PASSWORD
+export const SMTP_RETURN_PATH=process.env.SMTP_RETURN_PATH
 export const CORS_ORIGINS=(process.env.CORS_ORIGINS || "").split(",").map((origin) => origin.trim()).filter(Boolean)
 export const API_PUBLIC_URL=process.env.API_PUBLIC_URL || (NODE_ENV === "production" ? "https://api.myhappywallet.andriacapai.com" : "http://localhost:4200")
 export const FRONTEND_URL=process.env.FRONTEND_URL || (NODE_ENV === "production" ? "https://myhappywallet.andriacapai.com" : "http://localhost:5173")
