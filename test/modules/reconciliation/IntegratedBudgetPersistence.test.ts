@@ -28,6 +28,7 @@ import { createOneOffOperationRouter } from "../../../src/routes/oneOffOperation
 import { errorHandler } from "../../../src/middlewares/errorHandler.middleware";
 import { createBudgetPeriodRouter } from "../../../src/routes/budgetPeriods";
 import { BudgetPeriodController } from "../../../src/modules/budgetPeriods/presentation/BudgetPeriodController";
+import { parisCivilDateClock } from "../../../src/utils/civilDateClock";
 const url = new URL(process.env.DATABASE_URL ?? "mysql://invalid");
 if (
   process.env.NODE_ENV !== "test" ||
@@ -443,6 +444,12 @@ async function run() {
       where: { idOperationFixe: food.sourceId },
     })
   ).montant.toString();
+  // The fixed-charge route reads the real clock, so "future" must follow it.
+  const currentMonth = parisCivilDateClock().slice(0, 7);
+  const [currentYear, currentMonthNumber] = currentMonth.split("-").map(Number);
+  const effectiveMonth = new Date(Date.UTC(currentYear, currentMonthNumber, 1))
+    .toISOString()
+    .slice(0, 7);
   const scheduledHttp = await supertest(fixedApp)
     .put(`/operations-fixes/charges/${food.sourceId}`)
     .set("Authorization", bearer)
@@ -451,7 +458,7 @@ async function run() {
       montant: 350,
       devise: "EUR",
       isBudgetEnvelope: true,
-      effectiveMonth: "2026-11",
+      effectiveMonth,
     });
   assert.strictEqual(
     scheduledHttp.status,
@@ -466,8 +473,23 @@ async function run() {
     Number(beforeCurrentAmount)
   );
   assert.strictEqual(currentDefinition.body.data[0].isBudgetEnvelope, true);
+  const lastMonthBeforeEffect = await supertest(app).get(
+    `/operations-fixes/months/${currentMonth}`
+  );
+  assert.strictEqual(
+    lastMonthBeforeEffect.status,
+    200,
+    JSON.stringify(lastMonthBeforeEffect.body)
+  );
+  assert.strictEqual(
+    Number(
+      lastMonthBeforeEffect.body.data.find((r: any) => r.id === food.sourceId)
+        .montant
+    ),
+    Number(beforeCurrentAmount)
+  );
   const futureDefinition = await supertest(app).get(
-    "/operations-fixes/months/2026-11"
+    `/operations-fixes/months/${effectiveMonth}`
   );
   assert.strictEqual(
     futureDefinition.status,
