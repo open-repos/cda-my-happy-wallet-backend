@@ -11,6 +11,7 @@ import {
   } from "./../../../../config/config";
 import { ITokenService } from "../../../auth/token/TokenService.interface";
 import { JsonWebTokenService } from "../../../auth/token/JsonWebTokenService";
+import { escapeHtml } from "../../mail/escapeHtml";
 // import { isRequestClean, validate } from '../../../../utils/validators/bodyRequestRegisterUser.validator';
 export class CreateUser {
     private userRepo: IUserRepository;
@@ -65,7 +66,7 @@ export class CreateUser {
             const verificationLink = `${API_PUBLIC_URL}${APP_BASE_URL}/users/verify/${userId}/${jwtToken}`;
             const emailToSend: string = props.email;
             const subject: string = "Confirmez votre inscription à MyHappyWallet";
-            const message: string = `Bonjour ${props.firstname} ${props.lastname} ! 
+            const message: string = `Bonjour ${escapeHtml(props.firstname)} ${escapeHtml(props.lastname)} ! 
             <br/>
             Merci pour votre inscription à MyHappyWallet
             <br/><br/>

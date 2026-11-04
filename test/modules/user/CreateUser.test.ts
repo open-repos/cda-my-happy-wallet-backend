@@ -66,6 +66,25 @@ async function run() {
     lastname: "Tester",
   });
 
+  const markupRepository = new RegistrationRepository();
+  await new CreateUser(markupRepository, new FakeTokenService()).execute({
+    email,
+    password: "LocalPass!1",
+    confirmpassword: "LocalPass!1",
+    firstname: '<a href="https://attacker.example">Cliquez</a>',
+    lastname: "O'Brien & <b>Co</b>",
+  });
+  assert.ok(markupRepository.sentMail);
+  const markupText = markupRepository.sentMail.text;
+  assert.ok(
+    markupText.includes(
+      "&lt;a href=&quot;https://attacker.example&quot;&gt;Cliquez&lt;/a&gt;"
+    )
+  );
+  assert.ok(markupText.includes("O&#39;Brien &amp; &lt;b&gt;Co&lt;/b&gt;"));
+  assert.strictEqual(markupText.includes("attacker.example\">"), false);
+  assert.strictEqual((markupText.match(/<a /g) ?? []).length, 1);
+
   assert.strictEqual(existingResult.message, result.message);
   assert.strictEqual(existingRepository.createCalls, 0);
   assert.strictEqual(existingRepository.sentMail, null);
