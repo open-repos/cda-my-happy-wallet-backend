@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.11.0 (2026-11-04)
+
+### Added
+
+- Added a plain-text alternative, with links in clear, to registration and password-reset emails sent over SMTP (#167).
+
+### Security
+
+- Escaped user-provided names in the registration confirmation email (#38).
+
 ## 1.10.0 (2026-11-02)
 
 ### Added
