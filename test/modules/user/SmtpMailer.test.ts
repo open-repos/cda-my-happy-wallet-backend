@@ -111,6 +111,7 @@ async function assertMessages() {
       from: "no-reply@myhappywallet.local",
       html: "<p>Confirm account</p>",
       subject: "Confirmation",
+      text: "Confirm account",
       to: "user@example.test",
     },
   ]);
@@ -126,6 +127,7 @@ async function assertMessages() {
       from: "no-reply@example.test",
       html: "Body",
       subject: "Subject",
+      text: "Body",
       to: "user@example.test",
     },
   ]);
@@ -331,6 +333,10 @@ async function assertRealExchanges() {
       /^MAIL FROM:<bounces@example\.test>/i.test(command)
     )
   );
+  const data = delivered.commands.join("");
+  assert.match(data, /Content-Type: multipart\/alternative/i);
+  assert.match(data, /Content-Type: text\/plain/i);
+  assert.match(data, /Content-Type: text\/html/i);
 
   for (const [reply, category, responseCode] of [
     ["451 try later", "transient_rejection", 451],

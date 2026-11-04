@@ -12,6 +12,7 @@ import {
   SMTP_USER,
 } from "../../../config/config";
 import { ErrorCode, ErrorException } from "../../../utils/errors";
+import { htmlToText } from "./htmlToText";
 import { IMailer } from "./Mailer.interface";
 
 const SMTP_TIMEOUT_MS = 10_000;
@@ -23,6 +24,7 @@ interface MailTransport {
     from: string;
     html: string;
     subject: string;
+    text: string;
     to: string;
   }): Promise<unknown>;
 }
@@ -217,6 +219,7 @@ export class SmtpMailer implements IMailer {
           : {}),
         from: this.sender,
         html: text,
+        text: htmlToText(text),
         subject,
         to: email,
       });
