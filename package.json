@@ -21,7 +21,7 @@
     "test:rav": "ts-node test/modules/operationsFixes/ResteAVivreCalculator.test.ts",
     "test:services": "npm run test:rav && npm run test:fixed-charges",
     "test:mailer": "ts-node test/modules/user/FakeMailer.test.ts && ts-node test/modules/user/SendGridMailer.test.ts",
-    "test:smtp-mailer": "ts-node test/modules/user/SmtpMailer.test.ts",
+    "test:smtp-mailer": "ts-node test/modules/user/HtmlToText.test.ts && ts-node test/modules/user/SmtpMailer.test.ts",
     "test:create-user": "ts-node test/modules/user/CreateUser.test.ts",
     "test:registration-confirmation": "ts-node test/modules/user/ConfirmRegistrationUser.test.ts",
     "test:registration-confirmation-controller": "ts-node test/modules/user/ConfirmRegistrationUserController.test.ts",
