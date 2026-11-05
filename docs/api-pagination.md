@@ -44,6 +44,7 @@ Chaque ordre se termine par une clé unique :
 | Opérations fixes, revenus, charges | `idOperationFixe DESC`                                 |
 | Catégories personnelles            | `name ASC, id ASC`                                     |
 | Opérations ponctuelles             | `operationDate DESC, id DESC`                          |
+| Suggestions de libellés            | `title ASC`, libellés distincts                        |
 | Règles d'événements                | `startDate ASC, id ASC`                                |
 | Occurrences d'événements           | `occurrenceDate ASC, eventId ASC`, curseur lié au mois |
 | Objectifs financiers               | `id ASC`                                               |
@@ -52,6 +53,76 @@ Le repository demande `limit + 1` lignes pour calculer `hasNext`, puis retire
 la ligne sentinelle de la réponse. Cette pagination par clé évite les doublons
 et omissions causés par le décalage d'un offset lorsque de nouvelles lignes
 sont insérées avant la fenêtre en cours.
+
+## Tri et filtres des opérations ponctuelles
+
+`GET /operations` accepte, en plus de `limit`, `cursor`, `from`, `to` et
+`currency`, les paramètres facultatifs suivants (#165) :
+
+| Paramètre                | Valeurs                                                        |
+| ------------------------ | -------------------------------------------------------------- |
+| `sort`                   | `date`, `title`, `category` (nom de catégorie) ou `amount`     |
+| `order`                  | `asc` (défaut) ou `desc`, seulement avec `sort`                |
+| `title`                  | 1 à 50 caractères, texte contenu                               |
+| `categoryId`             | entier positif, répétable, 20 au maximum                       |
+| `type`                   | `DEPENSE` ou `ENTREE`                                          |
+| `minAmount`, `maxAmount` | montant à deux décimales au plus, bornes inclusives, min ≤ max |
+
+Les filtres se combinent en ET ; plusieurs `categoryId` se combinent en OU.
+Sans `sort`, l'ordre reste `operationDate DESC, id DESC`. Avec `sort`, l'ordre
+est la colonne choisie puis `id`, dans le même sens. La recherche `title` est
+insensible à la casse et aux accents grâce au classement `utf8mb4_unicode_ci` ;
+`%` et `_` y sont des caractères ordinaires. Le tri, les filtres et la position
+du curseur utilisent le même classement, ce qui garde la pagination cohérente
+entre libellés égaux à la casse ou aux accents près.
+
+Le tri par montant compare les nombres sans conversion de devise : `currency`
+permet d'isoler une devise. Un `categoryId` d'un autre propriétaire ne
+correspond à aucune ligne, sans erreur qui révélerait son existence.
+
+Le périmètre chiffré du curseur inclut une empreinte SHA-256 du tri et de tous
+les filtres normalisés : réutiliser un curseur avec d'autres paramètres
+retourne `422`. Sans tri ni nouveau filtre, le périmètre est inchangé, donc les
+curseurs émis avant #165 restent valides.
+
+## Suggestions de libellés des opérations ponctuelles
+
+`GET /operations/suggestions/titles` renvoie les libellés distincts des
+opérations ponctuelles du propriétaire, de A à Z, pour l'autocomplétion des
+filtres (#174). Chaque élément contient seulement `title` :
+
+```json
+{
+  "data": [{ "title": "Loyer" }],
+  "meta": { "limit": 10, "hasNext": true, "nextCursor": "…" }
+}
+```
+
+| Paramètre | Valeurs                                                        |
+| --------- | -------------------------------------------------------------- |
+| `q`       | 0 à 50 caractères après suppression des espaces aux extrémités |
+| `limit`   | entier de `1` à `50`, `10` par défaut                          |
+| `cursor`  | valeur opaque reçue dans la page précédente                    |
+
+`q` est un texte contenu, insensible à la casse et aux accents ; `%` et `_` y
+sont des caractères ordinaires. Vide ou absent, la route renvoie les premiers
+libellés. Tout autre paramètre retourne `422`.
+
+Le regroupement se fait en SQL (`GROUP BY title`) selon le classement
+`utf8mb4_unicode_ci` : des libellés égaux à la casse ou aux accents près ne
+donnent qu'une suggestion, sous l'une des graphies enregistrées, sans garantie
+sur laquelle. La position du curseur est le dernier libellé renvoyé ; la page
+suivante reprend après lui avec le même classement, sans doublon ni omission.
+Le curseur est lié au propriétaire et à une empreinte SHA-256 de `q` : il est
+refusé avec `422` pour un autre `q`, un autre utilisateur ou une autre route.
+L'index `userId, title, id` ajouté par #165 sert ce regroupement.
+
+Limite connue : `q` utilise `LIKE`, qui compare caractère par caractère, alors
+que le regroupement applique les expansions du classement. Ainsi `q=oe` ne
+trouve pas « Cœur », bien que « Cœur » et « Coeur » soient regroupés. De même,
+ce classement donne le même poids à tous les caractères hors du plan
+multilingue de base, comme les emoji : deux libellés qui ne diffèrent que par
+un emoji ne donnent qu'une suggestion.
 
 ## Sécurité et architecture
 
@@ -89,6 +160,15 @@ DROP INDEX `OperationFixe_userId_idOperationFixe_idx` ON `OperationFixe`;
 DROP INDEX `OperationFixe_userId_typeOperation_idOperationFixe_idx` ON `OperationFixe`;
 DROP INDEX `OperationCategory_userId_name_id_idx` ON `OperationCategory`;
 DROP INDEX `OneOffOperationRecord_userId_operationDate_id_idx` ON `OneOffOperationRecord`;
+```
+
+La migration `20261105150000_add_one_off_operation_sort_indexes` ajoute de la
+même façon deux index pour les tris par montant et par libellé. Leur retrait
+éventuel suit la même règle :
+
+```sql
+DROP INDEX `OneOffOperationRecord_userId_amount_id_idx` ON `OneOffOperationRecord`;
+DROP INDEX `OneOffOperationRecord_userId_title_id_idx` ON `OneOffOperationRecord`;
 ```
 
 Avant ce retrait, vérifier que plus aucun backend paginé ne reçoit de trafic.

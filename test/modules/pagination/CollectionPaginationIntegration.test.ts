@@ -203,7 +203,44 @@ async function run() {
     .set(ownerAuth);
   assert.strictEqual(crossResource.status, 422);
 
-  for (const query of ["limit=0", "limit=101", "limit=1.5", "offset=1"]) {
+  // #165 : tri et filtres passent par la vraie chaîne HTTP, et le curseur
+  // reste lié au tri choisi.
+  const byAmount = await supertest(app)
+    .get(`${baseUrl}/operations?limit=2&sort=amount&order=desc&type=DEPENSE`)
+    .set(ownerAuth);
+  assert.strictEqual(byAmount.status, 200);
+  const amounts = byAmount.body.data.map(
+    ({ amount }: { amount: string }) => Number(amount)
+  );
+  assert.deepStrictEqual(amounts, [9, 5]);
+  assert.strictEqual(byAmount.body.meta.hasNext, true);
+  const otherSort = await supertest(app)
+    .get(
+      `${baseUrl}/operations?limit=2&sort=amount&order=asc&type=DEPENSE&cursor=${byAmount.body.meta.nextCursor}`
+    )
+    .set(ownerAuth);
+  assert.strictEqual(otherSort.status, 422);
+  const repeated = await supertest(app)
+    .get(
+      `${baseUrl}/operations?categoryId=${category.id}&categoryId=${category.id}&title=insertion`
+    )
+    .set(ownerAuth);
+  assert.strictEqual(repeated.status, 200);
+  assert.deepStrictEqual(
+    repeated.body.data.map(({ title }: { title: string }) => title),
+    ["Insertion concurrente"]
+  );
+
+  for (const query of [
+    "limit=0",
+    "limit=101",
+    "limit=1.5",
+    "offset=1",
+    "sort=id",
+    "order=desc",
+    "type=CHARGE",
+    "minAmount=10&maxAmount=1",
+  ]) {
     const invalid = await supertest(app)
       .get(`${baseUrl}/operations?${query}`)
       .set(ownerAuth);
@@ -217,6 +254,68 @@ async function run() {
     data: [],
     meta: { limit: 50, hasNext: false, nextCursor: null },
   });
+
+  // #174 : suggestions de libellés sur la vraie chaîne HTTP, sans conflit
+  // avec `GET /operations/:id`. Seul `title` est exposé.
+  const suggestionsUrl = `${baseUrl}/operations/suggestions/titles`;
+  const accented = encodeURIComponent("OPÉRATION");
+  const suggestions = await supertest(app)
+    .get(`${suggestionsUrl}?q=${accented}&limit=2`)
+    .set(ownerAuth);
+  assert.strictEqual(suggestions.status, 200);
+  assert.deepStrictEqual(suggestions.body.data, [
+    { title: "Operation 1" },
+    { title: "Operation 2" },
+  ]);
+  assert.strictEqual(suggestions.body.meta.limit, 2);
+  assert.strictEqual(suggestions.body.meta.hasNext, true);
+  const nextSuggestions = await supertest(app)
+    .get(
+      `${suggestionsUrl}?q=${accented}&limit=2&cursor=${suggestions.body.meta.nextCursor}`
+    )
+    .set(ownerAuth);
+  assert.deepStrictEqual(nextSuggestions.body.data, [
+    { title: "Operation 3" },
+    { title: "Operation 4" },
+  ]);
+  for (const [query, auth] of [
+    [`q=operation&cursor=${suggestions.body.meta.nextCursor}`, ownerAuth],
+    [`q=${accented}&cursor=${suggestions.body.meta.nextCursor}`, authorization(other.id)],
+    [`cursor=${first.body.meta.nextCursor}`, ownerAuth],
+    ["limit=51", ownerAuth],
+    ["sort=title", ownerAuth],
+    [`q=${"a".repeat(51)}`, ownerAuth],
+  ] as const) {
+    const invalid = await supertest(app)
+      .get(`${suggestionsUrl}?${query}`)
+      .set(auth);
+    assert.strictEqual(invalid.status, 422, query);
+  }
+  const defaultSuggestions = await supertest(app)
+    .get(suggestionsUrl)
+    .set(ownerAuth);
+  assert.strictEqual(defaultSuggestions.body.meta.limit, 10);
+  assert.deepStrictEqual(
+    defaultSuggestions.body.data.map(({ title }: { title: string }) => title),
+    [
+      "Insertion concurrente",
+      "Operation 1",
+      "Operation 2",
+      "Operation 3",
+      "Operation 4",
+      "Operation 5",
+    ]
+  );
+  const otherSuggestions = await supertest(app)
+    .get(suggestionsUrl)
+    .set(authorization(other.id));
+  assert.deepStrictEqual(otherSuggestions.body.data, []);
+  const unauthenticated = await supertest(app).get(suggestionsUrl);
+  assert.strictEqual(unauthenticated.status, 401);
+  const byId = await supertest(app)
+    .get(`${baseUrl}/operations/${originalIds[0]}`)
+    .set(ownerAuth);
+  assert.strictEqual(byId.status, 200);
 
   const categories = await supertest(app)
     .get(`${baseUrl}/operation-categories?limit=2`)

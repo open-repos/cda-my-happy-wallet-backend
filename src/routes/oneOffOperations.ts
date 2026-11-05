@@ -66,6 +66,13 @@ export const createOneOffOperationRouter = (
     validateOperationBody,
     handle((req, res) => controller.createOperation(req, res))
   );
+  // Déclarée avant `/operations/:id` pour rester lisible ; ses deux segments
+  // ne peuvent de toute façon pas correspondre à `:id`.
+  router.get(
+    "/operations/suggestions/titles",
+    authenticate,
+    handle((req, res) => controller.suggestTitles(req, res))
+  );
   router.get(
     "/operations/:id",
     authenticate,
@@ -162,7 +169,9 @@ export const swOneOffOperationRouter = {
   "/operations": {
     get: {
       tags: ["Operations"],
-      summary: "List personal one-off operations, newest first",
+      summary: "List personal one-off operations, sorted and filtered",
+      description:
+        "Without sort, operations are listed newest first. Filters combine with AND; repeated categoryId values combine with OR. Title search is a case- and accent-insensitive substring match. A cursor is bound to the owner, the sort and every filter: reusing it with other parameters returns 422. Amount sort compares numbers without currency conversion.",
       security: [{ accessToken_auth: [] }],
       parameters: [
         {
@@ -182,6 +191,53 @@ export const swOneOffOperationRouter = {
           in: "query",
           schema: { type: "string", minLength: 3, maxLength: 3 },
         },
+        {
+          name: "sort",
+          in: "query",
+          description: "Sort field; ties are ordered by id in the same direction",
+          schema: { type: "string", enum: ["date", "title", "category", "amount"] },
+        },
+        {
+          name: "order",
+          in: "query",
+          description: "Sort direction, only with sort",
+          schema: { type: "string", enum: ["asc", "desc"], default: "asc" },
+        },
+        {
+          name: "title",
+          in: "query",
+          description: "Case- and accent-insensitive substring; % and _ are literal",
+          schema: { type: "string", minLength: 1, maxLength: 50 },
+        },
+        {
+          name: "categoryId",
+          in: "query",
+          description: "Repeatable, at most 20 values, combined with OR",
+          style: "form",
+          explode: true,
+          schema: {
+            type: "array",
+            maxItems: 20,
+            items: { type: "integer", minimum: 1 },
+          },
+        },
+        {
+          name: "type",
+          in: "query",
+          schema: { type: "string", enum: ["DEPENSE", "ENTREE"] },
+        },
+        {
+          name: "minAmount",
+          in: "query",
+          description: "Inclusive lower bound, up to two decimals",
+          schema: { type: "string", pattern: "^(0|[1-9]\\d{0,7})(\\.\\d{1,2})?$" },
+        },
+        {
+          name: "maxAmount",
+          in: "query",
+          description: "Inclusive upper bound, not below minAmount",
+          schema: { type: "string", pattern: "^(0|[1-9]\\d{0,7})(\\.\\d{1,2})?$" },
+        },
         ...paginationParameters,
       ],
       responses: {
@@ -195,6 +251,41 @@ export const swOneOffOperationRouter = {
       security: [{ accessToken_auth: [] }],
       requestBody: operationRequestBody,
       responses: { "201": { description: "Operation created" }, ...securedResponses },
+    },
+  },
+  "/operations/suggestions/titles": {
+    get: {
+      tags: ["Operations"],
+      summary: "Suggest distinct personal operation titles, A to Z",
+      description:
+        "Distinct titles of the authenticated user's one-off operations, grouped by the database collation: variants that differ only by case or accents give one suggestion. The cursor is bound to the owner and to q: reusing it with another q returns 422.",
+      security: [{ accessToken_auth: [] }],
+      parameters: [
+        {
+          name: "q",
+          in: "query",
+          description:
+            "Case- and accent-insensitive substring, trimmed; % and _ are literal. Empty returns the first titles.",
+          schema: { type: "string", minLength: 0, maxLength: 50 },
+        },
+        {
+          name: "limit",
+          in: "query",
+          required: false,
+          description: "Number of suggestions to return (default 10, maximum 50)",
+          schema: { type: "integer", minimum: 1, maximum: 50, default: 10 },
+        },
+        { $ref: "#/components/parameters/PaginationCursor" },
+      ],
+      responses: {
+        "200": paginatedCollectionResponse("Paginated title suggestions", {
+          type: "object",
+          required: ["title"],
+          additionalProperties: false,
+          properties: { title: { type: "string", maxLength: 50 } },
+        }),
+        ...securedResponses,
+      },
     },
   },
   "/operations/{id}": {

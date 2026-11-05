@@ -1,6 +1,6 @@
 {
   "name": "projet-00-myhappywallet-backend",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "description": "Dans ce projet je mettrais toutes les tâches liées au Backend de mon projet \"Chef d'oeuvre\" CDA .",
   "main": "index.js",
   "scripts": {
@@ -42,8 +42,8 @@
     "test:operations-migration": "ts-node test/modules/operations/OneOffOperationMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/operations/OneOffOperationMigration.test.ts verify",
     "test:operation-category-icon-migration": "ts-node test/modules/operations/OperationCategoryIconMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/operations/OperationCategoryIconMigration.test.ts verify",
     "test:operations-schema": "ts-node test/modules/operations/OneOffOperationSchema.test.ts",
-    "test:operations-use-cases": "ts-node test/modules/operations/OneOffOperationUseCases.test.ts",
-    "test:operations-repositories": "ts-node test/modules/operations/OneOffOperationRepositories.test.ts",
+    "test:operations-use-cases": "ts-node test/modules/operations/OneOffOperationUseCases.test.ts && ts-node test/modules/operations/OperationListQuery.test.ts",
+    "test:operations-repositories": "ts-node test/modules/operations/OneOffOperationRepositories.test.ts && ts-node test/modules/operations/OneOffOperationListSortFilter.test.ts && ts-node test/modules/operations/OperationTitleSuggestions.test.ts",
     "test:operations-api": "ts-node test/modules/operations/OneOffOperationApi.test.ts && npm run test:reconciliation-api",
     "test:monthly-events-domain": "ts-node test/modules/monthlyEvents/MonthlyEvent.test.ts && ts-node test/modules/monthlyEvents/EventRecurrence.test.ts && ts-node test/modules/monthlyEvents/SimulationDomain.test.ts",
     "test:monthly-events-api": "ts-node test/modules/monthlyEvents/MonthlyEventApi.test.ts && ts-node test/modules/monthlyEvents/SimulationApi.test.ts",
