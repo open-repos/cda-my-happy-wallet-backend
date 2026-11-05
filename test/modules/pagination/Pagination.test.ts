@@ -44,9 +44,48 @@ for (const query of [
   rejectsAsValidation(() => parsePaginationRequest(query));
 }
 
+// The cursor is random ciphertext: its base64url text may contain "42" by
+// chance. Opacity is asserted on the decoded payload bytes, against clear
+// forms of at least seven bytes, so a coincidence is negligible (~2^-48).
+const clearForms = (
+  position: readonly (string | number)[]
+): readonly string[] => {
+  const json = JSON.stringify({ ...context, position });
+  return [json, `"position":${JSON.stringify(position)}`, context.scope];
+};
+
+const assertOpaque = (
+  opaqueCursor: string,
+  position: readonly (string | number)[]
+): void => {
+  const payload = Buffer.from(opaqueCursor.slice("v1.".length), "base64url");
+  for (const form of clearForms(position)) {
+    assert.ok(!payload.includes(form), `payload exposes ${form}`);
+    const encoded = Buffer.from(form, "utf8").toString("base64url");
+    assert.ok(!opaqueCursor.includes(encoded), `cursor encodes ${form}`);
+  }
+};
+
 const cursor = codec.encode(context, [42]);
 assert.match(cursor, /^v1\.[A-Za-z0-9_-]+$/);
-assert.ok(!cursor.includes("42"));
+assertOpaque(cursor, [42]);
+
+const marker = "cursor-opacity-marker-7c1e9b4d";
+const markedCursor = codec.encode(context, [marker, 42]);
+assertOpaque(markedCursor, [marker, 42]);
+assert.ok(!markedCursor.includes(marker));
+assert.deepStrictEqual(codec.decode(context, markedCursor), [marker, 42]);
+
+// Regression for #166: a cursor whose text contains "42" by coincidence
+// (about 2% of cursors) is still opaque and decodes to the right position.
+let coincidentalCursor: string | null = null;
+for (let attempt = 0; attempt < 5000 && !coincidentalCursor; attempt += 1) {
+  const candidate = codec.encode(context, [42]);
+  if (candidate.includes("42")) coincidentalCursor = candidate;
+}
+assert.ok(coincidentalCursor, "no coincidental cursor generated");
+assertOpaque(coincidentalCursor, [42]);
+assert.deepStrictEqual(codec.decode(context, coincidentalCursor), [42]);
 assert.deepStrictEqual(codec.decode(context, cursor), [42]);
 assert.strictEqual(
   decodePositiveIntegerCursor({ limit: 10, cursor }, context, codec),
