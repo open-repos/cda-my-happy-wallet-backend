@@ -4,7 +4,7 @@ import assert from "assert";
 import swagger from "../../../src/utils/swagger.def";
 
 type OpenApiOperation = {
-  parameters?: Array<{ $ref?: string }>;
+  parameters?: Array<{ $ref?: string; name?: string; schema?: unknown }>;
   responses?: Record<string, unknown>;
 };
 
@@ -51,6 +51,23 @@ for (const path of paginatedPaths) {
   assert.ok(schema?.properties?.data);
   assert.ok(schema?.properties?.meta);
 }
+
+// #174 : les suggestions gardent le curseur partagé, avec leur propre limite.
+const suggestions = document.paths["/operations/suggestions/titles"]?.get;
+assert.ok(suggestions, "Missing GET /operations/suggestions/titles in OpenAPI");
+const suggestionParameters = suggestions.parameters ?? [];
+assert.deepStrictEqual(
+  suggestionParameters.map((parameter) => parameter.name ?? parameter.$ref),
+  ["q", "limit", "#/components/parameters/PaginationCursor"]
+);
+assert.deepStrictEqual(suggestionParameters[1]?.schema, {
+  type: "integer",
+  minimum: 1,
+  maximum: 50,
+  default: 10,
+});
+assert.ok(suggestions.responses?.["200"]);
+assert.ok(suggestions.responses?.["422"]);
 
 assert.deepStrictEqual(
   document.components.parameters.PaginationLimit.schema,

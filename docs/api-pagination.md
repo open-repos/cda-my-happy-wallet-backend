@@ -44,6 +44,7 @@ Chaque ordre se termine par une clé unique :
 | Opérations fixes, revenus, charges | `idOperationFixe DESC`                                 |
 | Catégories personnelles            | `name ASC, id ASC`                                     |
 | Opérations ponctuelles             | `operationDate DESC, id DESC`                          |
+| Suggestions de libellés            | `title ASC`, libellés distincts                        |
 | Règles d'événements                | `startDate ASC, id ASC`                                |
 | Occurrences d'événements           | `occurrenceDate ASC, eventId ASC`, curseur lié au mois |
 | Objectifs financiers               | `id ASC`                                               |
@@ -83,6 +84,45 @@ Le périmètre chiffré du curseur inclut une empreinte SHA-256 du tri et de tou
 les filtres normalisés : réutiliser un curseur avec d'autres paramètres
 retourne `422`. Sans tri ni nouveau filtre, le périmètre est inchangé, donc les
 curseurs émis avant #165 restent valides.
+
+## Suggestions de libellés des opérations ponctuelles
+
+`GET /operations/suggestions/titles` renvoie les libellés distincts des
+opérations ponctuelles du propriétaire, de A à Z, pour l'autocomplétion des
+filtres (#174). Chaque élément contient seulement `title` :
+
+```json
+{
+  "data": [{ "title": "Loyer" }],
+  "meta": { "limit": 10, "hasNext": true, "nextCursor": "…" }
+}
+```
+
+| Paramètre | Valeurs                                                        |
+| --------- | -------------------------------------------------------------- |
+| `q`       | 0 à 50 caractères après suppression des espaces aux extrémités |
+| `limit`   | entier de `1` à `50`, `10` par défaut                          |
+| `cursor`  | valeur opaque reçue dans la page précédente                    |
+
+`q` est un texte contenu, insensible à la casse et aux accents ; `%` et `_` y
+sont des caractères ordinaires. Vide ou absent, la route renvoie les premiers
+libellés. Tout autre paramètre retourne `422`.
+
+Le regroupement se fait en SQL (`GROUP BY title`) selon le classement
+`utf8mb4_unicode_ci` : des libellés égaux à la casse ou aux accents près ne
+donnent qu'une suggestion, sous l'une des graphies enregistrées, sans garantie
+sur laquelle. La position du curseur est le dernier libellé renvoyé ; la page
+suivante reprend après lui avec le même classement, sans doublon ni omission.
+Le curseur est lié au propriétaire et à une empreinte SHA-256 de `q` : il est
+refusé avec `422` pour un autre `q`, un autre utilisateur ou une autre route.
+L'index `userId, title, id` ajouté par #165 sert ce regroupement.
+
+Limite connue : `q` utilise `LIKE`, qui compare caractère par caractère, alors
+que le regroupement applique les expansions du classement. Ainsi `q=oe` ne
+trouve pas « Cœur », bien que « Cœur » et « Coeur » soient regroupés. De même,
+ce classement donne le même poids à tous les caractères hors du plan
+multilingue de base, comme les emoji : deux libellés qui ne diffèrent que par
+un emoji ne donnent qu'une suggestion.
 
 ## Sécurité et architecture
 

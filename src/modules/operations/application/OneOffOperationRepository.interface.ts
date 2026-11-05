@@ -36,6 +36,16 @@ export interface OneOffOperationRepository {
     filter?: OperationListFilter,
     sort?: OperationListSort
   ): Promise<CursorPage<OneOffOperation>>;
+  /**
+   * Libellés distincts du propriétaire, de A à Z, regroupés selon le
+   * classement de la base : les variantes à la casse ou aux accents près ne
+   * donnent qu'une suggestion. `query` est un texte contenu, sans joker.
+   */
+  listTitleSuggestions(
+    ownerId: number,
+    pagination: PaginationRequest,
+    query?: string
+  ): Promise<CursorPage<string>>;
   findById(id: number, ownerId: number): Promise<OneOffOperation | null>;
   create(
     operation: OneOffOperation,

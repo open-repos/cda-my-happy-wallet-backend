@@ -49,6 +49,14 @@ export class OneOffOperationUseCases {
     return this.operations.listByOwner(ownerId, pagination, filter, sort);
   }
 
+  public suggestTitles(
+    ownerId: number,
+    pagination: PaginationRequest,
+    query?: string
+  ): Promise<CursorPage<string>> {
+    return this.operations.listTitleSuggestions(ownerId, pagination, query);
+  }
+
   public async get(ownerId: number, id: number): Promise<OneOffOperation> {
     const operation = await this.operations.findById(id, ownerId);
     if (operation == null) {

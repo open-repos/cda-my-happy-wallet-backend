@@ -66,6 +66,13 @@ export const createOneOffOperationRouter = (
     validateOperationBody,
     handle((req, res) => controller.createOperation(req, res))
   );
+  // Déclarée avant `/operations/:id` pour rester lisible ; ses deux segments
+  // ne peuvent de toute façon pas correspondre à `:id`.
+  router.get(
+    "/operations/suggestions/titles",
+    authenticate,
+    handle((req, res) => controller.suggestTitles(req, res))
+  );
   router.get(
     "/operations/:id",
     authenticate,
@@ -244,6 +251,41 @@ export const swOneOffOperationRouter = {
       security: [{ accessToken_auth: [] }],
       requestBody: operationRequestBody,
       responses: { "201": { description: "Operation created" }, ...securedResponses },
+    },
+  },
+  "/operations/suggestions/titles": {
+    get: {
+      tags: ["Operations"],
+      summary: "Suggest distinct personal operation titles, A to Z",
+      description:
+        "Distinct titles of the authenticated user's one-off operations, grouped by the database collation: variants that differ only by case or accents give one suggestion. The cursor is bound to the owner and to q: reusing it with another q returns 422.",
+      security: [{ accessToken_auth: [] }],
+      parameters: [
+        {
+          name: "q",
+          in: "query",
+          description:
+            "Case- and accent-insensitive substring, trimmed; % and _ are literal. Empty returns the first titles.",
+          schema: { type: "string", minLength: 0, maxLength: 50 },
+        },
+        {
+          name: "limit",
+          in: "query",
+          required: false,
+          description: "Number of suggestions to return (default 10, maximum 50)",
+          schema: { type: "integer", minimum: 1, maximum: 50, default: 10 },
+        },
+        { $ref: "#/components/parameters/PaginationCursor" },
+      ],
+      responses: {
+        "200": paginatedCollectionResponse("Paginated title suggestions", {
+          type: "object",
+          required: ["title"],
+          additionalProperties: false,
+          properties: { title: { type: "string", maxLength: 50 } },
+        }),
+        ...securedResponses,
+      },
     },
   },
   "/operations/{id}": {

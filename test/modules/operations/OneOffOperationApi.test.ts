@@ -105,6 +105,23 @@ class ApiOperationRepository implements OneOffOperationRepository {
     };
   }
 
+  public async listTitleSuggestions(
+    ownerId: number,
+    pagination: PaginationRequest
+  ): Promise<CursorPage<string>> {
+    const titles = [
+      ...new Set(
+        this.rows
+          .filter((row) => row.ownerId === ownerId)
+          .map((row) => row.title)
+      ),
+    ].sort();
+    return {
+      data: titles.slice(0, pagination.limit),
+      meta: { limit: pagination.limit, hasNext: false, nextCursor: null },
+    };
+  }
+
   public async findById(
     id: number,
     ownerId: number

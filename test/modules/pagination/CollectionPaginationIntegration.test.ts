@@ -255,6 +255,68 @@ async function run() {
     meta: { limit: 50, hasNext: false, nextCursor: null },
   });
 
+  // #174 : suggestions de libellés sur la vraie chaîne HTTP, sans conflit
+  // avec `GET /operations/:id`. Seul `title` est exposé.
+  const suggestionsUrl = `${baseUrl}/operations/suggestions/titles`;
+  const accented = encodeURIComponent("OPÉRATION");
+  const suggestions = await supertest(app)
+    .get(`${suggestionsUrl}?q=${accented}&limit=2`)
+    .set(ownerAuth);
+  assert.strictEqual(suggestions.status, 200);
+  assert.deepStrictEqual(suggestions.body.data, [
+    { title: "Operation 1" },
+    { title: "Operation 2" },
+  ]);
+  assert.strictEqual(suggestions.body.meta.limit, 2);
+  assert.strictEqual(suggestions.body.meta.hasNext, true);
+  const nextSuggestions = await supertest(app)
+    .get(
+      `${suggestionsUrl}?q=${accented}&limit=2&cursor=${suggestions.body.meta.nextCursor}`
+    )
+    .set(ownerAuth);
+  assert.deepStrictEqual(nextSuggestions.body.data, [
+    { title: "Operation 3" },
+    { title: "Operation 4" },
+  ]);
+  for (const [query, auth] of [
+    [`q=operation&cursor=${suggestions.body.meta.nextCursor}`, ownerAuth],
+    [`q=${accented}&cursor=${suggestions.body.meta.nextCursor}`, authorization(other.id)],
+    [`cursor=${first.body.meta.nextCursor}`, ownerAuth],
+    ["limit=51", ownerAuth],
+    ["sort=title", ownerAuth],
+    [`q=${"a".repeat(51)}`, ownerAuth],
+  ] as const) {
+    const invalid = await supertest(app)
+      .get(`${suggestionsUrl}?${query}`)
+      .set(auth);
+    assert.strictEqual(invalid.status, 422, query);
+  }
+  const defaultSuggestions = await supertest(app)
+    .get(suggestionsUrl)
+    .set(ownerAuth);
+  assert.strictEqual(defaultSuggestions.body.meta.limit, 10);
+  assert.deepStrictEqual(
+    defaultSuggestions.body.data.map(({ title }: { title: string }) => title),
+    [
+      "Insertion concurrente",
+      "Operation 1",
+      "Operation 2",
+      "Operation 3",
+      "Operation 4",
+      "Operation 5",
+    ]
+  );
+  const otherSuggestions = await supertest(app)
+    .get(suggestionsUrl)
+    .set(authorization(other.id));
+  assert.deepStrictEqual(otherSuggestions.body.data, []);
+  const unauthenticated = await supertest(app).get(suggestionsUrl);
+  assert.strictEqual(unauthenticated.status, 401);
+  const byId = await supertest(app)
+    .get(`${baseUrl}/operations/${originalIds[0]}`)
+    .set(ownerAuth);
+  assert.strictEqual(byId.status, 200);
+
   const categories = await supertest(app)
     .get(`${baseUrl}/operation-categories?limit=2`)
     .set(ownerAuth);

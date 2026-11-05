@@ -218,6 +218,63 @@ export class PrismaOneOffOperationRepository
     return { value, id };
   }
 
+  public async listTitleSuggestions(
+    ownerId: number,
+    pagination: PaginationRequest,
+    query?: string
+  ): Promise<CursorPage<string>> {
+    const search = query === "" ? undefined : query;
+    const context = this.suggestionCursorContext(ownerId, search);
+    const after =
+      pagination.cursor == null
+        ? null
+        : this.decodeTitlePosition(
+            this.cursors.decode(context, pagination.cursor)
+          );
+    const conditions: Where[] = [
+      { userId: ownerId },
+      ...(search === undefined
+        ? []
+        : [{ title: { contains: likeLiteral(search) } }]),
+      ...(after === null ? [] : [{ title: { gt: after } }]),
+    ];
+    // `GROUP BY title` suit le classement de la colonne : chaque groupe réunit
+    // les variantes à la casse ou aux accents près, et `title > curseur`
+    // utilise la même égalité, ce qui évite doublons et omissions.
+    const rows = await this.prisma.oneOffOperationRecord.groupBy({
+      by: ["title"],
+      where: { AND: conditions },
+      orderBy: { title: "asc" },
+      take: pagination.limit + 1,
+    });
+    return createCursorPage(
+      rows.map((row) => row.title),
+      pagination,
+      context,
+      (title) => [title],
+      this.cursors
+    );
+  }
+
+  private decodeTitlePosition(position: readonly CursorValue[]): string {
+    const [title] = position;
+    if (position.length !== 1 || typeof title !== "string" || !isText(title)) {
+      throw invalidPagination();
+    }
+    return title;
+  }
+
+  /** Le curseur des suggestions est lié au propriétaire et au texte cherché. */
+  private suggestionCursorContext(
+    ownerId: number,
+    query: string | undefined
+  ): CursorContext {
+    const resource = "one-off-operation-title-suggestions";
+    if (query === undefined) return { resource, scope: `owner:${ownerId}` };
+    const digest = createHash("sha256").update(query, "utf8").digest("hex");
+    return { resource, scope: `owner:${ownerId}:q:${digest}` };
+  }
+
   public async findById(
     id: number,
     ownerId: number
