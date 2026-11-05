@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.12.0 (2026-11-05)
+
+### Added
+
+- Added `sort`, `order`, `title`, `categoryId`, `type`, `minAmount` and `maxAmount` query parameters to `GET /operations`, with cursors bound to the chosen sort and filters (#165).
+- Added `GET /operations/suggestions/titles`, which returns the owner's distinct one-off operation titles from A to Z, filtered by an optional case- and accent-insensitive `q`, 10 per page by default (#174).
+
 ## 1.11.0 (2026-11-04)
 
 ### Added
