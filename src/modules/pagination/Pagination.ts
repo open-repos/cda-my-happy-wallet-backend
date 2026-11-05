@@ -134,21 +134,33 @@ export class PaginationCursorCodec {
   }
 }
 
+/** Bornes de `limit` ; une collection peut les réduire, jamais les dépasser. */
+export type PaginationLimits = Readonly<{
+  defaultLimit: number;
+  maxLimit: number;
+}>;
+
+const DEFAULT_LIMITS: PaginationLimits = {
+  defaultLimit: DEFAULT_PAGE_LIMIT,
+  maxLimit: MAX_PAGE_LIMIT,
+};
+
 export const parsePaginationRequest = (
-  query: Readonly<Record<string, unknown>>
+  query: Readonly<Record<string, unknown>>,
+  { defaultLimit, maxLimit }: PaginationLimits = DEFAULT_LIMITS
 ): PaginationRequest => {
   if (Object.keys(query).some((key) => key !== "limit" && key !== "cursor")) {
     throw invalidPagination();
   }
 
   const rawLimit = query.limit;
-  const limit = rawLimit === undefined ? DEFAULT_PAGE_LIMIT : Number(rawLimit);
+  const limit = rawLimit === undefined ? defaultLimit : Number(rawLimit);
   if (
     (rawLimit !== undefined &&
       (typeof rawLimit !== "string" || !/^[1-9]\d{0,2}$/.test(rawLimit))) ||
     !Number.isInteger(limit) ||
     limit < 1 ||
-    limit > MAX_PAGE_LIMIT
+    limit > Math.min(maxLimit, MAX_PAGE_LIMIT)
   ) {
     throw invalidPagination();
   }

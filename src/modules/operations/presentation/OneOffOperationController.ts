@@ -9,6 +9,7 @@ import { OneOffOperation } from "../domain";
 import {
   parseOperationListQuery,
   parseResourceId,
+  parseTitleSuggestionQuery,
 } from "./operationValidators";
 import { parsePaginationRequest } from "../../pagination";
 
@@ -61,6 +62,18 @@ export class OneOffOperationController {
     return res
       .status(200)
       .json({ data: page.data.map(this.operationDto), meta: page.meta });
+  }
+
+  public async suggestTitles(req: Request, res: Response): Promise<Response> {
+    const query = parseTitleSuggestionQuery(req.query);
+    const page = await this.operations.suggestTitles(
+      this.ownerId(req),
+      query.pagination,
+      query.query
+    );
+    return res
+      .status(200)
+      .json({ data: page.data.map((title) => ({ title })), meta: page.meta });
   }
 
   public async getOperation(req: Request, res: Response): Promise<Response> {

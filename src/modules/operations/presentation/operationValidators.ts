@@ -231,3 +231,23 @@ export const parseOperationListQuery = (
     pagination: parsePaginationRequest(pagination),
   };
 };
+
+/** Les suggestions s'affichent par pages courtes dans un champ de filtre. */
+const TITLE_SUGGESTION_LIMITS = { defaultLimit: 10, maxLimit: 50 } as const;
+
+/**
+ * Paramètres de `GET /operations/suggestions/titles`. `q` est facultatif :
+ * vide après suppression des espaces aux extrémités, il ne filtre rien.
+ */
+export const parseTitleSuggestionQuery = (
+  query: Readonly<Record<string, unknown>>
+): { query: string | undefined; pagination: PaginationRequest } => {
+  const { q, ...pagination } = query;
+  if (q !== undefined && typeof q !== "string") throw invalidFilter();
+  const search = q?.trim() ?? "";
+  if (search.length > 50) throw invalidFilter();
+  return {
+    query: search === "" ? undefined : search,
+    pagination: parsePaginationRequest(pagination, TITLE_SUGGESTION_LIMITS),
+  };
+};

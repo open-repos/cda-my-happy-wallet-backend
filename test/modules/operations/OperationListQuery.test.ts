@@ -1,6 +1,9 @@
 import assert from "assert";
 import { ErrorException } from "../../../src/utils/errors";
-import { parseOperationListQuery } from "../../../src/modules/operations/presentation/operationValidators";
+import {
+  parseOperationListQuery,
+  parseTitleSuggestionQuery,
+} from "../../../src/modules/operations/presentation/operationValidators";
 
 const rejects = (query: Record<string, unknown>): void => {
   assert.throws(
@@ -93,6 +96,40 @@ for (const query of [
   { categoryIds: "1" },
 ]) {
   rejects(query);
+}
+
+// #174 : suggestions de libellés, 10 par défaut et 50 au maximum.
+assert.deepStrictEqual(parseTitleSuggestionQuery({}), {
+  query: undefined,
+  pagination: { limit: 10, cursor: null },
+});
+assert.deepStrictEqual(
+  parseTitleSuggestionQuery({ q: "   " }).query,
+  undefined
+);
+assert.deepStrictEqual(
+  parseTitleSuggestionQuery({ q: " Élec ", limit: "50", cursor: "c" }),
+  { query: "Élec", pagination: { limit: 50, cursor: "c" } }
+);
+assert.strictEqual(
+  parseTitleSuggestionQuery({ q: "a".repeat(50) }).query?.length,
+  50
+);
+for (const query of [
+  { q: "a".repeat(51) },
+  { q: ["a", "b"] },
+  { limit: "0" },
+  { limit: "51" },
+  { limit: "abc" },
+  { cursor: "" },
+  { title: "Loyer" },
+  { sort: "title" },
+]) {
+  assert.throws(
+    () => parseTitleSuggestionQuery(query),
+    (error: unknown) => error instanceof ErrorException && error.status === 422,
+    JSON.stringify(query)
+  );
 }
 
 console.log("Operation list query tests passed");
