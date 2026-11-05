@@ -203,7 +203,44 @@ async function run() {
     .set(ownerAuth);
   assert.strictEqual(crossResource.status, 422);
 
-  for (const query of ["limit=0", "limit=101", "limit=1.5", "offset=1"]) {
+  // #165 : tri et filtres passent par la vraie chaîne HTTP, et le curseur
+  // reste lié au tri choisi.
+  const byAmount = await supertest(app)
+    .get(`${baseUrl}/operations?limit=2&sort=amount&order=desc&type=DEPENSE`)
+    .set(ownerAuth);
+  assert.strictEqual(byAmount.status, 200);
+  const amounts = byAmount.body.data.map(
+    ({ amount }: { amount: string }) => Number(amount)
+  );
+  assert.deepStrictEqual(amounts, [9, 5]);
+  assert.strictEqual(byAmount.body.meta.hasNext, true);
+  const otherSort = await supertest(app)
+    .get(
+      `${baseUrl}/operations?limit=2&sort=amount&order=asc&type=DEPENSE&cursor=${byAmount.body.meta.nextCursor}`
+    )
+    .set(ownerAuth);
+  assert.strictEqual(otherSort.status, 422);
+  const repeated = await supertest(app)
+    .get(
+      `${baseUrl}/operations?categoryId=${category.id}&categoryId=${category.id}&title=insertion`
+    )
+    .set(ownerAuth);
+  assert.strictEqual(repeated.status, 200);
+  assert.deepStrictEqual(
+    repeated.body.data.map(({ title }: { title: string }) => title),
+    ["Insertion concurrente"]
+  );
+
+  for (const query of [
+    "limit=0",
+    "limit=101",
+    "limit=1.5",
+    "offset=1",
+    "sort=id",
+    "order=desc",
+    "type=CHARGE",
+    "minAmount=10&maxAmount=1",
+  ]) {
     const invalid = await supertest(app)
       .get(`${baseUrl}/operations?${query}`)
       .set(ownerAuth);

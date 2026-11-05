@@ -1,11 +1,28 @@
-import { OneOffOperation } from "../domain";
+import { OneOffOperation, OneOffOperationKind } from "../domain";
 import { CursorPage, PaginationRequest } from "../../pagination";
 
-/** Bornes civiles inclusives et devise facultatives d'une liste d'opérations. */
+/**
+ * Filtres facultatifs d'une liste d'opérations, combinés en ET. Les bornes
+ * civiles et de montant sont inclusives ; `categoryIds` est un OU trié et sans
+ * doublon ; `title` est un texte contenu, insensible à la casse et aux accents.
+ */
 export type OperationListFilter = Readonly<{
   from?: string;
   to?: string;
   currency?: string;
+  title?: string;
+  categoryIds?: readonly number[];
+  kind?: OneOffOperationKind;
+  minAmount?: string;
+  maxAmount?: string;
+}>;
+
+export type OperationSortField = "date" | "title" | "category" | "amount";
+
+/** Tri explicite ; absent, la liste garde l'ordre date puis id décroissants. */
+export type OperationListSort = Readonly<{
+  field: OperationSortField;
+  order: "asc" | "desc";
 }>;
 
 export type OperationReconciliationInput = Readonly<{
@@ -16,7 +33,8 @@ export interface OneOffOperationRepository {
   listByOwner(
     ownerId: number,
     pagination: PaginationRequest,
-    filter?: OperationListFilter
+    filter?: OperationListFilter,
+    sort?: OperationListSort
   ): Promise<CursorPage<OneOffOperation>>;
   findById(id: number, ownerId: number): Promise<OneOffOperation | null>;
   create(

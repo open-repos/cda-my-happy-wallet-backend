@@ -279,6 +279,8 @@ model OneOffOperationRecord {
   @@index([userId, operationDate])
   @@index([userId, operationDate, id])
   @@index([userId, currency, operationDate, id])
+  @@index([userId, amount, id])
+  @@index([userId, title, id])
   @@index([categoryId, userId])
 }
 

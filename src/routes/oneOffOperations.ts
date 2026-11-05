@@ -162,7 +162,9 @@ export const swOneOffOperationRouter = {
   "/operations": {
     get: {
       tags: ["Operations"],
-      summary: "List personal one-off operations, newest first",
+      summary: "List personal one-off operations, sorted and filtered",
+      description:
+        "Without sort, operations are listed newest first. Filters combine with AND; repeated categoryId values combine with OR. Title search is a case- and accent-insensitive substring match. A cursor is bound to the owner, the sort and every filter: reusing it with other parameters returns 422. Amount sort compares numbers without currency conversion.",
       security: [{ accessToken_auth: [] }],
       parameters: [
         {
@@ -181,6 +183,53 @@ export const swOneOffOperationRouter = {
           name: "currency",
           in: "query",
           schema: { type: "string", minLength: 3, maxLength: 3 },
+        },
+        {
+          name: "sort",
+          in: "query",
+          description: "Sort field; ties are ordered by id in the same direction",
+          schema: { type: "string", enum: ["date", "title", "category", "amount"] },
+        },
+        {
+          name: "order",
+          in: "query",
+          description: "Sort direction, only with sort",
+          schema: { type: "string", enum: ["asc", "desc"], default: "asc" },
+        },
+        {
+          name: "title",
+          in: "query",
+          description: "Case- and accent-insensitive substring; % and _ are literal",
+          schema: { type: "string", minLength: 1, maxLength: 50 },
+        },
+        {
+          name: "categoryId",
+          in: "query",
+          description: "Repeatable, at most 20 values, combined with OR",
+          style: "form",
+          explode: true,
+          schema: {
+            type: "array",
+            maxItems: 20,
+            items: { type: "integer", minimum: 1 },
+          },
+        },
+        {
+          name: "type",
+          in: "query",
+          schema: { type: "string", enum: ["DEPENSE", "ENTREE"] },
+        },
+        {
+          name: "minAmount",
+          in: "query",
+          description: "Inclusive lower bound, up to two decimals",
+          schema: { type: "string", pattern: "^(0|[1-9]\\d{0,7})(\\.\\d{1,2})?$" },
+        },
+        {
+          name: "maxAmount",
+          in: "query",
+          description: "Inclusive upper bound, not below minAmount",
+          schema: { type: "string", pattern: "^(0|[1-9]\\d{0,7})(\\.\\d{1,2})?$" },
         },
         ...paginationParameters,
       ],
