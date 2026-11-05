@@ -53,6 +53,37 @@ la ligne sentinelle de la réponse. Cette pagination par clé évite les doublon
 et omissions causés par le décalage d'un offset lorsque de nouvelles lignes
 sont insérées avant la fenêtre en cours.
 
+## Tri et filtres des opérations ponctuelles
+
+`GET /operations` accepte, en plus de `limit`, `cursor`, `from`, `to` et
+`currency`, les paramètres facultatifs suivants (#165) :
+
+| Paramètre                | Valeurs                                                        |
+| ------------------------ | -------------------------------------------------------------- |
+| `sort`                   | `date`, `title`, `category` (nom de catégorie) ou `amount`     |
+| `order`                  | `asc` (défaut) ou `desc`, seulement avec `sort`                |
+| `title`                  | 1 à 50 caractères, texte contenu                               |
+| `categoryId`             | entier positif, répétable, 20 au maximum                       |
+| `type`                   | `DEPENSE` ou `ENTREE`                                          |
+| `minAmount`, `maxAmount` | montant à deux décimales au plus, bornes inclusives, min ≤ max |
+
+Les filtres se combinent en ET ; plusieurs `categoryId` se combinent en OU.
+Sans `sort`, l'ordre reste `operationDate DESC, id DESC`. Avec `sort`, l'ordre
+est la colonne choisie puis `id`, dans le même sens. La recherche `title` est
+insensible à la casse et aux accents grâce au classement `utf8mb4_unicode_ci` ;
+`%` et `_` y sont des caractères ordinaires. Le tri, les filtres et la position
+du curseur utilisent le même classement, ce qui garde la pagination cohérente
+entre libellés égaux à la casse ou aux accents près.
+
+Le tri par montant compare les nombres sans conversion de devise : `currency`
+permet d'isoler une devise. Un `categoryId` d'un autre propriétaire ne
+correspond à aucune ligne, sans erreur qui révélerait son existence.
+
+Le périmètre chiffré du curseur inclut une empreinte SHA-256 du tri et de tous
+les filtres normalisés : réutiliser un curseur avec d'autres paramètres
+retourne `422`. Sans tri ni nouveau filtre, le périmètre est inchangé, donc les
+curseurs émis avant #165 restent valides.
+
 ## Sécurité et architecture
 
 Le contrôleur valide les paramètres, le cas d'usage dépend d'une interface de
@@ -89,6 +120,15 @@ DROP INDEX `OperationFixe_userId_idOperationFixe_idx` ON `OperationFixe`;
 DROP INDEX `OperationFixe_userId_typeOperation_idOperationFixe_idx` ON `OperationFixe`;
 DROP INDEX `OperationCategory_userId_name_id_idx` ON `OperationCategory`;
 DROP INDEX `OneOffOperationRecord_userId_operationDate_id_idx` ON `OneOffOperationRecord`;
+```
+
+La migration `20261105150000_add_one_off_operation_sort_indexes` ajoute de la
+même façon deux index pour les tris par montant et par libellé. Leur retrait
+éventuel suit la même règle :
+
+```sql
+DROP INDEX `OneOffOperationRecord_userId_amount_id_idx` ON `OneOffOperationRecord`;
+DROP INDEX `OneOffOperationRecord_userId_title_id_idx` ON `OneOffOperationRecord`;
 ```
 
 Avant ce retrait, vérifier que plus aucun backend paginé ne reçoit de trafic.

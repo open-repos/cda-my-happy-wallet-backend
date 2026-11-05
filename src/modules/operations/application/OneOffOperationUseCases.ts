@@ -4,6 +4,7 @@ import { OperationCategoryRepository } from "./OperationCategoryRepository.inter
 import {
   OneOffOperationRepository,
   OperationListFilter,
+  OperationListSort,
   OperationReconciliationInput,
 } from "./OneOffOperationRepository.interface";
 import { CursorPage, PaginationRequest } from "../../pagination";
@@ -42,9 +43,10 @@ export class OneOffOperationUseCases {
   public list(
     ownerId: number,
     pagination: PaginationRequest,
-    filter: OperationListFilter = {}
+    filter: OperationListFilter = {},
+    sort?: OperationListSort
   ): Promise<CursorPage<OneOffOperation>> {
-    return this.operations.listByOwner(ownerId, pagination, filter);
+    return this.operations.listByOwner(ownerId, pagination, filter, sort);
   }
 
   public async get(ownerId: number, id: number): Promise<OneOffOperation> {

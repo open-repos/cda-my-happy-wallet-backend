@@ -55,7 +55,8 @@ export class OneOffOperationController {
     const page = await this.operations.list(
       this.ownerId(req),
       query.pagination,
-      query.filter
+      query.filter,
+      query.sort
     );
     return res
       .status(200)
