@@ -1,6 +1,6 @@
 {
   "name": "projet-00-myhappywallet-backend",
-  "version": "1.12.0",
+  "version": "1.13.0",
   "description": "Dans ce projet je mettrais toutes les tâches liées au Backend de mon projet \"Chef d'oeuvre\" CDA .",
   "main": "index.js",
   "scripts": {
@@ -58,7 +58,7 @@
     "test:budget-period-domain": "ts-node test/modules/budgetPeriods/BudgetPeriod.test.ts",
     "test:budget-period-persistence": "ts-node test/modules/budgetPeriods/BudgetPeriodPersistence.test.ts",
     "test:budget-period-migration": "ts-node test/modules/budgetPeriods/BudgetPeriodMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/budgetPeriods/BudgetPeriodMigration.test.ts verify",
-    "test:budget-forecast-domain": "ts-node test/modules/budgetPeriods/BudgetForecast.test.ts && npm run test:multi-month-forecast",
+    "test:budget-forecast-domain": "ts-node test/modules/budgetPeriods/BudgetForecast.test.ts && ts-node test/modules/budgetPeriods/DailyRemaining.test.ts && npm run test:multi-month-forecast",
     "test:multi-month-forecast": "ts-node test/modules/budgetPeriods/MultiMonthForecast.test.ts && ts-node test/modules/budgetApi/MultiMonthForecastApi.test.ts",
     "test:event-occurrences-use-cases": "ts-node test/modules/eventOccurrences/EventOccurrenceUseCases.test.ts && ts-node test/modules/eventOccurrences/OccurrenceResolutionRead.test.ts",
     "test:event-occurrences-persistence": "ts-node test/modules/eventOccurrences/EventOccurrencePersistence.test.ts",

@@ -24,8 +24,35 @@ le disponible réel par jour, `unresolvedEvents` et au plus 31 points
 journaliers. Pour le mois courant, `forecast` contient les entrées et dépenses
 planifiées, l'épargne des objectifs, le reste prévisionnel, le disponible
 prudent par jour et les compteurs `unresolvedCount` et `overdueCount`; chaque
-jour porte aussi `plannedIncome`, `plannedExpense`, `plannedCount` et
-`forecastRemaining`.
+jour porte aussi `plannedIncome`, `plannedExpense`, `plannedCount`,
+`forecastRemaining` et `dailyRemaining`.
+
+### Reste à vivre cumulé du jour (`dailyRemaining`, #179)
+
+Valeur affichée chaque jour par le mode Prévisionnel du calendrier
+(frontend #379), distincte de `forecastRemaining` qui garde son sens :
+
+```text
+part du jour = tronque(socle ÷ nombre de jours du mois)
+dailyRemaining(d) = part du jour × d − dépenses jusqu'à d + entrées jusqu'à d
+dailyRemaining(dernier jour) = socle + opérations du mois + événements prévus
+```
+
+- Le socle est le reste à vivre de base : revenus fixes − charges fixes. Le
+  report, l'épargne des objectifs et la réserve d'enveloppes n'y entrent pas.
+- Dépenses et entrées : les opérations saisies, rapprochements d'enveloppes
+  compris (une dépense déjà couverte par une charge fixe ne puise pas deux
+  fois), et les événements prévus non résolus, à leur date d'occurrence,
+  comme une opération saisie ce jour-là. Un événement réalisé n'est compté
+  qu'une fois, par son opération.
+- La part du jour est en centimes, tronquée vers zéro ; le reste de la
+  division est porté par le dernier jour, qui tombe juste. Elle ne change que
+  si le socle change, jamais après une opération ponctuelle.
+- Exemple : socle de 90 € sur 30 jours (3 € par jour), dépenses de 10 € les
+  jours 2, 10 et 20 : 3, −4, …, 17, 10, …, 30, …, 60.
+- Avec `scenario=simulation`, les événements potentiels comptent comme les
+  événements prévus, comme pour le reste prévisionnel du mois courant.
+- `null` quand `forecast` est `null` (mois clôturé).
 
 Un mois passé est clôturé à la première lecture et renvoie `forecast: null`
 avec des champs prévisionnels journaliers à `null`. Un mois futur est refusé
