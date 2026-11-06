@@ -61,6 +61,9 @@ assert.deepStrictEqual(forecast.days[14], {
   plannedExpenseMinorUnits: 30000,
   plannedCount: 2,
   forecastRemainingMinorUnits: 69000,
+  // #179 : 1 200 € de base sur 31 jours (38,70 €/jour) × 15, moins 40 €
+  // d'opérations et 320 € d'événements prévus.
+  dailyRemainingMinorUnits: 3870 * 15 - 4000 - 32000,
 });
 assert.strictEqual(
   forecast.days[30].forecastRemainingMinorUnits,
