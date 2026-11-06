@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.13.0 (2026-11-06)
+
+### Added
+
+- Added `dailyRemaining` to each day of `GET /budget-periods/{month}/summary`: the base remaining-to-live accrued pro rata up to that day, minus expenses and plus income up to that day, recorded operations and unresolved planned events alike, the remainder of the division landing on the last day (#179).
+
 ## 1.12.0 (2026-11-05)
 
 ### Added
