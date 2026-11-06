@@ -67,7 +67,7 @@ export const swBudgetPeriodRouter = {
       tags: ["ResteAVivre"],
       summary: "Monthly real and forecast budget with at most 31 daily points",
       description:
-        "A past month is closed on first read and returns forecast=null. Future months are refused.",
+        "A past month is closed on first read and returns forecast=null. Future months are refused. Each day carries dailyRemaining (#179): the share of the base remaining-to-live (fixed income minus fixed charges) accrued pro rata up to that day, minus expenses and plus income up to that day, recorded operations and unresolved planned events alike; no carry-in, goal savings or envelope reserve. The last day equals base + month operations + planned events. With scenario=simulation, potential events count as planned ones. Null when forecast is null.",
       security: [{ accessToken_auth: [] }],
       parameters: [
         {

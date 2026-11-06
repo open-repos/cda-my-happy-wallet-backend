@@ -18,6 +18,12 @@ export type DailyForecastPoint = Readonly<{
   plannedExpenseMinorUnits: number;
   plannedCount: number;
   forecastRemainingMinorUnits: number;
+  /**
+   * Reste à vivre cumulé du jour (#179) : part du reste à vivre de base acquise
+   * au prorata des jours, moins les dépenses et plus les entrées jusqu'à ce
+   * jour, opérations saisies et événements prévus confondus.
+   */
+  dailyRemainingMinorUnits: number;
 }>;
 
 export type ForecastBudgetSummary = Readonly<{
@@ -109,18 +115,37 @@ export const calculateForecastBudget = (
   }
 
   let plannedRunning = -input.goalSavingsMinorUnits - reserve;
-  const days = real.days.map((day) => {
+  let eventsRunning = 0;
+  // Part du jour du reste à vivre de base (revenus fixes − charges fixes),
+  // tronquée vers zéro ; le reste de la division est porté par le dernier
+  // jour, qui égale ainsi la base. Ni report, ni épargne, ni réserve.
+  const monthDays = real.days.length;
+  const dailyShare =
+    monthDays === 0 ? 0 : Math.trunc(real.baseMinorUnits / monthDays);
+  const days = real.days.map((day, index) => {
     const totals = byDate.get(day.date) ?? { income: 0, expense: 0, count: 0 };
     plannedRunning += totals.income - totals.expense;
+    eventsRunning += totals.income - totals.expense;
     const forecastRemainingMinorUnits =
       day.realRemainingMinorUnits + plannedRunning;
     assertSafe(forecastRemainingMinorUnits);
+    const share =
+      index === monthDays - 1 ? real.baseMinorUnits : dailyShare * (index + 1);
+    // Effet cumulé des opérations saisies, rapprochements compris : le reste
+    // réel du jour sans la base ni le report.
+    const operations =
+      day.realRemainingMinorUnits -
+      real.baseMinorUnits -
+      real.carryInMinorUnits;
+    const dailyRemainingMinorUnits = share + operations + eventsRunning;
+    assertSafe(dailyRemainingMinorUnits);
     return {
       date: day.date,
       plannedIncomeMinorUnits: totals.income,
       plannedExpenseMinorUnits: totals.expense,
       plannedCount: totals.count,
       forecastRemainingMinorUnits,
+      dailyRemainingMinorUnits,
     };
   });
 

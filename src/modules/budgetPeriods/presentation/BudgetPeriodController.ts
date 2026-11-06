@@ -134,6 +134,9 @@ export class BudgetPeriodController {
           forecastRemaining: planned
             ? amountOf(planned.forecastRemainingMinorUnits)
             : null,
+          dailyRemaining: planned
+            ? amountOf(planned.dailyRemainingMinorUnits)
+            : null,
         };
       }),
     };

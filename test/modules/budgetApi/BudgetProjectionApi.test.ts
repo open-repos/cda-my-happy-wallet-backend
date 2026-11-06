@@ -359,6 +359,12 @@ const run = async () => {
   assert.strictEqual(data.days.length, 31);
   assert.strictEqual(data.days[4].plannedExpense, "300.00");
   assert.strictEqual(data.days[30].forecastRemaining, "750.00");
+  // #179 : socle de 1 200 € (2 000 € − 800 €) sur 31 jours, soit 38,70 € par
+  // jour ; 300 € prévus le 5 ; aucune opération saisie ; ni report ni épargne.
+  assert.strictEqual(data.days[0].dailyRemaining, "38.70");
+  assert.strictEqual(data.days[4].dailyRemaining, "-106.50");
+  assert.strictEqual(data.days[29].dailyRemaining, "861.00");
+  assert.strictEqual(data.days[30].dailyRemaining, "900.00");
   assert.ok(!JSON.stringify(data).includes("userId"));
   assert.ok(!JSON.stringify(data).includes("ownerId"));
 
