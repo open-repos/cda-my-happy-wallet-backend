@@ -6,6 +6,7 @@ import {
 
 /** Occurrences planifiées non résolues, agrégées par date et sens. */
 export type PlannedMovement = Readonly<{
+  savingsMinorUnits?: number;
   occurrenceDate: string;
   kind: BudgetMovementKind;
   minorUnits: number;

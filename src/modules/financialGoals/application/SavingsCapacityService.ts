@@ -64,7 +64,9 @@ export class SavingsCapacityService {
           1;
         // Forecast savings are a frozen monthly snapshot. Undo all elapsed
         // reservations before comparing the independent required-payment scenario.
-        const reserved = month.goalSavingsMinorUnits * elapsed;
+        const reserved =
+          month.cumulativeSavingsReserveMinorUnits ??
+          month.goalSavingsMinorUnits * elapsed;
         const before = month.forecastRemainingMinorUnits + reserved;
         if (!Number.isSafeInteger(reserved) || !Number.isSafeInteger(before))
           throw new BudgetPeriodError("INVALID_AMOUNT");

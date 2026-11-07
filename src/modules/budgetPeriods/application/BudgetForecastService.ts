@@ -24,6 +24,8 @@ export type BudgetForecastReads = Pick<
 
 export type MonthlyBudgetForecast = Readonly<{
   month: string;
+  plannedSavingsMinorUnits?: number;
+  cumulativeSavingsReserveMinorUnits?: number;
   fixedIncomeMinorUnits: number;
   fixedExpenseMinorUnits: number;
   baseMinorUnits: number;
@@ -97,6 +99,8 @@ export class BudgetForecastService {
     });
     let remaining = current.realRemainingMinorUnits;
     const result: MonthlyBudgetForecast[] = [];
+    let cumulativeSavingsReserveMinorUnits = 0;
+    let hasLinkedSavings = false;
     // Project intervening months even when the requested window starts in the future.
     for (let index = 0; index < offset + months; index += 1) {
       const month = shiftMonth(currentMonth, index);
@@ -126,15 +130,28 @@ export class BudgetForecastService {
                 (movement) => movement.fixedReconciliation !== undefined
               ),
             });
+      const planned = await this.periods.plannedMovements(
+        ownerId,
+        month,
+        normalizedCurrency,
+        scenario
+      );
+      const plannedSavingsMinorUnits = planned.reduce(
+        (total, row) => total + (row.savingsMinorUnits ?? 0),
+        0
+      );
+      cumulativeSavingsReserveMinorUnits += savings + plannedSavingsMinorUnits;
+      hasLinkedSavings ||= plannedSavingsMinorUnits > 0;
+      if (
+        hasLinkedSavings &&
+        (!Number.isSafeInteger(plannedSavingsMinorUnits) ||
+          !Number.isSafeInteger(cumulativeSavingsReserveMinorUnits))
+      )
+        throw new BudgetPeriodError("INVALID_AMOUNT");
       const forecast = calculateForecastBudget({
         real,
         today: index === 0 ? today : bounds.start,
-        planned: await this.periods.plannedMovements(
-          ownerId,
-          month,
-          normalizedCurrency,
-          scenario
-        ),
+        planned,
         goalSavingsMinorUnits: savings,
         envelopeReserveMinorUnits:
           (await this.periods.envelopeReserve?.(
@@ -157,6 +174,9 @@ export class BudgetForecastService {
           plannedIncomeMinorUnits: forecast.plannedIncomeMinorUnits,
           plannedExpenseMinorUnits: forecast.plannedExpenseMinorUnits,
           goalSavingsMinorUnits: savings,
+          ...(hasLinkedSavings
+            ? { plannedSavingsMinorUnits, cumulativeSavingsReserveMinorUnits }
+            : {}),
           forecastResultMinorUnits,
           forecastRemainingMinorUnits: remaining,
           remainingDays: real.remainingDays,

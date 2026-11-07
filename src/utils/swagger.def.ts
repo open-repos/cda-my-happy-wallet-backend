@@ -1,3 +1,4 @@
+import { savingsSchemas, swSavingsRouter } from "./savingsSwagger";
 import { swReconciliationRouter, reconciliationSchemas } from "./reconciliationSwagger";
 import { swRenewTokenRouter, swAdminRouter } from './../router';
 import { ErrorCode } from "./errors/errorCode.error";
@@ -73,6 +74,7 @@ const swagger = {
     },
   ],
   paths: {
+    ...swSavingsRouter,
     ...swReconciliationRouter,
     ...swAdminRouter,
     ...swUserRouter,
@@ -106,6 +108,7 @@ const swagger = {
       },
     },
     schemas: {
+      ...savingsSchemas,
       ...reconciliationSchemas,
       PaginationMeta: {
         type: "object",
@@ -226,6 +229,7 @@ const swagger = {
         type: "object",
         properties: {
           id: { type: "integer" },
+          savingsAccountId: { type: "integer", minimum: 1, description: "Only present for a linked goal; savedAmount is derived from this account balance." },
           title: { type: "string" },
           targetAmount: { type: "string", example: "1200.00" },
           savedAmount: { type: "string", example: "300.00" },

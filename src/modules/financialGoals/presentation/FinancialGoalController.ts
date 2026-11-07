@@ -53,6 +53,7 @@ export class FinancialGoalController {
 
   private readonly dto = ({ goal, forecast }: ForecastedFinancialGoal) => ({
     id: goal.id,
+    ...(goal.savingsAccountId === undefined ? {} : { savingsAccountId: goal.savingsAccountId }),
     title: goal.title,
     targetAmount: amountOf(goal.targetMinorUnits),
     savedAmount: amountOf(goal.savedMinorUnits),
