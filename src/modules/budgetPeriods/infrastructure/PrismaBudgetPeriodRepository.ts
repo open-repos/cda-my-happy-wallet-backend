@@ -1,3 +1,4 @@
+import { plannedSavingsMovements } from "../../savings/infrastructure/plannedSavings";
 import { lockReconciliationOwner } from "../../reconciliation/infrastructure/reconciliationLocks";
 import {
   reconcileFixedTotals,
@@ -231,32 +232,58 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
         reconciliation: {
           select: {
             occurrence: {
-              select: { id: true, sourceType: true, fixedSourceId: true, planned: true },
+              select: {
+                id: true,
+                sourceType: true,
+                fixedSourceId: true,
+                planned: true,
+              },
             },
           },
         },
       },
       orderBy: [{ operationDate: "asc" }, { id: "asc" }],
     });
-    return rows.map((row) => ({
-      operationDate: row.operationDate.toISOString().slice(0, 10),
-      minorUnits: minorUnitsOf(row.amount),
-      ...(row.reconciliation &&
-      row.reconciliation.occurrence.fixedSourceId !== null
-        ? {
-            fixedReconciliation: {
-              occurrenceId: row.reconciliation.occurrence.id,
-              plannedMinorUnits: minorUnitsOf(
-                row.reconciliation.occurrence.planned
-              ),
-            },
-          }
-        : {}),
-      kind:
-        row.type === TypeOperationEnum.ENTREE
-          ? ("ENTREE" as const)
-          : ("DEPENSE" as const),
-    }));
+    const transfers = await this.prisma.savingsMovement.findMany({
+      where: {
+        userId: ownerId,
+        currency,
+        operationDate: {
+          gte: new Date(`${bounds.start}T00:00:00Z`),
+          lte: new Date(`${bounds.end}T00:00:00Z`),
+        },
+      },
+      select: { operationDate: true, amountMinorUnits: true, direction: true },
+    });
+    return [
+      ...rows.map((row) => ({
+        operationDate: row.operationDate.toISOString().slice(0, 10),
+        minorUnits: minorUnitsOf(row.amount),
+        ...(row.reconciliation &&
+        row.reconciliation.occurrence.fixedSourceId !== null
+          ? {
+              fixedReconciliation: {
+                occurrenceId: row.reconciliation.occurrence.id,
+                plannedMinorUnits: minorUnitsOf(
+                  row.reconciliation.occurrence.planned
+                ),
+              },
+            }
+          : {}),
+        kind:
+          row.type === TypeOperationEnum.ENTREE
+            ? ("ENTREE" as const)
+            : ("DEPENSE" as const),
+      })),
+      ...transfers.map((row) => ({
+        operationDate: row.operationDate.toISOString().slice(0, 10),
+        minorUnits: Number(row.amountMinorUnits),
+        kind:
+          row.direction === "TO_SAVINGS"
+            ? ("DEPENSE" as const)
+            : ("ENTREE" as const),
+      })),
+    ];
   }
 
   public async plannedMovements(
@@ -294,12 +321,47 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
       GROUP BY d.occurrenceDate, e.kind
       ORDER BY d.occurrenceDate ASC, e.kind ASC
     `);
-    return rows.map((row) => ({
-      occurrenceDate: row.occurrenceDate.toISOString().slice(0, 10),
-      kind: row.kind,
-      minorUnits: minorUnitsOf(row.total),
-      count: Number(row.occurrences),
-    }));
+    const savings = await plannedSavingsMovements(
+      this.prisma,
+      ownerId,
+      month,
+      currency
+    );
+    const combined = [
+      ...rows.map((row) => ({
+        occurrenceDate: row.occurrenceDate.toISOString().slice(0, 10),
+        kind: row.kind,
+        minorUnits: minorUnitsOf(row.total),
+        count: Number(row.occurrences),
+      })),
+      ...savings,
+    ];
+    // Bound the internal calendar read to at most one row per date/direction.
+    const grouped = new Map<string, PlannedMovement>();
+    for (const row of combined) {
+      const key = `${row.occurrenceDate}:${row.kind}`;
+      const existing = grouped.get(key);
+      grouped.set(
+        key,
+        existing
+          ? {
+              ...row,
+              minorUnits: existing.minorUnits + row.minorUnits,
+              count: existing.count + row.count,
+              savingsMinorUnits:
+                (existing.savingsMinorUnits ?? 0) +
+                ("savingsMinorUnits" in row
+                  ? Number(row.savingsMinorUnits)
+                  : 0),
+            }
+          : row
+      );
+    }
+    return [...grouped.values()].sort(
+      (a, b) =>
+        a.occurrenceDate.localeCompare(b.occurrenceDate) ||
+        a.kind.localeCompare(b.kind)
+    );
   }
 
   public async listFrom(
@@ -360,7 +422,15 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
       orderBy: [{ operationDate: "asc" }, { id: "asc" }],
       select: { operationDate: true },
     });
-    return first?.operationDate.toISOString().slice(0, 7) ?? null;
+    const transfer = await this.prisma.savingsMovement.findFirst({
+      where: { userId: ownerId, currency },
+      orderBy: [{ operationDate: "asc" }, { id: "asc" }],
+      select: { operationDate: true },
+    });
+    const months = [first, transfer].flatMap((row) =>
+      row ? [row.operationDate.toISOString().slice(0, 7)] : []
+    );
+    return months.sort()[0] ?? null;
   }
 
   public async listClosed(
@@ -421,7 +491,8 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
       Prisma.sql`
         SELECT SUM(monthlyContribution) AS total
         FROM ObjectifFinancier
-        WHERE userId = ${ownerId}
+        WHERE NOT EXISTS (SELECT 1 FROM SavingsGoalLink l WHERE l.goalId = ObjectifFinancier.id AND l.userId = ObjectifFinancier.userId)
+          AND userId = ${ownerId}
           AND devise = ${currency}
           AND monthlyContribution > 0
           AND savedAmount < montant

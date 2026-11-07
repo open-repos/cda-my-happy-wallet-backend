@@ -134,6 +134,10 @@ export const swFinancialGoalRouter = {
       requestBody,
       responses: {
         "200": goalResponse("Goal updated"),
+        "409": {
+          description:
+            "Linked goal balance/currency must match its savings account (LINKED_GOAL_BALANCE_READ_ONLY)",
+        },
         ...securedResponses,
       },
     },

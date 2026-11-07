@@ -5,6 +5,7 @@ export type SavingsTrajectoryMonth = Readonly<{
   forecastResultMinorUnits: number;
   forecastRemainingMinorUnits: number;
   goalSavingsMinorUnits: number;
+  plannedSavingsMinorUnits?: number;
 }>;
 
 export type TrajectoryAssumptions = Readonly<{
@@ -69,7 +70,9 @@ export const calculateSavingsTrajectory = (
   const current = {
     month: first.month,
     serverRemaining: decimalMinor(first.forecastRemainingMinorUnits),
-    reservedContributions: decimalMinor(first.goalSavingsMinorUnits),
+    reservedContributions: decimalMinor(
+      first.goalSavingsMinorUnits + (first.plannedSavingsMinorUnits ?? 0)
+    ),
     additionalVariableExpense: decimalMinor(currentVariable),
     safetyMargin: decimalMinor(margin),
     remainingUnderAssumptions: decimalMinor(safeMinor(balance - margin)),
@@ -95,7 +98,9 @@ export const calculateSavingsTrajectory = (
     const carryIn = balance;
     // Extract this month's flow, never reuse a cumulative remaining balance as income.
     const knownFlow = safeMinor(
-      month.forecastResultMinorUnits + month.goalSavingsMinorUnits
+      month.forecastResultMinorUnits +
+        month.goalSavingsMinorUnits +
+        (month.plannedSavingsMinorUnits ?? 0)
     );
     const beforeGoals = safeMinor(balance + knownFlow);
     const variable = reasonable

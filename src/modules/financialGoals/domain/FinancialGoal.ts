@@ -1,5 +1,6 @@
 export type FinancialGoalProps = Readonly<{
   id?: number;
+  savingsAccountId?: number;
   ownerId: number;
   title: string;
   targetAmount: string | number;
@@ -101,6 +102,7 @@ const ceilDiv = (dividend: number, divisor: number): number =>
 
 export class FinancialGoal {
   public readonly id?: number;
+  public readonly savingsAccountId?: number;
   public readonly ownerId: number;
   public readonly title: string;
   public readonly targetMinorUnits: number;
@@ -114,6 +116,7 @@ export class FinancialGoal {
     amounts: readonly [number, number, number]
   ) {
     this.id = props.id;
+    this.savingsAccountId = props.savingsAccountId;
     this.ownerId = props.ownerId;
     this.title = props.title.trim();
     [
@@ -126,6 +129,8 @@ export class FinancialGoal {
   }
 
   public static create(props: FinancialGoalProps): FinancialGoal {
+    if (props.savingsAccountId !== undefined)
+      this.assertId(props.savingsAccountId, "INVALID_ID");
     if (props.id !== undefined) this.assertId(props.id, "INVALID_ID");
     this.assertId(props.ownerId, "INVALID_OWNER_ID");
     if (

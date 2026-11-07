@@ -1,3 +1,4 @@
+import { savingsRouter } from "./routes/savings";
 import { reconciliationRouter } from "./routes/reconciliation";
 import {Router, Request, Response} from 'express';
 import { operationFixeRouter } from './routes/operationsFixes';
@@ -61,6 +62,7 @@ mainRouter.use('/', oneOffOperationRouter)
 mainRouter.use('/', eventOccurrenceRouter)
 mainRouter.use('/', monthlyEventRouter)
 mainRouter.use('/', financialGoalRouter)
+mainRouter.use('/', savingsRouter)
 mainRouter.use('/', budgetPeriodRouter)
 mainRouter.use('/', budgetForecastRouter)
 mainRouter.use('/', savingsCapacityRouter)

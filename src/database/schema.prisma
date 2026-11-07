@@ -114,6 +114,7 @@ model Utilisateur {
   oneOffOperations OneOffOperationRecord[] @relation("OneOffOperationOwner")
   budgetPeriods BudgetPeriod[]
   occurrenceResolutions EventOccurrenceResolution[]
+  savingsAccounts SavingsAccount[]
   budgetEnvelopes BudgetEnvelope[]
   reconciliationOccurrences ReconciliationOccurrence[]
   created_at  DateTime @default(now()) @db.Timestamp(0)
@@ -207,6 +208,7 @@ model Notification {
 }
 
 model ObjectifFinancier {
+  savingsLink SavingsGoalLink?
   id                  Int         @id @default(autoincrement())
   title               String      @map("titre") @db.VarChar(50)
   targetAmount        Decimal     @map("montant") @db.Decimal(10, 2)
@@ -219,6 +221,7 @@ model ObjectifFinancier {
   Utilisateur         Utilisateur @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId              Int
 
+  @@unique([id, userId])
   @@index([userId, id])
 }
 
@@ -445,4 +448,92 @@ model FixedOperationVersion {
   operation OperationFixe @relation(fields: [operationId, userId], references: [idOperationFixe, userId], onDelete: Cascade)
   @@unique([operationId, effectiveMonth])
   @@index([userId, effectiveMonth, operationId])
+}
+
+
+/// Cached balance is updated only in the same owner-locked transaction as the immutable ledger.
+model SavingsAccount {
+  id Int @id @default(autoincrement())
+  userId Int
+  user Utilisateur @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name String @db.VarChar(50)
+  currency String @db.Char(3)
+  initialBalanceMinorUnits BigInt @default(0)
+  balanceMinorUnits BigInt @default(0)
+  archived Boolean @default(false)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+  goalLink SavingsGoalLink?
+  movements SavingsMovement[]
+  resolutions SavingsOccurrenceResolution[]
+  @@unique([id, userId])
+  @@index([userId, id])
+}
+
+model SavingsGoalLink {
+  accountId Int @id
+  goalId Int @unique
+  userId Int
+  linkedOn DateTime @db.Date
+  @@unique([accountId, userId])
+  @@unique([goalId, userId])
+  account SavingsAccount @relation(fields: [accountId, userId], references: [id, userId], onDelete: Cascade)
+  goal ObjectifFinancier @relation(fields: [goalId, userId], references: [id, userId], onDelete: Cascade)
+}
+
+enum SavingsDirection {
+  TO_SAVINGS
+  FROM_SAVINGS
+}
+
+enum SavingsMovementReason {
+  MANUAL
+  MONTH_END
+  NEGATIVE_COVERAGE
+  GOAL
+}
+
+model SavingsMovement {
+  id Int @id @default(autoincrement())
+  accountId Int
+  userId Int
+  account SavingsAccount @relation(fields: [accountId, userId], references: [id, userId], onDelete: Cascade)
+  amountMinorUnits BigInt
+  direction SavingsDirection
+  reason SavingsMovementReason
+  currency String @db.Char(3)
+  operationDate DateTime @db.Date
+  idempotencyKey String @db.VarChar(100)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  resolution SavingsOccurrenceResolution?
+  @@unique([userId, idempotencyKey])
+  @@unique([id, userId])
+  @@index([userId, accountId, id])
+  @@index([userId, currency, operationDate, id])
+}
+
+enum SavingsResolutionStatus {
+  CONFIRMED
+  CANCELED
+}
+
+/// Durable decision survives goal deletion and prevents a second monthly transfer.
+model SavingsOccurrenceResolution {
+  id Int @id @default(autoincrement())
+  accountId Int
+  userId Int
+  month DateTime @db.Date
+  sourceGoalId Int
+  title String @db.VarChar(50)
+  amountMinorUnits BigInt
+  currency String @db.Char(3)
+  operationDate DateTime @db.Date
+  status SavingsResolutionStatus
+  movementId Int? @unique
+  @@unique([movementId, userId])
+  account SavingsAccount @relation(fields: [accountId, userId], references: [id, userId], onDelete: Cascade)
+  movement SavingsMovement? @relation(fields: [movementId, userId], references: [id, userId], onDelete: Cascade)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  @@unique([userId, accountId, month])
+  @@index([userId, id])
 }
