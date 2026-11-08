@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.14.0 (2026-11-08)
+
+### Added
+
+- Added owned savings accounts, immutable transfers excluded from Analytics, linked goal balances and monthly transfer confirmations with budget and current-account history integration (#183).
+
 ## 1.13.0 (2026-11-06)
 
 ### Added
