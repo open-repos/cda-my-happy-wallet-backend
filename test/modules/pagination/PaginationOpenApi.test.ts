@@ -16,6 +16,10 @@ const paginatedPaths = [
   "/operation-categories",
   "/operations",
   "/goals",
+  "/savings-accounts",
+  "/savings-accounts/{id}/movements",
+  "/savings-occurrences/pending",
+  "/accounts/current/movements",
   "/budget-periods/history",
   "/event-occurrences/pending",
 ] as const;

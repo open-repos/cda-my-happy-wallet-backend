@@ -17,7 +17,7 @@ export class FinancialGoalApplicationError extends Error {
   }
 }
 
-export type SaveFinancialGoalInput = Omit<FinancialGoalProps, "id" | "ownerId">;
+export type SaveFinancialGoalInput = Omit<FinancialGoalProps, "id" | "ownerId" | "savingsAccountId">;
 
 export type ForecastedFinancialGoal = Readonly<{
   goal: FinancialGoal;

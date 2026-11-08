@@ -1,3 +1,5 @@
+import { SavingsError } from "../../savings/domain/Savings";
+import { lockReconciliationOwner } from "../../reconciliation/infrastructure/reconciliationLocks";
 import { Prisma, PrismaClient } from "@prisma/client";
 import {
   createCursorPage,
@@ -16,6 +18,10 @@ type DecimalValue = { toFixed(fractionDigits: number): string };
 
 type GoalRow = Readonly<{
   id: number;
+  savingsLink?: {
+    accountId: number;
+    account: { balanceMinorUnits: bigint };
+  } | null;
   title: string;
   targetAmount: DecimalValue;
   savedAmount: DecimalValue;
@@ -24,6 +30,12 @@ type GoalRow = Readonly<{
   targetDate: Date | null;
   userId: number;
 }>;
+
+const include = {
+  savingsLink: {
+    include: { account: { select: { balanceMinorUnits: true } } },
+  },
+} as const;
 
 const amountOf = (minorUnits: number): string => (minorUnits / 100).toFixed(2);
 
@@ -47,6 +59,7 @@ export class PrismaFinancialGoalRepository implements FinancialGoalRepository {
         afterId === null
           ? { userId: ownerId }
           : { userId: ownerId, id: { gt: afterId } },
+      include,
       orderBy: { id: "asc" },
       take: page.limit + 1,
     });
@@ -68,6 +81,7 @@ export class PrismaFinancialGoalRepository implements FinancialGoalRepository {
   ): Promise<FinancialGoal | null> {
     const row = await this.prisma.objectifFinancier.findFirst({
       where: { id, userId: ownerId },
+      include,
     });
     return row == null ? null : this.toDomain(row);
   }
@@ -79,6 +93,7 @@ export class PrismaFinancialGoalRepository implements FinancialGoalRepository {
   ): Promise<readonly FinancialGoal[]> {
     const rows = await this.prisma.objectifFinancier.findMany({
       where: { userId: ownerId, currency },
+      include,
       orderBy: { id: "asc" },
     });
     return rows.map((row) => this.toDomain(row));
@@ -94,21 +109,51 @@ export class PrismaFinancialGoalRepository implements FinancialGoalRepository {
 
   public async update(goal: FinancialGoal): Promise<FinancialGoal | null> {
     if (goal.id == null) return null;
-    const result = await this.prisma.objectifFinancier.updateMany({
-      where: { id: goal.id, userId: goal.ownerId },
-      data: this.toPersistence(goal),
-    });
-    return result.count === 0 ? null : this.findById(goal.id, goal.ownerId);
+    const update = async (tx: Prisma.TransactionClient) => {
+      await lockReconciliationOwner(tx, goal.ownerId);
+      const current = await tx.objectifFinancier.findFirst({
+        where: { id: goal.id, userId: goal.ownerId },
+        include,
+      });
+      if (!current) return null;
+      const data = this.toPersistence(goal);
+      if (current.savingsLink) {
+        if (
+          goal.currency !== current.currency ||
+          goal.savedMinorUnits !==
+            Number(current.savingsLink.account.balanceMinorUnits)
+        )
+          throw new SavingsError("LINKED_GOAL_BALANCE_READ_ONLY");
+        // Keep the legacy value for rollback; the active projection comes from the account.
+        data.savedAmount = current.savedAmount.toFixed(2);
+      }
+      return this.toDomain(
+        await tx.objectifFinancier.update({
+          where: { id: current.id },
+          data,
+          include,
+        })
+      );
+    };
+    return "$transaction" in this.prisma
+      ? this.prisma.$transaction(update)
+      : update(this.prisma);
   }
 
   public async delete(id: number, ownerId: number): Promise<boolean> {
-    return (
-      (
-        await this.prisma.objectifFinancier.deleteMany({
-          where: { id, userId: ownerId },
-        })
-      ).count === 1
-    );
+    const remove = async (tx: Prisma.TransactionClient) => {
+      await lockReconciliationOwner(tx, ownerId);
+      return (
+        (
+          await tx.objectifFinancier.deleteMany({
+            where: { id, userId: ownerId },
+          })
+        ).count === 1
+      );
+    };
+    return "$transaction" in this.prisma
+      ? this.prisma.$transaction(remove)
+      : remove(this.prisma);
   }
 
   private toPersistence(goal: FinancialGoal) {
@@ -132,7 +177,12 @@ export class PrismaFinancialGoalRepository implements FinancialGoalRepository {
       ownerId: row.userId,
       title: row.title,
       targetAmount: row.targetAmount.toFixed(2),
-      savedAmount: row.savedAmount.toFixed(2),
+      savedAmount: row.savingsLink
+        ? amountOf(Number(row.savingsLink.account.balanceMinorUnits))
+        : row.savedAmount.toFixed(2),
+      ...(row.savingsLink
+        ? { savingsAccountId: row.savingsLink.accountId }
+        : {}),
       monthlyContribution: row.monthlyContribution.toFixed(2),
       currency: row.currency,
       targetDate: row.targetDate?.toISOString().slice(0, 10) ?? null,

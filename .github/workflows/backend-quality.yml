@@ -122,6 +122,10 @@ jobs:
           npm run test:monthly-events-api
           npm run test:monthly-events-persistence
           npm run test:monthly-events-migration
+          npm run test:savings-domain
+          npm run test:savings-api
+          npm run test:savings-persistence
+          npm run test:savings-migration
           npm run test:financial-goals-domain
           npm run test:financial-goals-api
           npm run test:financial-goals-persistence
