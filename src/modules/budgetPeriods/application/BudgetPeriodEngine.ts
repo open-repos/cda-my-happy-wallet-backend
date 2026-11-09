@@ -24,6 +24,7 @@ export class BudgetPeriodEngineError extends Error {
 }
 
 export type BudgetPeriodSummary = Readonly<{
+  monthEndDecision?: import("../../monthEnd/domain/MonthEnd").DecisionView;
   period: BudgetPeriodState;
   budget: RealBudgetSummary;
   /** Calculé pour le mois courant seulement; un mois passé est un bilan. */
@@ -59,7 +60,8 @@ const pauseBeforeRetry: RecalculationPause = (attempt) =>
 export class BudgetPeriodEngine {
   public constructor(
     private readonly periods: BudgetPeriodRepository,
-    private readonly pause: RecalculationPause = pauseBeforeRetry
+    private readonly pause: RecalculationPause = pauseBeforeRetry,
+    private readonly ownerLocked = false
   ) {}
 
   public async summarize(
@@ -78,6 +80,18 @@ export class BudgetPeriodEngine {
     const currentMonth = today.slice(0, 7);
     if (month > currentMonth) {
       throw new BudgetPeriodEngineError("FUTURE_PERIOD");
+    }
+
+    if (!this.ownerLocked && this.periods.withOwnerLock) {
+      return this.periods.withOwnerLock(ownerId, (periods) =>
+        new BudgetPeriodEngine(periods, this.pause, true).summarize(
+          ownerId,
+          month,
+          normalizedCurrency,
+          today,
+          scenario
+        )
+      );
     }
 
     const { period: resolved, budget: resolvedBudget } = await this.resolve(
@@ -118,7 +132,19 @@ export class BudgetPeriodEngine {
         budget = (await this.resolve(ownerId, month, normalizedCurrency, today))
           .budget;
       }
-      return { period, budget, forecast: null, carryFromMonth };
+      const decision = await this.periods.monthEndDecision?.(
+        ownerId,
+        month,
+        normalizedCurrency,
+        budget.realRemainingMinorUnits
+      );
+      return {
+        period,
+        budget,
+        forecast: null,
+        carryFromMonth,
+        ...(decision ? { monthEndDecision: decision } : {}),
+      };
     }
 
     const [planned, goalSavingsMinorUnits, envelopeReserveMinorUnits] =

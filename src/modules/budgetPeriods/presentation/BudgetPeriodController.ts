@@ -36,12 +36,17 @@ export class BudgetPeriodController {
       query.scenario
     );
     return res.status(200).json({
-      data: this.summaryDto(
-        result.period,
-        result.budget,
-        result.forecast,
-        result.carryFromMonth
-      ),
+      data: {
+        ...this.summaryDto(
+          result.period,
+          result.budget,
+          result.forecast,
+          result.carryFromMonth
+        ),
+        ...(result.monthEndDecision
+          ? { monthEndDecision: result.monthEndDecision }
+          : {}),
+      },
     });
   }
 

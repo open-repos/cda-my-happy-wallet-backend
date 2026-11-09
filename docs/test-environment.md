@@ -194,6 +194,9 @@ docker run --rm --network mhw-docs-test \
   npm run test:savings-api
   npm run test:savings-persistence
   npm run test:savings-migration
+  npm run test:month-end-domain
+  npm run test:month-end-api
+  npm run test:month-end-migration
   npm run test:financial-goals-domain
   npm run test:financial-goals-api
   npm run test:financial-goals-persistence

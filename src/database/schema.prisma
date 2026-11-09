@@ -115,6 +115,7 @@ model Utilisateur {
   budgetPeriods BudgetPeriod[]
   occurrenceResolutions EventOccurrenceResolution[]
   savingsAccounts SavingsAccount[]
+  monthEndDecisions MonthEndDecision[]
   budgetEnvelopes BudgetEnvelope[]
   reconciliationOccurrences ReconciliationOccurrence[]
   created_at  DateTime @default(now()) @db.Timestamp(0)
@@ -506,10 +507,51 @@ model SavingsMovement {
   idempotencyKey String @db.VarChar(100)
   createdAt DateTime @default(now()) @db.DateTime(3)
   resolution SavingsOccurrenceResolution?
+  monthEndDecisionId Int?
+  monthEndRevision Int?
+  isCompensation Boolean @default(false)
+  monthEndDecision MonthEndDecision? @relation(fields: [monthEndDecisionId, userId], references: [id, userId], onDelete: Cascade)
   @@unique([userId, idempotencyKey])
   @@unique([id, userId])
   @@index([userId, accountId, id])
   @@index([userId, currency, operationDate, id])
+}
+
+/// Current allocation; immutable receipts and savings ledger preserve each accepted revision.
+model MonthEndDecision {
+  id Int @id @default(autoincrement())
+  userId Int
+  user Utilisateur @relation(fields: [userId], references: [id], onDelete: Cascade)
+  month DateTime @db.Date
+  operationDate DateTime @db.Date
+  currency String @db.Char(3)
+  revision Int
+  referenceResultMinorUnits BigInt
+  savingsMinorUnits BigInt
+  coverageMinorUnits BigInt
+  exceptionalIncomeMinorUnits BigInt
+  allocations Json
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+  receipts MonthEndDecisionReceipt[]
+  movements SavingsMovement[]
+  @@unique([userId, month, currency])
+  @@unique([id, userId])
+  @@index([userId, currency, operationDate, id])
+}
+
+model MonthEndDecisionReceipt {
+  id Int @id @default(autoincrement())
+  userId Int
+  decisionId Int
+  revision Int
+  idempotencyKey String @db.VarChar(100)
+  requestHash String @db.Char(64)
+  response Json
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  decision MonthEndDecision @relation(fields: [decisionId, userId], references: [id, userId], onDelete: Cascade)
+  @@unique([userId, idempotencyKey])
+  @@unique([decisionId, revision])
 }
 
 enum SavingsResolutionStatus {

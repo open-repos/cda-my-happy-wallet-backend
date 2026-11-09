@@ -102,6 +102,9 @@ export const swBudgetForecastRouter = {
                       currency: { type: "string" },
                       referenceDate: { type: "string", format: "date" },
                       currentRealRemaining: amount,
+                      carryDecision: {
+                        $ref: "#/components/schemas/MonthEndDecision",
+                      },
                       months: {
                         type: "array",
                         minItems: 1,
