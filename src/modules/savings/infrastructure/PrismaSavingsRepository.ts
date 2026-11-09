@@ -45,6 +45,12 @@ const movementDto = (row: SavingsMovement): Movement => ({
   amountMinorUnits: Number(row.amountMinorUnits),
   operationDate: civil(row.operationDate),
   idempotencyKey: row.idempotencyKey,
+  ...(row.monthEndDecisionId === null
+    ? {}
+    : {
+        monthEndRevision: row.monthEndRevision,
+        isCompensation: row.isCompensation,
+      }),
 });
 const accountDto = (
   row: SavingsAccount & { goalLink: { goalId: number } | null }
@@ -284,7 +290,11 @@ export class PrismaSavingsRepository implements SavingsRepository {
   }
 
   public async transfer(owner: number, id: number, input: Transfer) {
-    if (input.reason === "GOAL" || input.idempotencyKey.startsWith("goal:"))
+    if (
+      input.reason === "GOAL" ||
+      input.idempotencyKey.startsWith("goal:") ||
+      input.idempotencyKey.startsWith("month-end:")
+    )
       throw new SavingsError("INVALID_REASON");
     return this.write(owner, (tx) => this.makeTransfer(tx, owner, id, input));
   }

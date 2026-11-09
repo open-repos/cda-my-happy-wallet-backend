@@ -77,22 +77,65 @@ export class PrismaOperationAnalyticsRepository
         operations: bigint | number;
       }[]
     >(analyticsSql(ownerId, query));
-    return rows.map((row) => ({
+    const ordinary = rows.map((row) => ({
       bucket: row.bucket,
       series: row.series,
       kind: row.kind,
       cents: centsOf(row.total),
       count: Number(row.operations),
     }));
+    if (query.kind === "DEPENSE") return ordinary;
+    // Same indexed date range; no transfer is ever treated as income/spending here.
+    const dimensions = {
+      ...DIMENSION_SQL,
+      category: Prisma.sql`'0'`,
+      kind: Prisma.sql`'ENTREE'`,
+    };
+    const bucket = dimensions[query.groupBy];
+    const series =
+      query.splitBy === null ? Prisma.sql`NULL` : dimensions[query.splitBy];
+    const exceptional = await this.prisma.$queryRaw<
+      {
+        bucket: string;
+        series: string | null;
+        total: Prisma.Decimal;
+        operations: bigint;
+      }[]
+    >(Prisma.sql`
+      SELECT ${bucket} AS bucket, ${series} AS series,
+        SUM(o.exceptionalIncomeMinorUnits) AS total, COUNT(*) AS operations
+      FROM MonthEndDecision o
+      WHERE o.userId = ${ownerId} AND o.currency = ${query.currency}
+        AND o.operationDate >= STR_TO_DATE(${query.from}, '%Y-%m-%d')
+        AND o.operationDate <= STR_TO_DATE(${query.to}, '%Y-%m-%d')
+        AND o.exceptionalIncomeMinorUnits > 0
+      GROUP BY bucket, series
+    `);
+    return [
+      ...ordinary,
+      ...exceptional.map((row) => ({
+        bucket: row.bucket,
+        series: row.series,
+        kind: "ENTREE" as const,
+        cents: Number(row.total),
+        count: Number(row.operations),
+      })),
+    ];
   }
 
   public async categories(
     ownerId: number,
     ids: readonly number[]
   ): Promise<AnalyticsCategory[]> {
-    return this.prisma.operationCategory.findMany({
+    const rows = await this.prisma.operationCategory.findMany({
       where: { userId: ownerId, id: { in: [...ids] } },
       select: { id: true, name: true, color: true },
     });
+    return [
+      ...rows,
+      ...(ids.includes(0)
+        ? [{ id: 0, name: "Entrée exceptionnelle", color: null }]
+        : []),
+    ];
   }
 }

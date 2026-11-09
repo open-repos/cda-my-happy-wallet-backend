@@ -1,4 +1,5 @@
 import { savingsSchemas, swSavingsRouter } from "./savingsSwagger";
+import { monthEndSchemas, swMonthEndRouter } from "./monthEndSwagger";
 import { swReconciliationRouter, reconciliationSchemas } from "./reconciliationSwagger";
 import { swRenewTokenRouter, swAdminRouter } from './../router';
 import { ErrorCode } from "./errors/errorCode.error";
@@ -75,6 +76,7 @@ const swagger = {
   ],
   paths: {
     ...swSavingsRouter,
+    ...swMonthEndRouter,
     ...swReconciliationRouter,
     ...swAdminRouter,
     ...swUserRouter,
@@ -109,6 +111,7 @@ const swagger = {
     },
     schemas: {
       ...savingsSchemas,
+      ...monthEndSchemas,
       ...reconciliationSchemas,
       PaginationMeta: {
         type: "object",

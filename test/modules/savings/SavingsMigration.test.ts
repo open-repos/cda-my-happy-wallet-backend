@@ -1,5 +1,6 @@
 import assert from "assert";
 import { PrismaClient } from "@prisma/client";
+import { rewindMonthEndMigration } from "../monthEnd/migrationFixture";
 const url = new URL(process.env.DATABASE_URL ?? "");
 if (
   process.env.NODE_ENV !== "test" ||
@@ -12,6 +13,7 @@ const email = "savings-migration@test.local",
   migration = "20261107185000_add_savings_accounts";
 async function run() {
   if (process.argv[2] === "prepare") {
+    await rewindMonthEndMigration(prisma);
     // These are exclusively the new tables, in dependency order, in the guarded disposable DB.
     await prisma.$executeRaw`DROP TABLE SavingsOccurrenceResolution`;
     await prisma.$executeRaw`DROP TABLE SavingsMovement`;

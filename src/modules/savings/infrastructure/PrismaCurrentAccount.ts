@@ -54,7 +54,7 @@ export class PrismaCurrentAccount {
       (position.length !== 3 ||
         typeof position[0] !== "string" ||
         !isCivilDate(position[0]) ||
-        ![0, 1].includes(position[1] as number) ||
+        ![0, 1, 2].includes(position[1] as number) ||
         typeof position[2] !== "number" ||
         !Number.isSafeInteger(position[2]) ||
         position[2] <= 0)
@@ -95,6 +95,11 @@ export class PrismaCurrentAccount {
           CASE WHEN m.direction = 'FROM_SAVINGS' THEN m.amountMinorUnits ELSE -m.amountMinorUnits END AS signedAmount, m.accountId
         FROM SavingsMovement m JOIN SavingsAccount a ON a.id = m.accountId AND a.userId = m.userId
         WHERE m.userId = ${owner} AND m.currency = ${currency} AND m.operationDate BETWEEN ${start} AND ${end}
+        UNION ALL
+        SELECT id, 2 AS source, operationDate, 'Entrée exceptionnelle' AS title, 'ENTREE' AS kind,
+          exceptionalIncomeMinorUnits AS signedAmount, NULL AS accountId
+        FROM MonthEndDecision WHERE userId = ${owner} AND currency = ${currency}
+          AND operationDate BETWEEN ${start} AND ${end} AND exceptionalIncomeMinorUnits > 0
       ) history ${after}
       ORDER BY operationDate DESC, source ASC, id DESC LIMIT ${page.limit + 1}
     `);
@@ -119,7 +124,12 @@ export class PrismaCurrentAccount {
       ...result,
       data: result.data.map((row) => ({
         ...row,
-        source: row.source === 0 ? "OPERATION" : "VIREMENT",
+        source:
+          row.source === 0
+            ? "OPERATION"
+            : row.source === 1
+            ? "VIREMENT"
+            : "EXCEPTIONAL_INCOME",
       })),
     };
   }

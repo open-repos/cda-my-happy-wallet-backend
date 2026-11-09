@@ -39,6 +39,17 @@ export type CloseBudgetPeriodInput = Readonly<{
 }>;
 
 export interface BudgetPeriodRepository {
+  /** A summary/forecast and its allocation must observe the same owner-locked state. */
+  withOwnerLock?<T>(
+    ownerId: number,
+    read: (periods: BudgetPeriodRepository) => Promise<T>
+  ): Promise<T>;
+  monthEndDecision?(
+    ownerId: number,
+    month: string,
+    currency: string,
+    carryMinorUnits: number
+  ): Promise<import("../../monthEnd/domain/MonthEnd").DecisionView | null>;
   /** Remaining variable budget only; fixed plans already belong to the base. */
   envelopeReserve?(
     ownerId: number,
