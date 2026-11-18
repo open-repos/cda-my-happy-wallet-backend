@@ -74,8 +74,10 @@ jobs:
         run: npm ci
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=low
+      # Same audit, with the owner-approved temporary exceptions of
+      # scripts/dev-audit-exceptions.json (#190). Production stays strict.
       - name: Audit all dependencies including development
-        run: npm audit --include=dev --audit-level=low
+        run: npm run audit:dev
       - name: Map the guarded test database hostname
         run: echo "127.0.0.1 my-happy-wallet-mysql-test" | sudo tee -a /etc/hosts
       - name: Check formatting
@@ -89,6 +91,7 @@ jobs:
       - name: Run service and API tests
         run: |
           npm run test:runtime-dependencies
+          npm run test:dev-audit
           npm run test:request-logging
           npm run test:services
           npm run test:mailer
