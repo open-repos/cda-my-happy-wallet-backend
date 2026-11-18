@@ -321,3 +321,8 @@ Pour retirer l'exception, supprimer son entrée du fichier JSON dès que
 Ne jamais prolonger la date sans nouvel accord du propriétaire. Revenir à
 `npm audit --include=dev --audit-level=low` est possible quand le fichier
 n'a plus d'entrée.
+
+### Retrait de l’exception
+
+GitHub a retiré l’avis GHSA-fc5q-39xc-vjpf le 18 novembre 2026.
+L’audit strict de développement retourne zéro vulnérabilité. L’exception a été retirée.
