@@ -1,6 +1,8 @@
 const assert = require("node:assert/strict");
 const { evaluate } = require("../../../scripts/audit-dev.cjs");
-const { exceptions } = require("../../../scripts/dev-audit-exceptions.json");
+const {
+  exceptions: configuredExceptions,
+} = require("../../../scripts/dev-audit-exceptions.json");
 
 const ADVISORY = "https://github.com/advisories/GHSA-fc5q-39xc-vjpf";
 const MAJOR_FIX = {
@@ -55,6 +57,23 @@ const picomatchReport = (changes = {}) => {
   return { auditReportVersion: 2, vulnerabilities, metadata: {} };
 };
 
+const exceptions = [
+  {
+    advisory: "GHSA-fc5q-39xc-vjpf",
+    package: "picomatch",
+    range: "<=4.0.7",
+    packages: [
+      "picomatch",
+      "fdir",
+      "tinyglobby",
+      "@typescript-eslint/typescript-estree",
+      "@typescript-eslint/parser",
+    ],
+    expires: "2026-12-31",
+    issue: 190,
+  },
+];
+
 const BEFORE_EXPIRY = "2026-11-18";
 const run = (report, today = BEFORE_EXPIRY) =>
   evaluate(report, exceptions, today);
@@ -68,11 +87,20 @@ const failsWith = (result, pattern) => {
   );
 };
 
-// The versioned exception is the one the owner approved, nothing wider.
-assert.equal(exceptions.length, 1);
-assert.equal(exceptions[0].advisory, "GHSA-fc5q-39xc-vjpf");
-assert.equal(exceptions[0].expires, "2026-12-31");
-assert.equal(exceptions[0].issue, 190);
+// The withdrawn advisory is no longer exempted in the actual configuration.
+assert.deepEqual(configuredExceptions, []);
+assert.equal(
+  evaluate(
+    { auditReportVersion: 2, vulnerabilities: {} },
+    configuredExceptions,
+    BEFORE_EXPIRY
+  ).ok,
+  true
+);
+failsWith(
+  evaluate(picomatchReport(), configuredExceptions, BEFORE_EXPIRY),
+  /picomatch: advisory GHSA-fc5q-39xc-vjpf is not excepted/
+);
 
 // A clean report passes and reports the unused exception.
 const clean = run({ auditReportVersion: 2, vulnerabilities: {} });
