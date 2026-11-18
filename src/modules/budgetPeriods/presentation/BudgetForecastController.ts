@@ -31,6 +31,9 @@ export class BudgetForecastController {
         currency: result.currency,
         referenceDate: result.referenceDate,
         currentRealRemaining: amountOf(result.currentRealRemainingMinorUnits),
+        ...(result.carryDecision
+          ? { carryDecision: result.carryDecision }
+          : {}),
         months: result.months.map((month) => ({
           month: month.month,
           fixedIncome: amountOf(month.fixedIncomeMinorUnits),

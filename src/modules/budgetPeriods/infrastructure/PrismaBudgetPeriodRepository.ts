@@ -1,4 +1,5 @@
 import { plannedSavingsMovements } from "../../savings/infrastructure/plannedSavings";
+import { decisionView } from "../../monthEnd/domain/MonthEnd";
 import { lockReconciliationOwner } from "../../reconciliation/infrastructure/reconciliationLocks";
 import {
   reconcileFixedTotals,
@@ -64,6 +65,46 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
     private readonly cursors: PaginationCursorCodec = paginationCursorCodec,
     private readonly today: CivilDateClock = parisCivilDateClock
   ) {}
+
+  public async withOwnerLock<T>(
+    ownerId: number,
+    read: (periods: BudgetPeriodRepository) => Promise<T>
+  ): Promise<T> {
+    if (!("$transaction" in this.prisma)) {
+      await lockReconciliationOwner(this.prisma, ownerId);
+      return read(this);
+    }
+    return this.prisma.$transaction(
+      async (tx) => {
+        await lockReconciliationOwner(tx, ownerId);
+        return read(
+          new PrismaBudgetPeriodRepository(tx, this.cursors, this.today)
+        );
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+        timeout: 20000,
+      }
+    );
+  }
+
+  public async monthEndDecision(
+    ownerId: number,
+    month: string,
+    currency: string,
+    carryMinorUnits: number
+  ) {
+    const row = await this.prisma.monthEndDecision.findUnique({
+      where: {
+        userId_month_currency: {
+          userId: ownerId,
+          month: this.periodStart(month),
+          currency,
+        },
+      },
+    });
+    return row ? decisionView(month, currency, carryMinorUnits, row) : null;
+  }
 
   public async find(
     ownerId: number,
@@ -255,6 +296,16 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
       },
       select: { operationDate: true, amountMinorUnits: true, direction: true },
     });
+    const decision = await this.prisma.monthEndDecision.findUnique({
+      where: {
+        userId_month_currency: {
+          userId: ownerId,
+          month: this.periodStart(month),
+          currency,
+        },
+      },
+      select: { operationDate: true, exceptionalIncomeMinorUnits: true },
+    });
     return [
       ...rows.map((row) => ({
         operationDate: row.operationDate.toISOString().slice(0, 10),
@@ -283,6 +334,15 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
             ? ("DEPENSE" as const)
             : ("ENTREE" as const),
       })),
+      ...(decision && decision.exceptionalIncomeMinorUnits > BigInt(0)
+        ? [
+            {
+              operationDate: decision.operationDate.toISOString().slice(0, 10),
+              minorUnits: Number(decision.exceptionalIncomeMinorUnits),
+              kind: "ENTREE" as const,
+            },
+          ]
+        : []),
     ];
   }
 
@@ -427,7 +487,12 @@ export class PrismaBudgetPeriodRepository implements BudgetPeriodRepository {
       orderBy: [{ operationDate: "asc" }, { id: "asc" }],
       select: { operationDate: true },
     });
-    const months = [first, transfer].flatMap((row) =>
+    const decision = await this.prisma.monthEndDecision.findFirst({
+      where: { userId: ownerId, currency },
+      orderBy: { month: "asc" },
+      select: { operationDate: true },
+    });
+    const months = [first, transfer, decision].flatMap((row) =>
       row ? [row.operationDate.toISOString().slice(0, 7)] : []
     );
     return months.sort()[0] ?? null;

@@ -149,7 +149,7 @@ docker run --rm --network mhw-docs-test \
   test ! -e .env
   npm ci
   npm audit --omit=dev --audit-level=low
-  npm audit --include=dev --audit-level=low
+  npm run audit:dev
   npm run prisma:generate
   npm run format
   npx --no-install prettier --check README.md docs/architecture.md docs/api-contracts.md docs/test-environment.md
@@ -157,6 +157,7 @@ docker run --rm --network mhw-docs-test \
   npm run db:deploy
   npm run type-check
   npm run test:runtime-dependencies
+  npm run test:dev-audit
   npm run test:request-logging
   npm run test:services
   npm run test:mailer
@@ -194,6 +195,9 @@ docker run --rm --network mhw-docs-test \
   npm run test:savings-api
   npm run test:savings-persistence
   npm run test:savings-migration
+  npm run test:month-end-domain
+  npm run test:month-end-api
+  npm run test:month-end-migration
   npm run test:financial-goals-domain
   npm run test:financial-goals-api
   npm run test:financial-goals-persistence
@@ -241,8 +245,11 @@ Les deux audits reproduisent les étapes bloquantes ajoutées par
 l'installation en CI. Ils doivent sortir avec le code `0` ; une vulnérabilité
 de niveau faible ou supérieur, ou une erreur de registre, interrompt le parcours.
 Le [guide des dépendances](runtime-dependency-security.md#contrôle-bloquant-en-ci)
-décrit le diagnostic et la reprise. Ces étapes s'ajoutent aux 62 suites sans
-en changer la liste.
+décrit le diagnostic et la reprise. Depuis
+[#190](https://github.com/open-repos/cda-my-happy-wallet-backend/issues/190),
+l'audit de développement passe par `npm run audit:dev`. Ses exceptions
+temporaires sont testées par `npm run test:dev-audit`, ajouté à la liste des
+suites ci-dessus.
 
 Résultats attendus : audits et format/lint sans échec, migrations appliquées (ou aucune
 en attente à la seconde exécution), suites avec code `0`, client Prisma généré

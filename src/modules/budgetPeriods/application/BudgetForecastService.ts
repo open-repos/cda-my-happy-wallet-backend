@@ -20,6 +20,8 @@ export type BudgetForecastReads = Pick<
   | "hasReconciliationPlans"
   | "envelopeReserve"
   | "goalSavings"
+  | "monthEndDecision"
+  | "withOwnerLock"
 >;
 
 export type MonthlyBudgetForecast = Readonly<{
@@ -45,6 +47,14 @@ export type MonthlyBudgetForecast = Readonly<{
 
 const monthIndex = (month: string) =>
   Number(month.slice(0, 4)) * 12 + Number(month.slice(5, 7)) - 1;
+export type BudgetForecastResult = Readonly<{
+  from: string;
+  currency: string;
+  referenceDate: string;
+  currentRealRemainingMinorUnits: number;
+  months: MonthlyBudgetForecast[];
+  carryDecision?: import("../../monthEnd/domain/MonthEnd").DecisionView;
+}>;
 const shiftMonth = (month: string, offset: number): string => {
   const index = monthIndex(month) + offset;
   return `${String(Math.floor(index / 12)).padStart(4, "0")}-${String(
@@ -53,7 +63,10 @@ const shiftMonth = (month: string, offset: number): string => {
 };
 
 export class BudgetForecastService {
-  public constructor(private readonly periods: BudgetForecastReads) {}
+  public constructor(
+    private readonly periods: BudgetForecastReads,
+    private readonly ownerLocked = false
+  ) {}
 
   public async forecast(
     ownerId: number,
@@ -62,7 +75,7 @@ export class BudgetForecastService {
     currency: string,
     today: string,
     scenario: import("../../monthlyEvents/domain").BudgetScenario = "standard"
-  ) {
+  ): Promise<BudgetForecastResult> {
     if (!Number.isSafeInteger(ownerId) || ownerId <= 0)
       throw new BudgetPeriodEngineError("INVALID_OWNER_ID");
     assertCivilDate(today);
@@ -82,6 +95,18 @@ export class BudgetForecastService {
     const normalizedCurrency = currency.trim().toUpperCase();
     if (!/^[A-Z]{3}$/.test(normalizedCurrency))
       throw new BudgetPeriodError("INVALID_CURRENCY");
+    if (!this.ownerLocked && this.periods.withOwnerLock) {
+      return this.periods.withOwnerLock(ownerId, (periods) =>
+        new BudgetForecastService(periods, true).forecast(
+          ownerId,
+          from,
+          months,
+          normalizedCurrency,
+          today,
+          scenario
+        )
+      );
+    }
     const [fixed, savings, actual, carry] = await Promise.all([
       this.periods.fixedTotals(ownerId, normalizedCurrency, currentMonth),
       this.periods.goalSavings(ownerId, normalizedCurrency),
@@ -205,12 +230,19 @@ export class BudgetForecastService {
               }),
         });
     }
+    const carryDecision = await this.periods.monthEndDecision?.(
+      ownerId,
+      shiftMonth(currentMonth, -1),
+      normalizedCurrency,
+      carry
+    );
     return {
       from,
       currency: normalizedCurrency,
       referenceDate: today,
       currentRealRemainingMinorUnits: current.realRemainingMinorUnits,
       months: result,
+      ...(carryDecision ? { carryDecision } : {}),
     };
   }
 

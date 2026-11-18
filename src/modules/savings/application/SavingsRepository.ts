@@ -16,6 +16,8 @@ export type Movement = Transfer &
     accountId: number;
     currency: string;
     type: "VIREMENT";
+    monthEndRevision?: number | null;
+    isCompensation?: boolean;
   }>;
 export type SavingsOccurrence = Readonly<{
   accountId: number;

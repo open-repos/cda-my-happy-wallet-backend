@@ -41,6 +41,12 @@ const movementSchema = {
     amountMinorUnits: positiveCents,
     operationDate: civilDate,
     idempotencyKey: { type: "string" },
+    monthEndRevision: { type: "integer", minimum: 1 },
+    isCompensation: {
+      type: "boolean",
+      description:
+        "A linked month-end revision reverses an earlier allocation; reason retains its origin and direction is reversed.",
+    },
   },
 };
 
@@ -194,7 +200,10 @@ export const savingsSchemas = {
     ],
     properties: {
       id: identifier,
-      source: { type: "string", enum: ["OPERATION", "VIREMENT"] },
+      source: {
+        type: "string",
+        enum: ["OPERATION", "VIREMENT", "EXCEPTIONAL_INCOME"],
+      },
       operationDate: civilDate,
       title: text,
       kind: { type: "string", enum: ["ENTREE", "DEPENSE", "VIREMENT"] },

@@ -1,6 +1,6 @@
 {
   "name": "projet-00-myhappywallet-backend",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "description": "Dans ce projet je mettrais toutes les tâches liées au Backend de mon projet \"Chef d'oeuvre\" CDA .",
   "main": "index.js",
   "scripts": {
@@ -12,11 +12,12 @@
     "build": "npx tsc",
     "type-check": "npx tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
-    "format": "prettier --check package.json eslint.config.js .github AGENTS.md CONTRIBUTING.md changes docs/budget-reconciliation.md docs/analytics-api.md docs/budget-projection-api.md docs/daily-budget-domain.md docs/daily-budget-persistence.md docs/delivery-automation.md docs/development-toolchain-security.md docs/event-occurrence-resolutions.md docs/financial-goals.md docs/monthly-event-domain.md docs/monthly-event-persistence.md docs/operation-category-icons.md docs/fixed-operation-categories.md docs/jwt-issuer-audience.md docs/private-http-cache.md docs/release-process.md docs/request-logging.md docs/test-environment.md scripts/release.cjs test/release docs/runtime-dependency-security.md src/modules/user/mail/SendGridMailer.ts test/modules/user/SendGridMailer.test.ts test/modules/security/RuntimeDependencies.test.cjs docs/savings-accounts.md src/modules/savings src/routes/savings.ts src/utils/savingsSwagger.ts test/modules/savings",
+    "format": "prettier --check package.json eslint.config.js .github AGENTS.md CONTRIBUTING.md changes docs/budget-reconciliation.md docs/analytics-api.md docs/budget-projection-api.md docs/daily-budget-domain.md docs/daily-budget-persistence.md docs/delivery-automation.md docs/development-toolchain-security.md docs/event-occurrence-resolutions.md docs/financial-goals.md docs/monthly-event-domain.md docs/monthly-event-persistence.md docs/operation-category-icons.md docs/fixed-operation-categories.md docs/jwt-issuer-audience.md docs/private-http-cache.md docs/release-process.md docs/request-logging.md docs/test-environment.md scripts/release.cjs test/release docs/runtime-dependency-security.md src/modules/user/mail/SendGridMailer.ts test/modules/user/SendGridMailer.test.ts test/modules/security/RuntimeDependencies.test.cjs test/modules/security/DevAudit.test.cjs scripts/audit-dev.cjs scripts/dev-audit-exceptions.json docs/savings-accounts.md src/modules/savings src/routes/savings.ts src/utils/savingsSwagger.ts test/modules/savings docs/month-end-decisions.md src/modules/monthEnd src/routes/monthEnd.ts src/utils/monthEndSwagger.ts test/modules/monthEnd",
     "db:migrate": "npx prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:visualize": "npx prisma studio",
     "test:runtime-dependencies": "node test/modules/security/RuntimeDependencies.test.cjs",
+    "test:dev-audit": "node test/modules/security/DevAudit.test.cjs",
     "test:request-logging": "node test/modules/security/RequestLogging.test.cjs",
     "test:rav": "ts-node test/modules/operationsFixes/ResteAVivreCalculator.test.ts",
     "test:services": "npm run test:rav && npm run test:fixed-charges",
@@ -81,6 +82,7 @@
     "test:repositories": "ts-node test/modules/repositories/RepositoriesDataAccess.test.ts && npm run test:fixed-charge-migration && npm run test:fixed-charge-persistence && ts-node test/modules/operationsFixes/FixedCategoriesPersistence.test.ts",
     "test:api": "ts-node test/modules/api/ApiCharacterization.test.ts",
     "test:release": "node test/release/release.test.cjs",
+    "audit:dev": "node scripts/audit-dev.cjs",
     "release:prepare": "node scripts/release.cjs prepare",
     "release:notes": "node scripts/release.cjs notes",
     "test": "npm run type-check && npm run test:operations-domain",
@@ -96,7 +98,10 @@
     "test:savings-domain": "ts-node test/modules/savings/Savings.test.ts && ts-node test/modules/savings/SavingsForecast.test.ts",
     "test:savings-api": "ts-node test/modules/savings/SavingsApi.test.ts",
     "test:savings-persistence": "ts-node test/modules/savings/SavingsPersistence.test.ts",
-    "test:savings-migration": "ts-node test/modules/savings/SavingsMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/savings/SavingsMigration.test.ts verify"
+    "test:savings-migration": "ts-node test/modules/savings/SavingsMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/savings/SavingsMigration.test.ts verify",
+    "test:month-end-domain": "ts-node test/modules/monthEnd/MonthEnd.test.ts",
+    "test:month-end-api": "ts-node test/modules/monthEnd/MonthEndApi.test.ts && ts-node test/modules/monthEnd/MonthEndConcurrency.test.ts",
+    "test:month-end-migration": "ts-node test/modules/monthEnd/MonthEndMigration.test.ts prepare && prisma migrate deploy && ts-node test/modules/monthEnd/MonthEndMigration.test.ts verify"
   },
   "repository": {
     "type": "git",

@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.15.0 (2026-11-18)
+
+### Added
+
+- Added atomic, revisable and idempotent month-end allocations with savings transfers, exceptional income, corrected carry, and decision details in budget summaries and forecasts (#184).
+
 ## 1.14.0 (2026-11-08)
 
 ### Added

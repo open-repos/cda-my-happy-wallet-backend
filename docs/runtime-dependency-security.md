@@ -151,15 +151,20 @@ ajoute deux étapes après `npm ci` dans
 
 ```bash
 npm audit --omit=dev --audit-level=low
-npm audit --include=dev --audit-level=low
+npm run audit:dev
 ```
 
 Le premier contrôle les dépendances de production ; le second inclut
 explicitement celles de développement. Le
 [seuil npm](https://docs.npmjs.com/cli/v11/commands/npm-audit/)
 fait échouer la commande dès une alerte faible, modérée, haute ou critique.
-Ces audits consultent le registre et ne corrigent pas les versions. La sortie
-attendue sur le lockfile corrigé est `found 0 vulnerabilities`, code `0`.
+Depuis #190, `npm run audit:dev` remplace `npm audit --include=dev --audit-level=low` :
+il applique le même seuil, mais accepte les exceptions temporaires
+approuvées (voir
+[l'exception picomatch](#exception-temporaire-picomatch-du-18-novembre-2026)).
+Ces audits consultent le registre et ne corrigent pas les versions. Sorties
+attendues, code `0` : `found 0 vulnerabilities` pour la production,
+`development audit passed` pour le développement.
 
 Les étapes sont bloquantes dans le check existant
 `Backend format, lint, migrations, tests and build`, sur les PR et les push
@@ -174,7 +179,8 @@ Si une étape échoue :
 1. Distinguer un rapport de vulnérabilité d'une erreur de registre/réseau.
    Une commande interrompue n'est pas une preuve d'absence d'alertes. Pour une
    panne transitoire, rétablir l'accès puis relancer les contrôles du même commit.
-2. Pour une alerte, reproduire avec `npm ci` puis les deux commandes ci-dessus.
+2. Pour une alerte, reproduire avec `npm ci` puis les deux commandes ci-dessus
+   (`npm run audit:dev` nomme chaque avis ou paquet refusé).
    Obtenir le détail avec `npm audit --include=dev --json` et suivre la chaîne
    du paquet avec `npm explain <paquet>` ; ne pas publier de configuration
    d'authentification au registre dans les preuves.
@@ -184,7 +190,10 @@ Si une étape échoue :
    une issue et garder le contrôle en échec jusqu'à une solution revue.
 
 Ne pas utiliser `npm audit fix --force`, ignorer le code de sortie ou relever
-le seuil pour rendre un résultat vert. Les rapports peuvent évoluer à lockfile
+le seuil pour rendre un résultat vert. Seule exception : un avis de
+développement sans correctif, accepté par le propriétaire, daté et inscrit dans
+`scripts/dev-audit-exceptions.json` (voir
+[l'exception picomatch](#exception-temporaire-picomatch-du-18-novembre-2026)). Les rapports peuvent évoluer à lockfile
 constant quand le registre publie un avis ; ils ne couvrent ni le code applicatif,
 ni le frontend, ni les paquets système de l'image. Ils ne vérifient pas les
 signatures des paquets et ne constituent pas une surveillance entre deux runs.
@@ -277,3 +286,38 @@ L'avis [GHSA-4528-x5fx-h6hg](https://github.com/advisories/GHSA-4528-x5fx-h6hg)
 concerne `string().email({ multiple: true })`, une option que les validateurs
 n'utilisent pas ([#148](https://github.com/open-repos/cda-my-happy-wallet-backend/issues/148)).
 Joi passe de 17.13.8 à 17.13.9 sans changement de validateur ni de contrat d'API.
+
+## Exception temporaire picomatch du 18 novembre 2026
+
+L'avis [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf)
+(ReDoS, haute) couvre `picomatch` jusqu'à 4.0.7, la dernière version publiée
+([#190](https://github.com/open-repos/cda-my-happy-wallet-backend/issues/190)).
+Il n'atteint que le développement par `@typescript-eslint/parser` →
+`typescript-estree` → `tinyglobby` (→ `fdir`) → `picomatch`. La seule
+correction proposée par `npm audit fix --force` rétrograde le parser en 8.47.0,
+qui n'accepte pas ESLint 10. `picomatch` ne lit que des motifs du dépôt au
+moment du lint ; le code livré n'est pas concerné et l'audit `--omit=dev`
+reste vert.
+
+Le propriétaire a accepté une exception temporaire. L'étape de développement
+de la CI exécute `npm run audit:dev` au lieu de
+`npm audit --include=dev --audit-level=low`. Le script `scripts/audit-dev.cjs`
+lit `npm audit --include=dev --json` et n'accepte que les cinq paquets de cette
+chaîne pour cet avis. Il échoue sur :
+
+- tout autre avis, même sur un paquet de la chaîne ;
+- tout autre paquet vulnérable, notamment un nouveau parent de `picomatch` ;
+- `picomatch` devenu dépendance directe ;
+- un correctif compatible de `picomatch` (`fixAvailable: true`) ;
+- un changement de la plage de l'avis, signe d'une version corrigée ;
+- l'expiration au-delà du 31 décembre 2026 ;
+- un rapport illisible ou une erreur de registre.
+
+`npm run test:dev-audit` couvre chacun de ces cas. L'audit de production
+`npm audit --omit=dev --audit-level=low` reste inchangé et sans exception.
+
+Pour retirer l'exception, supprimer son entrée du fichier JSON dès que
+`picomatch` est corrigé ou que l'audit ne la signale plus (le script l'annonce).
+Ne jamais prolonger la date sans nouvel accord du propriétaire. Revenir à
+`npm audit --include=dev --audit-level=low` est possible quand le fichier
+n'a plus d'entrée.

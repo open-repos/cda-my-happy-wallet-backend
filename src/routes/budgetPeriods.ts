@@ -80,7 +80,10 @@ export const swBudgetPeriodRouter = {
         budgetScenarioParameter,
       ],
       responses: {
-        "200": { description: "Budget summary of the authenticated user" },
+        "200": {
+          description:
+            "Budget summary of the authenticated user; a decided month adds monthEndDecision (MonthEndDecision schema, integer cents).",
+        },
         ...securedResponses,
       },
     },
